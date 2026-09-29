@@ -8,6 +8,7 @@ import { createQueryClient } from './api/query-client'
 import { AppShellContainer } from './components/app-shell-container'
 import { AppearanceProvider } from './components/appearance-provider'
 import { LastLocationController } from './components/last-location-controller'
+import { LocaleProvider } from './components/locale-provider'
 import { ReferenceStatusRegistry } from './components/reference-status'
 import { RunNotifications } from './components/run-notifications'
 import { ThemeProvider } from './components/theme-provider'
@@ -44,27 +45,32 @@ export function App() {
               (and reconciliation refetches), turning attention transitions into browser
               notifications when the tab is hidden (R6 1.7). Renders nothing. */}
           <RunNotifications />
-          <ThemeProvider>
-            {/* Beside ThemeProvider on purpose: appearance (accent/density) is the ui-state.json
-                half of the same boot contract — mirror pre-paints, server truth reconciles. */}
-            <AppearanceProvider>
-              <BrowserRouter>
-                <LastLocationController />
-                {/* At the root for the same reason the event stream is: the sidebar, the task table
-                    and an open run header all paint PR/issue chips, often the SAME ones, and each
-                    asking for itself was several round trips and a staggered wave of colour. They
-                    register what they are painting here instead, and it goes out as one request per
-                    project. */}
-                <ReferenceStatusRegistry>
-                  <AppShellContainer>
-                    <AppRoutes />
-                  </AppShellContainer>
-                </ReferenceStatusRegistry>
-                {/* One toast outlet for the whole app — `toast()` is a module-level call. */}
-                <Toaster />
-              </BrowserRouter>
-            </AppearanceProvider>
-          </ThemeProvider>
+          {/* Beside ThemeProvider, on the same per-browser footing (localStorage, no server
+              round trip, no flash thanks to the pre-paint script in index.html) — see
+              lib/locale.ts and components/locale-provider.tsx. */}
+          <LocaleProvider>
+            <ThemeProvider>
+              {/* Beside ThemeProvider on purpose: appearance (accent/density) is the ui-state.json
+                  half of the same boot contract — mirror pre-paints, server truth reconciles. */}
+              <AppearanceProvider>
+                <BrowserRouter>
+                  <LastLocationController />
+                  {/* At the root for the same reason the event stream is: the sidebar, the task table
+                      and an open run header all paint PR/issue chips, often the SAME ones, and each
+                      asking for itself was several round trips and a staggered wave of colour. They
+                      register what they are painting here instead, and it goes out as one request per
+                      project. */}
+                  <ReferenceStatusRegistry>
+                    <AppShellContainer>
+                      <AppRoutes />
+                    </AppShellContainer>
+                  </ReferenceStatusRegistry>
+                  {/* One toast outlet for the whole app — `toast()` is a module-level call. */}
+                  <Toaster />
+                </BrowserRouter>
+              </AppearanceProvider>
+            </ThemeProvider>
+          </LocaleProvider>
         </HostUsageProvider>
       </GlobalEventsProvider>
     </QueryClientProvider>

@@ -41,6 +41,22 @@
         } catch (e) {
           // Storage unavailable — lime/comfortable defaults already apply.
         }
+        // UI language before first paint — no flash of the wrong `lang`. Mirrors
+        // detectBrowserLocale()/applyLocale() in src/lib/locale.ts; keep the two in sync. A
+        // never-chosen preference falls back to navigator.language (`pl*` → Polish, else
+        // English), exactly like LocaleProvider's own first read.
+        try {
+          var storedLocale = localStorage.getItem('cez-locale')
+          var locale =
+            storedLocale === 'pl' || storedLocale === 'en'
+              ? storedLocale
+              : String(navigator.language || '').toLowerCase().indexOf('pl') === 0
+                ? 'pl'
+                : 'en'
+          document.documentElement.lang = locale
+        } catch (e) {
+          // Storage/navigator unavailable — the English default markup already applies.
+        }
       })()
     </script>
   </head>

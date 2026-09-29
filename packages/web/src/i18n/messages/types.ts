@@ -1,0 +1,225 @@
+import type { PluralForms } from '../plural-forms'
+
+/**
+ * The one typed shape both `en.ts` and `pl.ts` are written against (`export const en: Messages`
+ * / `export const pl: Messages`) — not one derived from the other. That is deliberate: typing
+ * Polish as `typeof en` would force every Polish VALUE to satisfy whatever TypeScript inferred
+ * for the English literal (fine for plain strings, but it also means the two files can never be
+ * reviewed as symmetric peers against a single contract). Typing both against this interface
+ * gets the same guarantee the task asks for — a missing, renamed or extra Polish key is a
+ * compile error — while keeping `en.ts` and `pl.ts` structurally interchangeable and equally
+ * authoritative.
+ *
+ * Namespaces roughly mirror where the strings render (`nav`, `tasksPage`, `composer`, …) rather
+ * than the component tree, so a translator can find "the Tasks page" without knowing which file
+ * renders it. Plural-aware entries use `PluralForms` (`one`/`few`/`many`/`other`) and resolve
+ * through `tn()`; everything else is a plain string interpolated through `t()`.
+ */
+export interface Messages {
+  common: {
+    cancel: string
+    save: string
+    delete: string
+    remove: string
+    confirm: string
+    close: string
+    retry: string
+    tryAgain: string
+    refresh: string
+    copy: string
+    search: string
+    add: string
+    edit: string
+    rename: string
+    loading: string
+    unknown: string
+    none: string
+    folderNotFound: string
+    somethingWentWrong: string
+    nothingMatches: string
+  }
+  nav: {
+    tasks: string
+    inbox: string
+    git: string
+    tracker: string
+    automations: string
+    skills: string
+    workflows: string
+    settings: string
+    dashboard: string
+    allTasks: string
+    globalSettings: string
+    newTask: string
+    addProject: string
+    openLocalFolder: string
+    cloneFromGithub: string
+    searchEllipsis: string
+    navigation: string
+    openMenu: string
+    closeMenu: string
+    resizeSidebar: string
+    updateCezar: string
+    skillsUpdateAvailable: string
+    notSaved: string
+    more: string
+    unreadTasksTitle: PluralForms
+  }
+  commandPalette: {
+    placeholder: string
+    empty: string
+    recentlyFinished: string
+    views: string
+    projects: string
+    actions: string
+    toggleTheme: string
+  }
+  tasksPage: {
+    title: string
+    active: string
+    archived: string
+    markAllRead: string
+    archiveFinished: string
+    searchPlaceholder: string
+    searchAriaLabel: string
+    compare: string
+    taskColumn: string
+    branchColumn: string
+    renameAria: string
+    unreadAria: string
+    unreadTitle: string
+    newTaskFabAria: string
+    queueInQueue: string
+    foldColumn: string
+    expandColumn: string
+    emptySearchTitle: string
+    emptySearchSubtitle: string
+    emptyArchiveTitle: string
+    emptyArchiveSubtitle: string
+    emptyNoTasksTitle: string
+    emptyNoTasksSubtitle: string
+    count: PluralForms
+    variantsFinished: PluralForms
+  }
+  taskThread: {
+    session: string
+    changes: string
+    commits: string
+    files: string
+    finish: string
+    continueRun: string
+    notes: string
+    showDetails: string
+    hideDetails: string
+  }
+  composer: {
+    header: string
+    placeholder: string
+    ariaLabel: string
+    replyPlaceholder: string
+    replyAriaLabel: string
+    sendDefault: string
+    sendStart: string
+    sendPlan: string
+    checkingProviders: string
+    providerAuthError: string
+    connectProvider: string
+    loadingSourcesRetry: string
+    startingTask: string
+    launchedFromBookmarklet: string
+    worktree: string
+    autonomous: string
+    followups: string
+    start: string
+    planFirst: string
+    planning: string
+    configureProviders: string
+    attachFiles: string
+    dictation: string
+    listening: string
+    loadingSkills: string
+    noMatchingSkills: string
+    noFilesYet: string
+    removeAttachment: string
+    suggestion1: string
+    suggestion2: string
+    suggestion3: string
+  }
+  gitPage: {
+    couldNotLoad: string
+    notGitTitle: string
+    notGitSubtitle: string
+    changes: string
+    commits: string
+    branches: string
+  }
+  forge: {
+    couldNotLoad: string
+    unavailableHere: string
+    issuesTab: string
+    pullRequestsTab: string
+    setUpAutomations: string
+    refresh: string
+    syncedAgo: string
+    labels: string
+    labelsCount: string
+    noLabels: string
+    nothingSelected: string
+    notFound: string
+  }
+  settings: {
+    sectionsAriaLabel: string
+    general: string
+    globalSettingsChip: string
+    storedInHome: string
+    indexTitleGlobal: string
+    indexTitleProject: string
+    indexSubtitleGlobal: string
+    indexSubtitleProject: string
+    crossLinkProjectScoped: string
+    crossLinkGlobalPrefix: string
+    crossLinkGlobalSuffix: string
+    sections: {
+      tracker: { title: string; description: string }
+      agents: { title: string; description: string }
+      'agent-config': { title: string; description: string }
+      worktrees: { title: string; description: string }
+      bookmarklets: { title: string; description: string }
+      'prompt-templates': { title: string; description: string }
+      appearance: { title: string; description: string }
+      notifications: { title: string; description: string }
+      resources: { title: string; description: string }
+      skills: { title: string; description: string }
+      accounts: { title: string; description: string }
+      projects: { title: string; description: string }
+      keyboard: { title: string; description: string }
+    }
+  }
+  appearance: {
+    themeTitle: string
+    themeHint: string
+    themeSystem: string
+    themeLight: string
+    themeDark: string
+    languageTitle: string
+    languageHint: string
+    languageEnglish: string
+    languagePolish: string
+    accentTitle: string
+    accentHint: string
+    accentLime: string
+    accentViolet: string
+    densityTitle: string
+    densityHint: string
+    densityComfortable: string
+    densityCompact: string
+    densityUltra: string
+    widthTitle: string
+    widthHint: string
+    widthNarrow: string
+    widthWide: string
+    projectOrderTitle: string
+    projectOrderHint: string
+    resetOrder: string
+  }
+}
