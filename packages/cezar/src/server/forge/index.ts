@@ -1,5 +1,6 @@
 import type { RepoInfo } from '../git.ts';
 import { createGithubDriver } from './github.ts';
+import { createGitlabDriver, type GitlabRepoRef } from './gitlab.ts';
 import type { ForgeDriver, ForgeKind } from './types.ts';
 
 /**
@@ -45,8 +46,31 @@ export function parseRemote(remote: string): ParsedRemote | null {
 }
 
 /** Remote host → forge kind. The one host table both `resolveForge` and the
- *  registry probe read; GitLab lands here later as one more row. */
-const FORGE_HOSTS: Record<string, ForgeKind> = { 'github.com': 'github' };
+ *  registry probe read. Self-hosted GitLab instances join through `CEZ_GITLAB_HOSTS`
+ *  (comma-separated host names), read per call so a restart is all a change needs. */
+const FORGE_HOSTS: Record<string, ForgeKind> = { 'github.com': 'github', 'gitlab.com': 'gitlab' };
+
+function forgeKindOfHost(host: string): ForgeKind | null {
+  if (Object.hasOwn(FORGE_HOSTS, host)) return FORGE_HOSTS[host]!;
+  const extra = (process.env.CEZ_GITLAB_HOSTS ?? '')
+    .split(',')
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean);
+  return extra.includes(host) ? 'gitlab' : null;
+}
+
+/** The remote's full project path — `group/subgroup/project` — which GitLab needs where
+ *  `parseRemote` keeps only the last two segments. Null when the remote does not parse. */
+export function parseRemotePath(remote: string): { host: string; path: string } | null {
+  const parsed = parseRemote(remote);
+  if (!parsed) return null;
+  const r = remote.trim().replace(/\/+$/, '');
+  const url = /^(?:https?|ssh|git|git\+ssh):\/\/(?:[^@/]+@)?[^/:]+(?::\d+)?\/(.+)$/.exec(r);
+  const scp = url ? null : /^(?:[^@/:]+@)?[^:/]+:(.+)$/.exec(r);
+  const raw = (url?.[1] ?? scp?.[1] ?? '').replace(/\.git$/i, '');
+  const path = raw.split('/').filter(Boolean).join('/');
+  return path ? { host: parsed.host, path } : null;
+}
 
 /**
  * Which forge a remote URL belongs to, without building a driver (#698): the
@@ -56,7 +80,7 @@ const FORGE_HOSTS: Record<string, ForgeKind> = { 'github.com': 'github' };
  */
 export function forgeKindOfRemote(remote: string | undefined): ForgeKind | null {
   const parsed = remote ? parseRemote(remote) : null;
-  return parsed ? (FORGE_HOSTS[parsed.host] ?? null) : null;
+  return parsed ? forgeKindOfHost(parsed.host) : null;
 }
 
 /**
@@ -69,19 +93,36 @@ export function forgeKindOfRemote(remote: string | undefined): ForgeKind | null 
  */
 export function forgeWebRoot(remote: string | undefined): string | null {
   const parsed = remote ? parseRemote(remote) : null;
-  if (!parsed || !(parsed.host in FORGE_HOSTS)) return null;
+  if (!parsed) return null;
+  const kind = forgeKindOfHost(parsed.host);
+  if (kind === 'gitlab') {
+    const full = parseRemotePath(remote!);
+    return full ? `https://${full.host}/${full.path}` : null;
+  }
+  if (!kind) return null;
   return `https://${parsed.host}/${parsed.owner}/${parsed.repo}`;
 }
 
-/** Remote host → driver | null. GitLab lands here later as one more case. */
+/** Remote host → driver | null. */
 export function resolveForge(repoInfo: RepoInfo | null): ForgeDriver | null {
   if (!repoInfo?.remote) return null;
   const parsed = parseRemote(repoInfo.remote);
   if (!parsed) return null;
-  if (FORGE_HOSTS[parsed.host] === 'github') {
+  const kind = forgeKindOfHost(parsed.host);
+  if (kind === 'github') {
     return createGithubDriver(repoInfo.root, { owner: parsed.owner, repo: parsed.repo });
   }
+  if (kind === 'gitlab') {
+    const ref = gitlabRef(repoInfo.remote);
+    return ref ? createGitlabDriver(repoInfo.root, ref) : null;
+  }
   return null;
+}
+
+/** The GitLab project a remote names, or null when it is not on a GitLab host. */
+export function gitlabRef(remote: string | undefined): GitlabRepoRef | null {
+  const full = remote ? parseRemotePath(remote) : null;
+  return full && forgeKindOfHost(full.host) === 'gitlab' ? full : null;
 }
 
 export type { ForgeDriver, ForgeAvailability, ForgeItem, ForgeKind, ForgePrStatus, ForgeRefKind } from './types.ts';

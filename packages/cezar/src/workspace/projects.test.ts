@@ -198,14 +198,18 @@ describe('workspace projects', () => {
       expect(entry).toMatchObject({ status: 'ok', forge: 'github' });
     });
 
-    it('omits forge for a non-github remote and for a remote-less repo', async () => {
+    it('classifies a gitlab.com remote as gitlab, and omits forge for an unknown host or no remote', async () => {
       const gitlab = makeRepo('lab');
       execFileSync('git', ['remote', 'add', 'origin', 'git@gitlab.com:acme/lab.git'], { cwd: gitlab });
+      const selfHosted = makeRepo('own');
+      execFileSync('git', ['remote', 'add', 'origin', 'git@git.example.com:acme/own.git'], { cwd: selfHosted });
       const bare = makeRepo('loner');
       await registerProject(gitlab);
+      await registerProject(selfHosted);
       await registerProject(bare);
       const entries = await listProjects();
-      expect(entries.every((entry) => entry.forge === undefined)).toBe(true);
+      expect(entries.find((entry) => entry.name === 'lab')?.forge).toBe('gitlab');
+      expect(entries.filter((entry) => entry.name !== 'lab').every((entry) => entry.forge === undefined)).toBe(true);
     });
 
     it('reports a deleted root as missing (after the probe TTL cache is cleared)', async () => {

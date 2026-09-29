@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RepoInfo } from '../git.ts';
-import { forgeKindOfRemote, parseRemote, resolveForge } from './index.ts';
+import { forgeKindOfRemote, forgeWebRoot, gitlabRef, parseRemote, parseRemotePath, resolveForge } from './index.ts';
 
 /** Forge resolution (spec §"Forge-driver seam"): remote host → driver | null. */
 
@@ -38,7 +38,7 @@ describe('forgeKindOfRemote', () => {
   it.each([
     ['https://github.com/acme/demo.git', 'github'],
     ['git@github.com:acme/demo.git', 'github'],
-    ['git@gitlab.com:acme/demo.git', null],
+    ['git@gitlab.com:acme/demo.git', 'gitlab'],
     ['https://git.example.com/acme/demo.git', null],
     ['/srv/git/demo.git', null],
     [undefined, null],
@@ -56,8 +56,20 @@ describe('resolveForge', () => {
     expect(resolveForge(info('git@github.com:acme/demo.git'))?.kind).toBe('github');
   });
 
-  it('returns null for an unknown forge host (GitLab lands here later)', () => {
-    expect(resolveForge(info('git@gitlab.com:acme/demo.git'))).toBeNull();
+  it('maps a gitlab.com remote to the GitLab driver', () => {
+    expect(resolveForge(info('git@gitlab.com:acme/demo.git'))?.kind).toBe('gitlab');
+  });
+
+  it('maps a self-hosted host to the GitLab driver once CEZ_GITLAB_HOSTS names it', () => {
+    const before = process.env.CEZ_GITLAB_HOSTS;
+    process.env.CEZ_GITLAB_HOSTS = 'git.example.com, other.example';
+    try {
+      expect(resolveForge(info('https://git.example.com/acme/demo.git'))?.kind).toBe('gitlab');
+      expect(forgeKindOfRemote('git@other.example:a/b.git')).toBe('gitlab');
+    } finally {
+      if (before === undefined) delete process.env.CEZ_GITLAB_HOSTS;
+      else process.env.CEZ_GITLAB_HOSTS = before;
+    }
   });
 
   it('returns null for a self-hosted host', () => {
@@ -88,5 +100,25 @@ describe('GitHub driver viewUrl', () => {
     ['commit', 'abc1234', 'https://github.com/acme/demo/commit/abc1234'],
   ] as const)('%s → %s', (kind, ref, expected) => {
     expect(driver.viewUrl(kind, ref)).toBe(expected);
+  });
+});
+
+describe('GitLab project paths', () => {
+  it.each([
+    ['git@gitlab.com:group/sub/project.git', { host: 'gitlab.com', path: 'group/sub/project' }],
+    ['https://oauth2:tok@gitlab.com/group/project.git', { host: 'gitlab.com', path: 'group/project' }],
+    ['ssh://git@gitlab.com:2222/a/b/c/d.git', { host: 'gitlab.com', path: 'a/b/c/d' }],
+  ])('keeps every subgroup of %s', (remote, expected) => {
+    expect(parseRemotePath(remote)).toEqual(expected);
+    expect(gitlabRef(remote)).toEqual(expected);
+  });
+
+  it('builds the web root from the full path, never from the credentials', () => {
+    expect(forgeWebRoot('https://oauth2:tok@gitlab.com/group/sub/project.git')).toBe('https://gitlab.com/group/sub/project');
+  });
+
+  it('is null off GitLab hosts', () => {
+    expect(gitlabRef('git@github.com:acme/demo.git')).toBeNull();
+    expect(gitlabRef(undefined)).toBeNull();
   });
 });

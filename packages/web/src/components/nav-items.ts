@@ -12,7 +12,7 @@ import type { ComponentType, SVGProps } from 'react'
 import type { TrackerKind } from '@open-mercato/cezar-api-client'
 
 import { TRACKER_PROVIDERS } from '@/lib/tracker-providers'
-import { GithubIcon } from '@/components/icons'
+import { GithubIcon, GitlabIcon } from '@/components/icons'
 
 export type NavItem = {
   /** Where the item navigates. Also its identity — `activeNavPath` returns this. */
@@ -61,6 +61,8 @@ export const NAV_ITEMS: NavItem[] = [
 export type NavAvailability = {
   /** `forge.available` (spec §"GitHub tab (forge tab)"). */
   forge?: boolean
+  /** Which forge backs the tab; `gitlab` relabels it (same routes, same page). */
+  forgeKind?: 'github' | 'gitlab'
   /** `capabilities.followups` — the opt-in global inbox (#471). */
   inbox?: boolean
   /** `capabilities.automations` — automations, default-on (spec 2026-09-14), `CEZ_AUTOMATIONS=0` off. */
@@ -86,6 +88,7 @@ export type NavAvailability = {
  */
 export function visibleNavItems({
   forge = false,
+  forgeKind,
   inbox = false,
   automations = false,
   tracker,
@@ -96,6 +99,7 @@ export function visibleNavItems({
     && (item.automations ? automations : true)
     && (item.tracker ? tracker !== undefined : true))
     .map((item) => item.tracker ? { ...item, label: tracker ? TRACKER_PROVIDERS[tracker].label : item.label } : item)
+    .map((item) => item.forge && forgeKind === 'gitlab' ? { ...item, label: 'GitLab', icon: GitlabIcon } : item)
 }
 
 /** Does `pathname` sit inside the area rooted at `prefix`?

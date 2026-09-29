@@ -202,7 +202,16 @@ import { agentHomePaths, expandTilde } from '../paths.ts';
 import { isLoopbackHostHeader, normalizeHostname, resolveCapabilities } from './capabilities.ts';
 import { createSocketHub, type SocketHub, type WsUpgradeVerdict } from './ws.ts';
 import { browseDirectory, isInsideBrowseRoot, isLexicallyInsideBrowseRoot, resolveBrowseRoot } from './fs-browse.ts';
-import { parseRemote, resolveForge, type ForgeAvailability } from './forge/index.ts';
+import { gitlabRef, parseRemote, resolveForge, type ForgeAvailability } from './forge/index.ts';
+import {
+  createGitlabDraftMr,
+  fetchGitlab,
+  fetchGitlabChecks,
+  fetchGitlabComments,
+  fetchGitlabPrDiff,
+  fetchGitlabRefStatus,
+  searchGitlabItems,
+} from './forge/gitlab.ts';
 import { fetchGithub, fetchGithubChecks, fetchGithubComments, fetchGithubPrDiff, fetchGithubRefStatus, forgetRefStatus, readCachedRefStatuses, refNumberFromUrl, searchGithubItems, GithubPrNotFoundError, GH_CHECKS_MAX, GH_SEARCH_MAX, GH_REF_STATUS_MAX } from './github.ts';
 import { ensureLaunchKey } from './launch-key.ts';
 import { openInTerminal } from './open-in-terminal.ts';
@@ -4764,11 +4773,9 @@ export function createApp(deps: ServerDeps) {
           400,
         );
       }
-      const outcome = await createDraftPr({
-        repoRoot,
-        run,
-        handoffText: readHandoff(dataDir, id),
-      });
+      const gitlab = gitlabRef((await getRepoInfo(repoRoot))?.remote);
+      const prInput = { repoRoot, run, handoffText: readHandoff(dataDir, id) };
+      const outcome = gitlab ? await createGitlabDraftMr(gitlab, prInput) : await createDraftPr(prInput);
       if (!outcome.ok) {
         return c.json({ error: outcome.error, manual: `git merge ${run.branch}` }, 409);
       }
@@ -5640,6 +5647,10 @@ export function createApp(deps: ServerDeps) {
       return c.json(result, 200);
     });
 
+  // The forge tab's routes answer for GitLab too: a project whose remote is on a GitLab host
+  // (gitlab.com, or `CEZ_GITLAB_HOSTS`) is served by the GitLab driver in the same payload shapes.
+  const gitlabOf = async (root: string) => gitlabRef((await getRepoInfo(root))?.remote);
+
   const githubRoutes = new Hono<ProjectApiEnv>()
     .get(
       '/github',
@@ -5650,6 +5661,8 @@ export function createApp(deps: ServerDeps) {
         const { root: repoRoot } = c.get('project');
         const query = c.req.valid('query');
         const limit = Number.parseInt(query.limit ?? '', 10);
+        const gitlab = await gitlabOf(repoRoot);
+        if (gitlab) return c.json(await fetchGitlab(gitlab, repoRoot, query.refresh === '1', Number.isFinite(limit) ? limit : 30));
         return c.json(await fetchGithub(repoRoot, query.refresh === '1', Number.isFinite(limit) ? limit : 30));
       },
     )
@@ -5661,6 +5674,8 @@ export function createApp(deps: ServerDeps) {
         number: c.req.param('number'),
       });
       if (!parsed.success) return c.json({ error: 'invalid kind or number' }, 400);
+      const gitlab = await gitlabOf(repoRoot);
+      if (gitlab) return c.json(await fetchGitlabComments(gitlab, repoRoot, parsed.data.kind, parsed.data.number));
       return c.json(
         await fetchGithubComments(repoRoot, parsed.data.kind, parsed.data.number, c.req.valid('query').refresh === '1'),
       );
@@ -5684,6 +5699,8 @@ export function createApp(deps: ServerDeps) {
         if (!Number.isInteger(n) || n <= 0 || String(n) !== part) return c.json({ error: 'invalid prs query' }, 400);
         numbers.push(n);
       }
+      const gitlab = await gitlabOf(repoRoot);
+      if (gitlab) return c.json(await fetchGitlabChecks(gitlab, repoRoot, numbers));
       return c.json(await fetchGithubChecks(repoRoot, numbers));
     })
 
@@ -5705,6 +5722,8 @@ export function createApp(deps: ServerDeps) {
       async (c) => {
         const { root: repoRoot } = c.get('project');
         const { kind, q, limit } = c.req.valid('query');
+        const gitlab = await gitlabOf(repoRoot);
+        if (gitlab) return c.json(await searchGitlabItems(gitlab, repoRoot, kind, q, limit));
         return c.json(await searchGithubItems(repoRoot, kind, q, limit));
       },
     )
@@ -5726,6 +5745,8 @@ export function createApp(deps: ServerDeps) {
         if (parsedPrs.length === 0 && parsedIssues.length === 0) {
           return c.json({ error: 'missing prs or issues query' }, 400);
         }
+        const gitlab = await gitlabOf(repoRoot);
+        if (gitlab) return c.json(await fetchGitlabRefStatus(gitlab, repoRoot, { prs: parsedPrs, issues: parsedIssues }));
         return c.json(await fetchGithubRefStatus(repoRoot, { prs: parsedPrs, issues: parsedIssues }));
       },
     )
@@ -5784,6 +5805,8 @@ export function createApp(deps: ServerDeps) {
       async (c) => {
         const { root: repoRoot } = c.get('project');
         const parsed = { data: c.req.valid('param') };
+        const gitlab = await gitlabOf(repoRoot);
+        if (gitlab) return c.json(await fetchGitlabPrDiff(gitlab, repoRoot, parsed.data.number));
         try {
           return c.json(
             await fetchGithubPrDiff(repoRoot, parsed.data.number, c.req.valid('query').refresh === '1'),

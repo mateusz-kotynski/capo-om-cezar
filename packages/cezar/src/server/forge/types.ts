@@ -9,7 +9,7 @@ import type { RunRecord } from '../../runs/store.ts';
  * driver file behind `resolveForge`, no route or UI changes.
  */
 
-export type ForgeKind = 'github';
+export type ForgeKind = 'github' | 'gitlab';
 
 /** Availability probe result — mirrors the tab's quiet degradation contract:
  *  no CLI, no remote, offline all land on `available:false` + a human hint. */

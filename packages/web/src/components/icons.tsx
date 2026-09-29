@@ -6,6 +6,15 @@ import type { SVGProps } from 'react'
  *  otherwise have no mark. The path is the one the mockups use, kept at lucide's 24×24 viewBox
  *  and `currentColor` fill so it sizes and themes exactly like its neighbours in the nav.
  */
+/** GitLab's tanuki, simplified to one path at the same 24×24 `currentColor` convention. */
+export function GitlabIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M22.65 14.39 21.3 10.25l-2.68-8.23a.46.46 0 0 0-.87 0L15.07 10.25H8.93L6.25 2.02a.46.46 0 0 0-.87 0L2.7 10.25 1.35 14.39a.92.92 0 0 0 .33 1.03L12 22.92l10.32-7.5a.92.92 0 0 0 .33-1.03z" />
+    </svg>
+  )
+}
+
 export function GithubIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>

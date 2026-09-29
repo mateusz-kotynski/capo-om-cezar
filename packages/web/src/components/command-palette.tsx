@@ -453,6 +453,7 @@ function PaletteContent({ close }: { close: () => void }) {
           ) : null}
           {visibleNavItems({
             forge: health.data?.forge?.available === true,
+            forgeKind: health.data?.forge?.kind,
             inbox: health.data?.capabilities.followups === true,
             automations: health.data?.capabilities.automations === true,
             tracker: registry?.projects.find((project) => project.id === (activeProjectId ?? registry.bootProject))?.tracker,

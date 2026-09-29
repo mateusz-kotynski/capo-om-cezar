@@ -73,7 +73,8 @@ export function forgeNote(health: HealthResponse): string | null {
   if (!health.forge) {
     return 'No GitHub remote detected — the GitHub tab is hidden. Every plain-git feature still works.'
   }
-  return `GitHub is unreachable — ${health.forge.reason ?? 'unknown reason'}. The GitHub tab is hidden until it comes back.`
+  const name = health.forge.kind === 'gitlab' ? 'GitLab' : 'GitHub'
+  return `${name} is unreachable — ${health.forge.reason ?? 'unknown reason'}. The ${name} tab is hidden until it comes back.`
 }
 
 export function ToolsMenu({ health }: { health: HealthResponse | undefined }) {
