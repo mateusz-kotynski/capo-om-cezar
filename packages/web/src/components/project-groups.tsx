@@ -23,10 +23,12 @@ import { useHealth, usePinRun, useProjectRuns } from '@/api/queries'
 import type { ProjectListEntry, RunRecord } from '@open-mercato/cezar-api-client'
 import { useSidebarNavigate } from '@/components/app-shell'
 import { useListView } from '@/components/list-view'
+import { useLocale } from '@/components/locale-provider'
 import { activeNavPath, visibleNavItems } from '@/components/nav-items'
 import { ReferenceStatusProvider } from '@/components/reference-status'
 import { QuickListBuckets } from '@/components/task-quick-list'
 import { toast } from '@/components/ui/toaster'
+import { navItemLabel } from '@/i18n/ui-labels'
 import { Link, pathnameProjectId, scopeTo, stripProjectPrefix, useProjectMatch } from '@/lib/project-router'
 import { moveProjectId, orderProjects } from '@/lib/project-order'
 import { isProjectCollapsed, readStoredCollapsed, writeStoredCollapsed } from '@/lib/sidebar-collapse'
@@ -385,6 +387,7 @@ function ProjectGroup({
   position: number
   total: number
 }) {
+  const { t } = useLocale()
   const missing = project.status === 'missing'
   // A missing project holds its place in the order but is not draggable: its row is deliberately
   // inert (there is nothing behind the chevron either), and a folder that is gone is one to
@@ -485,7 +488,7 @@ function ProjectGroup({
               data-slot="project-missing"
               className="ml-auto shrink-0 rounded-full bg-danger/15 px-[7px] py-px text-[10px] font-medium text-danger"
             >
-              folder not found
+              {t('common.folderNotFound')}
             </span>
           </div>
         </div>
@@ -595,7 +598,7 @@ function ProjectGroup({
                 title="cezar is serving this folder — it is not in your saved projects. Add it in Global settings → Projects."
                 className="shrink-0 rounded-full bg-muted px-[7px] py-px text-[10px] font-medium text-soft-foreground"
               >
-                not saved
+                {t('nav.notSaved')}
               </span>
             ) : null}
             {waiting ? (
@@ -660,7 +663,7 @@ function ProjectGroup({
                   )}
                 >
                   <Icon className="size-3.5 shrink-0" aria-hidden="true" />
-                  {item.label}
+                  {navItemLabel(t, item)}
                   {/* `/api/todos` is fetched for the active scope only, so only the active
                       group has a real count to show — a badge on the others would be the active
                       project's number wearing someone else's name. */}
@@ -675,7 +678,7 @@ function ProjectGroup({
                   {item.badge === 'skills-update' && active && skillsUpdateAvailable ? (
                     <span data-slot="nav-update-marker" className="ml-auto flex items-center">
                       <span className="size-1.5 rounded-full bg-violet" aria-hidden="true" />
-                      <span className="sr-only">Skills update available</span>
+                      <span className="sr-only">{t('nav.skillsUpdateAvailable')}</span>
                     </span>
                   ) : null}
                 </Link>
@@ -711,7 +714,7 @@ function ProjectGroup({
             data-slot="project-group-more"
             className="flex h-9 items-center rounded-md px-3 text-[12px] text-muted-foreground transition-colors hover:text-foreground md:h-7"
           >
-            More…
+            {t('nav.more')}
           </Link>
         </div>
       )}

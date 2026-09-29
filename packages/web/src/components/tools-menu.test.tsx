@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { HealthResponse } from '@open-mercato/cezar-api-client'
 import { AppShell } from './app-shell'
+import { LocaleProvider } from './locale-provider'
 import { ThemeProvider } from './theme-provider'
 import { ToolsMenu, forgeNote, toolsBlocker, toolsTooltip } from './tools-menu'
 
@@ -277,13 +278,15 @@ describe('forgeNote', () => {
 describe('ToolsMenu in the app shell', () => {
   function renderShell() {
     return render(
-      <ThemeProvider>
-        <MemoryRouter initialEntries={['/']}>
-          <AppShell toolsMenu={<ToolsMenu health={HEALTH} />}>
-            <p>route content</p>
-          </AppShell>
-        </MemoryRouter>
-      </ThemeProvider>
+      <LocaleProvider>
+        <ThemeProvider>
+          <MemoryRouter initialEntries={['/']}>
+            <AppShell toolsMenu={<ToolsMenu health={HEALTH} />}>
+              <p>route content</p>
+            </AppShell>
+          </MemoryRouter>
+        </ThemeProvider>
+      </LocaleProvider>
     )
   }
 

@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createQueryClient } from '@/api/query-client'
 import type { ProjectListEntry, RunRecord } from '@open-mercato/cezar-api-client'
 import { ListViewProvider } from '@/components/list-view'
+import { LocaleProvider } from '@/components/locale-provider'
 import { ProjectGroups } from '@/components/project-groups'
 import { SIDEBAR_COLLAPSED_STORAGE_KEY } from '@/lib/sidebar-collapse'
 
@@ -105,11 +106,13 @@ function renderGroups(
 ) {
   return render(
     <QueryClientProvider client={createQueryClient()}>
-      <MemoryRouter initialEntries={[entry]}>
-        <ListViewProvider>
-          <ProjectGroups projects={projects} bootProjectId="cezar" automationsAvailable={automations} />
-        </ListViewProvider>
-      </MemoryRouter>
+      <LocaleProvider>
+        <MemoryRouter initialEntries={[entry]}>
+          <ListViewProvider>
+            <ProjectGroups projects={projects} bootProjectId="cezar" automationsAvailable={automations} />
+          </ListViewProvider>
+        </MemoryRouter>
+      </LocaleProvider>
     </QueryClientProvider>,
   )
 }
@@ -304,11 +307,13 @@ describe('ProjectGroups', () => {
     serve({ '/api/v1/p/cezar/runs': [] })
     render(
       <QueryClientProvider client={client}>
-        <MemoryRouter initialEntries={['/p/cezar/']}>
-          <ListViewProvider>
-            <ProjectGroups projects={[project(), project({ id: 'shop', name: 'shop', lastOpenedAt: '2026-07-19T00:00:00.000Z' })]} bootProjectId="cezar" />
-          </ListViewProvider>
-        </MemoryRouter>
+        <LocaleProvider>
+          <MemoryRouter initialEntries={['/p/cezar/']}>
+            <ListViewProvider>
+              <ProjectGroups projects={[project(), project({ id: 'shop', name: 'shop', lastOpenedAt: '2026-07-19T00:00:00.000Z' })]} bootProjectId="cezar" />
+            </ListViewProvider>
+          </MemoryRouter>
+        </LocaleProvider>
       </QueryClientProvider>,
     )
     await waitFor(() => expect(disclosure('cezar').getAttribute('aria-expanded')).toBe('true'))

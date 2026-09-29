@@ -66,6 +66,8 @@ export interface Messages {
     unreadTasksTitle: PluralForms
   }
   commandPalette: {
+    title: string
+    description: string
     placeholder: string
     empty: string
     recentlyFinished: string

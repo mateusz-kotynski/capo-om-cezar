@@ -68,6 +68,8 @@ export const pl: Messages = {
     },
   },
   commandPalette: {
+    title: 'Paleta komend',
+    description: 'Szukaj projektów, zadań, widoków, akcji i umiejętności',
     placeholder: 'Szukaj projektów, zadań, widoków, akcji, umiejętności…',
     empty: 'Nic nie znaleziono.',
     recentlyFinished: 'Niedawno zakończone',

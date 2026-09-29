@@ -8,6 +8,7 @@ import { createQueryClient } from '@/api/query-client'
 import type { ProjectsResponse } from '@open-mercato/cezar-api-client'
 import { AppearanceProvider } from '@/components/appearance-provider'
 import { ListViewProvider } from '@/components/list-view'
+import { LocaleProvider } from '@/components/locale-provider'
 import { ProjectGroups } from '@/components/project-groups'
 import { ThemeProvider } from '@/components/theme-provider'
 import { AppRoutes } from '@/routes'
@@ -133,16 +134,18 @@ function renderAt(entry: string) {
   render(
     <StrictMode>
       <QueryClientProvider client={client}>
-        <ThemeProvider>
-          <AppearanceProvider>
-            <MemoryRouter initialEntries={[entry]}>
-              <ListViewProvider>
-                <AppRoutes />
-                <NavigationProbe />
-              </ListViewProvider>
-            </MemoryRouter>
-          </AppearanceProvider>
-        </ThemeProvider>
+        <LocaleProvider>
+          <ThemeProvider>
+            <AppearanceProvider>
+              <MemoryRouter initialEntries={[entry]}>
+                <ListViewProvider>
+                  <AppRoutes />
+                  <NavigationProbe />
+                </ListViewProvider>
+              </MemoryRouter>
+            </AppearanceProvider>
+          </ThemeProvider>
+        </LocaleProvider>
       </QueryClientProvider>
     </StrictMode>,
   )
@@ -168,15 +171,17 @@ function renderWithSidebarAt(entry: string) {
   render(
     <StrictMode>
       <QueryClientProvider client={client}>
-        <ThemeProvider>
-          <AppearanceProvider>
-            <MemoryRouter initialEntries={[entry]}>
-              <ListViewProvider>
-                <SidebarHarness />
-              </ListViewProvider>
-            </MemoryRouter>
-          </AppearanceProvider>
-        </ThemeProvider>
+        <LocaleProvider>
+          <ThemeProvider>
+            <AppearanceProvider>
+              <MemoryRouter initialEntries={[entry]}>
+                <ListViewProvider>
+                  <SidebarHarness />
+                </ListViewProvider>
+              </MemoryRouter>
+            </AppearanceProvider>
+          </ThemeProvider>
+        </LocaleProvider>
       </QueryClientProvider>
     </StrictMode>,
   )

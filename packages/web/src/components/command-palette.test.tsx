@@ -19,6 +19,7 @@ import {
   paletteScore,
 } from '@/components/command-palette'
 import { orderSkills } from '@/lib/skills'
+import { LocaleProvider } from '@/components/locale-provider'
 import { ThemeProvider } from '@/components/theme-provider'
 import { THEME_STORAGE_KEY, type Theme } from '@/lib/theme'
 
@@ -166,13 +167,15 @@ function renderPalette({
   })
   render(
     <QueryClientProvider client={createQueryClient()}>
-      <ThemeProvider>
-        <MemoryRouter initialEntries={[entry]}>
-          <CommandPalette />
-          <LocationProbe />
-          <input data-testid="outside-input" aria-label="outside" />
-        </MemoryRouter>
-      </ThemeProvider>
+      <LocaleProvider>
+        <ThemeProvider>
+          <MemoryRouter initialEntries={[entry]}>
+            <CommandPalette />
+            <LocationProbe />
+            <input data-testid="outside-input" aria-label="outside" />
+          </MemoryRouter>
+        </ThemeProvider>
+      </LocaleProvider>
     </QueryClientProvider>,
   )
 }

@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { queryKeys, workspaceQueryKeys } from '@/api/queries'
 import { createQueryClient } from '@/api/query-client'
 import { AppearanceProvider } from '@/components/appearance-provider'
+import { LocaleProvider } from '@/components/locale-provider'
 import { ThemeProvider } from '@/components/theme-provider'
 import { AppRoutes } from '@/routes'
 import { SETTINGS_SECTIONS, visibleSettingsSections } from './registry'
@@ -98,13 +99,15 @@ function gateSeededClient(singleProject = false) {
 function renderAt(entry: string, { singleProject = false }: { singleProject?: boolean } = {}) {
   render(
     <QueryClientProvider client={gateSeededClient(singleProject)}>
-      <ThemeProvider>
-        <AppearanceProvider>
-          <MemoryRouter initialEntries={[entry]}>
-            <AppRoutes />
-          </MemoryRouter>
-        </AppearanceProvider>
-      </ThemeProvider>
+      <LocaleProvider>
+        <ThemeProvider>
+          <AppearanceProvider>
+            <MemoryRouter initialEntries={[entry]}>
+              <AppRoutes />
+            </MemoryRouter>
+          </AppearanceProvider>
+        </ThemeProvider>
+      </LocaleProvider>
     </QueryClientProvider>,
   )
 }

@@ -4,6 +4,7 @@ import { Link as RouterLink, MemoryRouter, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AppShell, routeOwnsScrollArrival, type AppShellProps } from './app-shell'
+import { LocaleProvider } from './locale-provider'
 import { NAV_ITEMS, visibleNavItems } from './nav-items'
 import { ThemeProvider } from './theme-provider'
 
@@ -30,14 +31,16 @@ beforeEach(() => {
  */
 function renderShell(entry = '/', props: Partial<AppShellProps> = {}, children: ReactNode = <p>route content</p>) {
   return render(
-    <ThemeProvider>
-      <MemoryRouter initialEntries={[entry]}>
-        <AppShell {...props}>
-          {children}
-          <LocationProbe />
-        </AppShell>
-      </MemoryRouter>
-    </ThemeProvider>
+    <LocaleProvider>
+      <ThemeProvider>
+        <MemoryRouter initialEntries={[entry]}>
+          <AppShell {...props}>
+            {children}
+            <LocationProbe />
+          </AppShell>
+        </MemoryRouter>
+      </ThemeProvider>
+    </LocaleProvider>
   )
 }
 

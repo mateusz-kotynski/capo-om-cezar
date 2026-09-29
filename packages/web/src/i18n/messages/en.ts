@@ -64,6 +64,8 @@ export const en: Messages = {
     },
   },
   commandPalette: {
+    title: 'Command palette',
+    description: 'Search projects, tasks, views, actions, and skills',
     placeholder: 'Search projects, tasks, views, actions, skills…',
     empty: 'Nothing matches.',
     recentlyFinished: 'Recently finished',
