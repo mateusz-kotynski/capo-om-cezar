@@ -13,6 +13,7 @@ import { TrackerConnections } from '../server/tracker/connections.ts';
 import {
   mergeWriteWorkspaceConfig,
   loadWorkspaceConfig,
+  PROJECT_ID_RE,
   type WorkspaceProject,
 } from './config.ts';
 
@@ -231,6 +232,66 @@ export function normalizeProjectTags(tags: readonly string[] | null | undefined)
   return normalized.length > 0 ? normalized : undefined;
 }
 
+/**
+ * Why `id` cannot be nested under `parentId`, or null when it can (spec
+ * 2026-09-29-nested-repo-projects). One level only: the parent must be top-level, and a project
+ * that already has children cannot be nested itself. A parent's own `parent` that names no
+ * registered project is dangling and counts as top-level, exactly as `listProjects` reports it.
+ */
+export function projectParentError(
+  projects: readonly Pick<WorkspaceProject, 'id' | 'parent'>[],
+  id: string,
+  parentId: string,
+): string | null {
+  if (parentId === id) return 'a project cannot be its own parent';
+  const parent = projects.find((project) => project.id === parentId);
+  if (!parent) return `unknown parent project: ${parentId}`;
+  if (parent.parent && projects.some((project) => project.id === parent.parent)) {
+    return `${parentId} is itself nested under ${parent.parent}; nesting is one level`;
+  }
+  if (projects.some((project) => project.parent === id)) {
+    return `${id} has nested projects; it cannot be nested itself`;
+  }
+  return null;
+}
+
+/** An invalid `parent` — the message is the user-facing reason (`projectParentError`). */
+export class ProjectParentError extends Error {}
+
+/**
+ * Nest `id` under `parentId`, or make it top-level again with `null`. `undefined` for an unknown
+ * `id`; throws `ProjectParentError` (and writes nothing) for a parent `projectParentError` refuses.
+ */
+export async function setProjectParent(
+  id: string,
+  parentId: string | null,
+): Promise<WorkspaceProject | undefined> {
+  let updated: WorkspaceProject | undefined;
+  let refusal = null as string | null;
+  await mergeWriteWorkspaceConfig((config) => {
+    const entry = config.projects.find((project) => project.id === id);
+    if (!entry) return;
+    if (parentId === null) {
+      delete entry.parent;
+    } else {
+      refusal = projectParentError(config.projects, id, parentId);
+      if (refusal) return;
+      entry.parent = parentId;
+    }
+    updated = entry;
+  });
+  if (refusal) throw new ProjectParentError(refusal);
+  return updated;
+}
+
+/** A registry id for `ref`: the id itself, or the project whose root is `ref`'s realpath. */
+export async function findProjectId(ref: string): Promise<string | undefined> {
+  const { projects } = await loadWorkspaceConfig();
+  if (projects.some((project) => project.id === ref)) return ref;
+  const root = await normalizeRoot(ref);
+  return projects.find((project) => project.root === root)?.id;
+}
+
 export type ProjectStatus = 'ok' | 'missing' | 'not-git';
 
 export interface ProjectListEntry extends WorkspaceProject {
@@ -345,11 +406,17 @@ export interface ProjectListSelector {
 
 export async function listProjects(selector?: ProjectListSelector): Promise<ProjectListEntry[]> {
   const config = await loadWorkspaceConfig();
+  const ids = new Set(config.projects.map((project) => project.id));
   const projects = selector
     ? config.projects.filter((project) => project.id === selector.projectId)
     : config.projects;
   return Promise.all(
-    projects.map(async (project) => ({ ...project, ...(await probeRoot(project.root)) })),
+    projects.map(async ({ parent, ...project }) => ({
+      ...project,
+      // A parent that is no longer registered reads as top-level, so the child stays reachable.
+      ...(parent && ids.has(parent) ? { parent } : {}),
+      ...(await probeRoot(project.root)),
+    })),
   );
 }
 
@@ -365,6 +432,8 @@ export async function removeProject(id: string): Promise<boolean> {
     const next = config.projects.filter((p) => p.id !== id);
     removed = next.length !== config.projects.length;
     config.projects = next;
+    // Children of a removed parent become top-level rather than pointing at nothing.
+    if (removed) for (const project of next) if (project.parent === id) delete project.parent;
   });
   return removed;
 }

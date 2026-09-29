@@ -66,6 +66,10 @@ const workspaceProjectSchema = z
       .max(PROJECT_TAGS_MAX)
       .optional()
       .catch(undefined),
+    /** Registry id of the project this one is shown under — one level (spec
+     *  2026-09-29-nested-repo-projects). Absent = top-level; the writers delete the key rather than
+     *  storing an empty value, and a malformed value degrades to top-level. */
+    parent: z.string().regex(PROJECT_ID_RE).optional().catch(undefined),
   })
   .passthrough();
 
