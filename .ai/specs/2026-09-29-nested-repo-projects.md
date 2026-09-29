@@ -40,8 +40,7 @@ sidebar groups, each offering Tasks, Skills and Workflows that do not belong the
 - **A dangling `parent`** (edited by hand, id no longer registered) is treated as absent when read.
 - The sidebar nests children under their parent; children show **Git** and the **forge** item only.
   Tasks, Inbox, Tracker, Automations, Skills, Workflows and Settings stay with the parent.
-- Other project lists (Settings → Projects, command palette, the global Tasks page's project
-  labels) mark a child with its parent: `wellplayed-backend ↳ wellplayed`.
+- `cezar projects list` shows each child indented under its parent with `↳`.
 
 ### Why this shape, and not the alternatives
 
@@ -72,8 +71,6 @@ which is every existing entry.
 ## API Contracts
 
 - `GET /api/v1/projects` — entries carry `parent` when set.
-- `POST /api/v1/projects` (`registerProjectSchema`) — optional `parent` (id). Applied after the
-  registration; an invalid parent fails the call with 400 and leaves the registry unchanged.
 - `PATCH /api/v1/projects/:projectId` (`updateProjectInputSchema`) — optional `parent`: an id sets
   it, `null` clears it. Same validation.
 - `DELETE /api/v1/projects/:projectId` — additionally clears `parent` on the removed project's
@@ -117,10 +114,11 @@ parent)`, used by the API, the CLI and `registerProject`:
   has nowhere to put children). The existing rule counts top-level projects plus children, so no
   change is needed there beyond counting all registry entries as it does today.
 
-### Other surfaces
+### Collapse state
 
-Settings → Projects, the command palette's project entries and the global Tasks page show a
-child as `<name> ↳ <parent name>`. Settings gains no parent editor in this change (CLI/API only).
+A child's expanded/collapsed answer lives in the same per-browser map as the groups'. Its default
+is anchored on the scoped project itself (a child is open only while you are inside it), so the
+disclosure toggle takes the anchor it should compute the default against.
 
 ## Capo OM integration (capo-om repository, separate PR)
 
@@ -140,7 +138,7 @@ Cezar:
   its children's `parent`; a dangling parent reads as absent.
 - `workspace/projects-cli.test.ts`: `add --parent` by id and by folder; `parent` set/clear;
   `list` ordering and `↳`.
-- Server: `POST`/`PATCH` accept and validate `parent`; `DELETE` clears children; contract parity
+- Server: `PATCH` accepts and validates `parent`; `DELETE` clears children; contract parity
   test covers the new field.
 - Web: `project-groups` test — a child renders inside its parent's group with only Git and forge
   items, not as a top-level group; ordering applies to top-level only.
@@ -155,5 +153,7 @@ working Git and GitLab pages.
 ## Out of scope
 
 - Launching a task directly in a child (tasks run from the parent).
-- Editing the parent from the Settings UI.
+- Editing the parent from the Settings UI, and `parent` on `POST /api/v1/projects` (register, then
+  `PATCH`).
+- Marking children in Settings → Projects, the command palette and the global Tasks page.
 - More than one nesting level.
