@@ -1,3 +1,5 @@
+> **This repository has moved.** Development continues on GitLab: https://gitlab.com/CyberLockAI/wellplayedbest/devtools/cezar. This GitHub copy is archived and read-only.
+
 <p align="center">
   <img src="docs/brand/cezar-icon-black.svg" alt="" width="104" />
 </p>
