@@ -1,4 +1,5 @@
 import type { PluralForms } from '../plural-forms'
+import type { en as shellEn } from '../areas/shell'
 import type { en as dialogsEn } from '../areas/dialogs'
 import type { en as prefsEn } from '../areas/prefs'
 import type { en as forgeEn } from '../areas/forge'
@@ -172,4 +173,5 @@ export interface Messages {
   forge: typeof forgeEn
   prefs: typeof prefsEn
   dialogs: typeof dialogsEn
+  shell: typeof shellEn
 }

@@ -344,7 +344,7 @@ function TitlebarUpdateButton({ latestVersion }: { latestVersion: string }) {
         type="button"
         data-slot="titlebar-update"
         onClick={() => setOpen(true)}
-        title={`Update cezar to v${latestVersion} and restart`}
+        title={t('shell.misc.updateTo', { version: latestVersion })}
         className="inline-flex h-[18px] items-center gap-1 rounded-full border border-primary/40 bg-primary/15 px-2 text-[11px] font-semibold text-foreground transition-colors hover:bg-primary/30"
       >
         <StatusDot tone="pending" pulse className="size-[5px] shrink-0" />
@@ -504,7 +504,7 @@ function SidebarResizeHandle({ width, onWidthChange }: SidebarResize) {
       onPointerCancel={endDrag}
       onKeyDown={onKeyDown}
       onDoubleClick={() => onWidthChange(DEFAULT_SIDEBAR_WIDTH)}
-      title="Drag to resize the sidebar — double-click to reset"
+      title={t('shell.misc.resizeTitle')}
       // A 5px grab strip straddling the border, invisible until you reach for it. `touch-none`
       // is load-bearing rather than decorative: without it a touch drag is claimed by the
       // browser's own panning and scrolls the page instead of resizing the column.
@@ -947,7 +947,7 @@ function CommandPaletteHint() {
     <button
       type="button"
       data-slot="command-palette-hint"
-      title="Search — command palette (⌘K / Ctrl+K)"
+      title={t('shell.misc.searchTitle')}
       onClick={() => openCommandPalette()}
       className="flex w-full items-center gap-1.5 rounded-md border border-border bg-muted/30 px-2 py-1 text-left text-xs font-medium text-soft-foreground transition-colors hover:bg-muted hover:text-foreground"
     >
@@ -978,6 +978,7 @@ function CommandPaletteHint() {
  * even with no update to announce.
  */
 function VersionChip({ version, latestVersion }: { version: string; latestVersion: string | null }) {
+  const { t } = useLocale()
   const updateAvailable = Boolean(latestVersion && latestVersion !== version)
   // The chip opens the self-update dialog (PoC): channel, latest, and a version picker.
   const [open, setOpen] = React.useState(false)
@@ -987,8 +988,8 @@ function VersionChip({ version, latestVersion }: { version: string; latestVersio
         type="button"
         data-slot="version-chip"
         data-update-available={updateAvailable ? 'true' : undefined}
-        title={updateAvailable ? `v${version} — update available: v${latestVersion}` : `v${version}`}
-        aria-label={updateAvailable ? `cezar v${version}, update to v${latestVersion} available — open updater` : `cezar v${version} — open updater`}
+        title={updateAvailable ? t('shell.misc.versionUpdateTitle', { version, latest: latestVersion ?? '' }) : `v${version}`}
+        aria-label={updateAvailable ? t('shell.misc.versionAriaUpdate', { version, latest: latestVersion ?? '' }) : t('shell.misc.versionAria', { version })}
         onClick={() => setOpen(true)}
         className="flex min-w-0 cursor-pointer items-center gap-1 rounded-full border border-border px-1.5 py-px font-mono text-[10px] font-medium text-soft-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
       >

@@ -1,3 +1,5 @@
+import { attentionLabel } from '@/i18n/ui-labels'
+import { useLocale } from '@/components/locale-provider'
 import { ChevronDownIcon, ScaleIcon } from 'lucide-react'
 import * as React from 'react'
 import { useHealth, usePinRun, useReferenceProjectId, useRunsForProject } from '@/api/queries'
@@ -62,6 +64,7 @@ export function TaskQuickList({
    *  belongs to is a container's question — this list is painted for other projects too. */
   onTogglePin?: (run: RunRecord, pinned: boolean) => void
 }) {
+  const { t } = useLocale()
   const counts = listCounts(runs)
   const buckets = groupRuns(runs, view)
   // Withheld in the archived view, where `groupRuns` answers one `Archived` bucket and never
@@ -75,21 +78,21 @@ export function TaskQuickList({
       <div className="sticky top-0 z-10 bg-sidebar pt-2 pb-1">
         <div className="inline-flex w-full gap-0.5 rounded-md bg-muted p-[3px]">
           <ViewTab view="active" current={view} onSelect={onViewChange} count={counts.active}>
-            Active
+            {t('tasksPage.active')}
             {/* The one reason to look at a tab you are not on. */}
             {counts.waiting > 0 && view !== 'active' ? (
-              <StatusDot tone="pending" pulse data-slot="waiting-dot" aria-label="needs you" />
+              <StatusDot tone="pending" pulse data-slot="waiting-dot" aria-label={t('shell.misc.needsYou')} />
             ) : null}
           </ViewTab>
           <ViewTab view="archived" current={view} onSelect={onViewChange} count={counts.archived}>
-            Archived
+            {t('tasksPage.archived')}
           </ViewTab>
         </div>
       </div>
 
       {buckets.length === 0 ? (
         <p className="px-3 py-3.5 text-xs text-soft-foreground">
-          {view === 'archived' ? 'Nothing archived yet.' : 'No tasks yet — describe one.'}
+          {view === 'archived' ? t('shell.misc.nothingArchived') : t('shell.misc.noTasks')}
         </p>
       ) : (
         <QuickListBuckets
@@ -252,6 +255,7 @@ function Row({
   showCost: boolean
   onTogglePin?: (run: RunRecord, pinned: boolean) => void
 }) {
+  const { t } = useLocale()
   if (row.kind === 'run') {
     return (
       <RunRow
@@ -295,8 +299,8 @@ function Row({
         <Link
           to={scopeTo(scope, `/compare/${row.groupId}`)}
           data-slot="group-compare"
-          title="Compare the variants"
-          aria-label={`Compare the variants of ${row.title}`}
+          title={t('shell.misc.compareVariants')}
+          aria-label={t('shell.misc.compareVariantsOf', { title: row.title })}
           className="mr-1.5 inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-soft-foreground hover:bg-violet/10 hover:text-violet"
         >
           <ScaleIcon className="size-3.5" aria-hidden="true" />
@@ -404,6 +408,7 @@ const RunRow = React.memo(function RunRow({
   showCost: boolean
   onTogglePin?: (run: RunRecord, pinned: boolean) => void
 }) {
+  const { t } = useLocale()
   const attention = deriveAttention(run)
   const isActive = run.id === currentRunId
   // The strongest tracker reference the run knows about — the PR once one exists, else the issue
@@ -454,7 +459,7 @@ const RunRow = React.memo(function RunRow({
     >
       {/* Outside the Link so it can lead the reference chip. The dot is a status indicator, not a
           navigation target, and the wrapper still owns the row's hover surface. */}
-      <StatusDot tone={attention.tone} pulse={attention.pulse} aria-label={attention.label} role="img" />
+      <StatusDot tone={attention.tone} pulse={attention.pulse} aria-label={attentionLabel(t, attention.label)} role="img" />
       {/* The reference, ONCE (#788, option C): the number that used to be both a `775: ` title
           prefix and a trailing `PR ↗` chip is now one leading chip that is itself the link. */}
       {reference ? (
@@ -548,8 +553,8 @@ const RunRow = React.memo(function RunRow({
           <StatusDot
             tone="violet"
             role="img"
-            aria-label="unread"
-            title="Unread — not opened since it finished"
+            aria-label={t('shell.misc.unread')}
+            title={t('shell.misc.unreadTitle')}
             className="ml-0.5 shrink-0"
           />
         ) : null}

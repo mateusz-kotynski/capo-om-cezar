@@ -1,4 +1,5 @@
 import type { Messages } from './types'
+import { en as shellEn } from '../areas/shell'
 import { en as dialogsEn } from '../areas/dialogs'
 import { en as prefsEn } from '../areas/prefs'
 import { en as forgeEn } from '../areas/forge'
@@ -203,4 +204,5 @@ export const en: Messages = {
   forge: forgeEn,
   prefs: prefsEn,
   dialogs: dialogsEn,
+  shell: shellEn,
 }
