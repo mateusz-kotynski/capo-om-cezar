@@ -1,3 +1,5 @@
+import { useLocale } from '@/components/locale-provider'
+import { gitActionLabel, gitActionReason } from '@/i18n/ui-labels'
 import {
   EllipsisVerticalIcon,
   ExternalLinkIcon,
@@ -50,6 +52,7 @@ export function GitToolbar({
   onWrapChange: (wrap: boolean) => void
   onAction: (id: GitActionId) => void
 }) {
+  const { t } = useLocale()
   return (
     <div
       data-slot="git-toolbar"
@@ -73,7 +76,7 @@ export function GitToolbar({
         {bar.menu.length > 0 ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm" aria-label="More git actions">
+              <Button variant="ghost" size="icon-sm" aria-label={t('git.toolbar.moreActions')}>
                 <EllipsisVerticalIcon aria-hidden="true" />
               </Button>
             </DropdownMenuTrigger>
@@ -117,6 +120,7 @@ function ActionButton({
   variant: 'primary' | 'outline'
   onAction: (id: GitActionId) => void
 }) {
+  const { t } = useLocale()
   // href protocol guard (#431): treat the PR link as a link only for http(s) URLs. A refused
   // href must NOT fall through to the generic button below — the policy hardcodes view-pr as
   // enabled and the parent's `view-pr` case is a deliberate no-op, so it would render a
@@ -130,10 +134,10 @@ function ActionButton({
           size="sm"
           data-action={action.id}
           disabled
-          title="View PR unavailable — the recorded PR link is not an http(s) URL"
+          title={t('git.toolbar.viewPrUnavailable')}
         >
           {ACTION_ICONS[action.id]}
-          {action.label}
+          {gitActionLabel(t, action.id, action.label)}
         </Button>
       )
     }
@@ -141,7 +145,7 @@ function ActionButton({
       <Button asChild variant={variant} size="sm" data-action={action.id}>
         <a href={action.href} target="_blank" rel="noopener noreferrer">
           {ACTION_ICONS[action.id]}
-          {action.label}
+          {gitActionLabel(t, action.id, action.label)}
         </a>
       </Button>
     )
@@ -152,11 +156,11 @@ function ActionButton({
       size="sm"
       data-action={action.id}
       disabled={!action.enabled}
-      title={action.enabled ? undefined : action.reason}
+      title={action.enabled ? undefined : gitActionReason(t, action.reason)}
       onClick={() => onAction(action.id)}
     >
       {ACTION_ICONS[action.id]}
-      {action.label}
+      {gitActionLabel(t, action.id, action.label)}
     </Button>
   )
 }

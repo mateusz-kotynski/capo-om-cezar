@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { ArrowLeftIcon, GitCommitHorizontalIcon, SearchXIcon, TriangleAlertIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router'
@@ -23,6 +24,7 @@ import { DiffViewToggles } from '../task-git/diff-controls'
  * same `<Diff>` facade as everything else. Same mobile rule: unified+wrap forced below `md`.
  */
 export function RepoCommitsSection({ log }: { log: LogEntry[] }) {
+  const { t } = useLocale()
   const { sha } = useParams<{ sha: string }>()
   if (sha) return <CommitDiffView sha={sha} />
 
@@ -32,8 +34,8 @@ export function RepoCommitsSection({ log }: { log: LogEntry[] }) {
         icon={<GitCommitHorizontalIcon />}
         tone="neutral"
         heading="h2"
-        title="No commits yet"
-        subtitle="The log is empty — this repository has no commits to show."
+        title={t('git.commits.noneTitle')}
+        subtitle={t('git.commits.repoNoneSubtitle')}
       />
     )
   }
@@ -53,6 +55,7 @@ export function RepoCommitsSection({ log }: { log: LogEntry[] }) {
 }
 
 function CommitDiffView({ sha }: { sha: string }) {
+  const { t } = useLocale()
   const commit = useRepoCommit(sha)
   const desktop = useIsDesktop()
   const [mode, setMode] = useState<DiffMode>('unified')
@@ -70,7 +73,7 @@ function CommitDiffView({ sha }: { sha: string }) {
         <Button asChild variant="ghost" size="sm" data-slot="commit-back">
           <Link to="/git/commits">
             <ArrowLeftIcon aria-hidden="true" />
-            All commits
+            {t('git.commits.all')}
           </Link>
         </Button>
         {commit.data ? <DiffStatLabel stat={commit.data.stat} /> : null}
@@ -81,14 +84,14 @@ function CommitDiffView({ sha }: { sha: string }) {
 
       {commit.isPending ? (
         <p data-slot="commit-loading" className="px-4 py-6 text-center text-xs text-soft-foreground md:px-6">
-          Loading commit…
+          {t('git.commits.loadingOne')}
         </p>
       ) : commit.isError ? (
         <CenteredState
           icon={refused ? <SearchXIcon /> : <TriangleAlertIcon />}
           tone={refused ? 'neutral' : 'danger'}
           heading="h2"
-          title={refused ? 'Commit not found' : 'Could not load the commit'}
+          title={refused ? t('git.commits.notFound') : t('git.commits.loadOneFailed')}
           subtitle={commit.error.message}
         />
       ) : (
@@ -105,8 +108,8 @@ function CommitDiffView({ sha }: { sha: string }) {
               icon={<GitCommitHorizontalIcon />}
               tone="neutral"
               heading="h2"
-              title="No file changes"
-              subtitle="This commit carries no diff of its own — a merge commit's changes live on the commits it merged."
+              title={t('git.commits.noFileChangesTitle')}
+              subtitle={t('git.commits.noFileChangesSubtitle')}
             />
           ) : (
             <div className="px-4 py-4 [--diff-sticky-top:7rem] md:px-6">

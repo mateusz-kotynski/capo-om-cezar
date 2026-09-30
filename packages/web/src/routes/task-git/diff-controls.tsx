@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { GitBranchIcon, WrapTextIcon } from 'lucide-react'
 
 import type { DiffMode } from '@/components/diff'
@@ -21,12 +22,13 @@ export function DiffViewToggles({
   onModeChange: (mode: DiffMode) => void
   onWrapChange: (wrap: boolean) => void
 }) {
+  const { t } = useLocale()
   return (
     <>
       <span
         data-slot="diff-mode-toggle"
         role="group"
-        aria-label="Diff layout"
+        aria-label={t('git.diff.layout')}
         className="flex items-center rounded-md border border-border p-0.5"
       >
         <ModeButton current={mode} value="unified" onModeChange={onModeChange} />
@@ -37,8 +39,8 @@ export function DiffViewToggles({
         size="icon-sm"
         data-slot="wrap-toggle"
         aria-pressed={wrap}
-        aria-label="Wrap long lines"
-        title="Wrap long lines"
+        aria-label={t('git.diff.wrap')}
+        title={t('git.diff.wrap')}
         className={cn(wrap && 'bg-muted text-foreground')}
         onClick={() => onWrapChange(!wrap)}
       >
@@ -57,6 +59,7 @@ function ModeButton({
   value: DiffMode
   onModeChange: (mode: DiffMode) => void
 }) {
+  const { t } = useLocale()
   const active = current === value
   return (
     <button
@@ -69,7 +72,7 @@ function ModeButton({
         active ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground',
       )}
     >
-      {value}
+      {t(value === 'unified' ? 'git.diff.unified' : 'git.diff.split')}
     </button>
   )
 }

@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { ArrowLeftIcon, GitCommitHorizontalIcon, SearchXIcon, TriangleAlertIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router'
@@ -34,6 +35,7 @@ export function TaskCommitsRoute() {
 }
 
 function CommitsView({ run }: { run: ApiRun }) {
+  const { t } = useLocale()
   const { sha } = useParams<{ sha: string }>()
   const commits = useRunCommits(run.id, isRunActive(run.status))
 
@@ -44,7 +46,7 @@ function CommitsView({ run }: { run: ApiRun }) {
         <CommitDiffView runId={run.id} sha={sha} />
       ) : commits.isPending ? (
         <p data-slot="commits-loading" className="px-4 py-6 text-center text-xs text-soft-foreground md:px-6">
-          Loading commits…
+          {t('git.commits.loading')}
         </p>
       ) : commits.isError ? (
         <CenteredState
@@ -53,8 +55,8 @@ function CommitsView({ run }: { run: ApiRun }) {
           heading="h2"
           title={
             commits.error instanceof ApiError && commits.error.status === 409
-              ? 'No commits to show'
-              : 'Could not load the commits'
+              ? t('git.commits.unavailable')
+              : t('git.commits.loadFailed')
           }
           subtitle={commits.error.message}
         />
@@ -63,8 +65,8 @@ function CommitsView({ run }: { run: ApiRun }) {
           icon={<GitCommitHorizontalIcon />}
           tone="neutral"
           heading="h2"
-          title="No commits yet"
-          subtitle="This task hasn't committed anything on its branch. Autosave commits and any the agent makes appear here."
+          title={t('git.commits.noneTitle')}
+          subtitle={t('git.commits.taskNoneSubtitle')}
         />
       ) : (
         <CommitList
@@ -82,6 +84,7 @@ function CommitsView({ run }: { run: ApiRun }) {
 }
 
 function CommitDiffView({ runId, sha }: { runId: string; sha: string }) {
+  const { t } = useLocale()
   const commit = useRunCommit(runId, sha)
   const desktop = useIsDesktop()
   const [mode, setMode] = useState<DiffMode>('unified')
@@ -97,7 +100,7 @@ function CommitDiffView({ runId, sha }: { runId: string; sha: string }) {
         <Button asChild variant="ghost" size="sm" data-slot="commit-back">
           <Link to={`/tasks/${runId}/commits`}>
             <ArrowLeftIcon aria-hidden="true" />
-            All commits
+            {t('git.commits.all')}
           </Link>
         </Button>
         {commit.data ? <DiffStatLabel stat={commit.data.stat} /> : null}
@@ -108,14 +111,14 @@ function CommitDiffView({ runId, sha }: { runId: string; sha: string }) {
 
       {commit.isPending ? (
         <p data-slot="commit-loading" className="px-4 py-6 text-center text-xs text-soft-foreground md:px-6">
-          Loading commit…
+          {t('git.commits.loadingOne')}
         </p>
       ) : commit.isError ? (
         <CenteredState
           icon={refused ? <SearchXIcon /> : <TriangleAlertIcon />}
           tone={refused ? 'neutral' : 'danger'}
           heading="h2"
-          title={refused ? 'Commit not found' : 'Could not load the commit'}
+          title={refused ? t('git.commits.notFound') : t('git.commits.loadOneFailed')}
           subtitle={commit.error.message}
         />
       ) : (
@@ -132,8 +135,8 @@ function CommitDiffView({ runId, sha }: { runId: string; sha: string }) {
               icon={<GitCommitHorizontalIcon />}
               tone="neutral"
               heading="h2"
-              title="No file changes"
-              subtitle="This commit carries no diff of its own — a merge commit's changes live on the commits it merged."
+              title={t('git.commits.noFileChangesTitle')}
+              subtitle={t('git.commits.noFileChangesSubtitle')}
             />
           ) : (
             <div className="px-4 py-4 [--diff-sticky-top:10rem] md:px-6">

@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { FileQuestionIcon, FileWarningIcon, FileXIcon, MousePointerClickIcon, TriangleAlertIcon } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
@@ -18,6 +19,7 @@ import { formatFileSize, previewKind } from './worktree-files'
  * Shiki singleton with `langForPath`, plaintext fallback included.
  */
 export function FilePreview({ runId, path, className }: { runId: string; path: string | null; className?: string }) {
+  const { t } = useLocale()
   const entry = useRunFile(runId, path ?? undefined)
 
   if (path === null) {
@@ -27,8 +29,8 @@ export function FilePreview({ runId, path, className }: { runId: string; path: s
           icon={<MousePointerClickIcon />}
           tone="neutral"
           heading="h2"
-          title="Select a file"
-          subtitle="Pick a file from the tree to preview it here."
+          title={t('git.files.selectTitle')}
+          subtitle={t('git.files.selectSubtitle')}
         />
       </Pane>
     )
@@ -51,7 +53,7 @@ export function FilePreview({ runId, path, className }: { runId: string; path: s
           icon={refused ? <FileXIcon /> : <TriangleAlertIcon />}
           tone={refused ? 'neutral' : 'danger'}
           heading="h2"
-          title={refused ? 'Cannot preview this file' : 'Could not load this file'}
+          title={refused ? t('git.files.cannotPreview') : t('git.files.loadFileFailed')}
           subtitle={entry.error.message}
         />
       </Pane>
@@ -73,6 +75,7 @@ function FileEntryView({
   entry: Extract<WorktreeEntry, { type: 'file' }>
   className?: string
 }) {
+  const { t } = useLocale()
   const kind = previewKind(entry)
   return (
     <Pane className={className}>
@@ -98,16 +101,16 @@ function FileEntryView({
           icon={<FileWarningIcon />}
           tone="neutral"
           heading="h2"
-          title="Too large to preview"
-          subtitle={`${formatFileSize(entry.size)} — past the preview cap. Open it in your editor instead.`}
+          title={t('git.files.tooLarge')}
+          subtitle={t('git.files.tooLargeSubtitle', { size: formatFileSize(entry.size) })}
         />
       ) : kind === 'binary' ? (
         <CenteredState
           icon={<FileQuestionIcon />}
           tone="neutral"
           heading="h2"
-          title="Binary file"
-          subtitle={`${formatFileSize(entry.size)} of binary data — no text preview.`}
+          title={t('git.files.binary')}
+          subtitle={t('git.files.binarySubtitle', { size: formatFileSize(entry.size) })}
         />
       ) : (
         <CodeLines path={entry.path} text={entry.content ?? ''} />

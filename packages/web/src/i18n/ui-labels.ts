@@ -122,3 +122,49 @@ const SETTINGS_SECTION_KEYS = {
   projects: { title: 'settings.sections.projects.title', description: 'settings.sections.projects.description' },
   keyboard: { title: 'settings.sections.keyboard.title', description: 'settings.sections.keyboard.description' },
 } as const satisfies Record<string, { title: StringPath<Messages>; description: StringPath<Messages> }>
+
+const GIT_ACTION_LABEL_KEYS: Record<string, StringPath<Messages>> = {
+  commit: 'git.toolbar.actionCommit',
+  push: 'git.toolbar.actionPush',
+  'create-pr': 'git.toolbar.actionCreatePr',
+  'view-pr': 'git.toolbar.actionViewPr',
+  'open-terminal': 'git.toolbar.actionTerminal',
+}
+
+/** `lib/git-actions.ts` keeps its English label (its tests and policy stay pure); the toolbar
+ *  maps by action id. */
+export function gitActionLabel(t: T, id: string, fallback: string): string {
+  const key = GIT_ACTION_LABEL_KEYS[id]
+  return key ? t(key) : fallback
+}
+
+const NO_WORKTREE = 'no worktree — this task ran directly in the repo working tree'
+const GIT_REASON_KEYS: Record<string, StringPath<Messages>> = {
+  'Commit unavailable — the agent is still working in this worktree': 'git.reasons.commitRunning',
+  'Commit unavailable — changes are still loading': 'git.reasons.commitLoading',
+  'Commit unavailable — no changes to commit': 'git.reasons.commitNone',
+  'Push unavailable — no remote configured': 'git.reasons.pushNoRemote',
+  'Push unavailable — the run has no branch to push': 'git.reasons.pushNoBranch',
+  'Push unavailable — the agent is still working in this worktree': 'git.reasons.pushRunning',
+  'Create PR unavailable — no supported forge remote (GitHub) detected': 'git.reasons.prNoForge',
+  'Create PR unavailable — the run is still active; wait for the review gate': 'git.reasons.prActive',
+  'Terminal unavailable — no agent session to resume': 'git.reasons.terminalNoSession',
+  'Terminal unavailable — the session is still active in the engine': 'git.reasons.terminalActive',
+}
+const GIT_NO_WORKTREE_KEYS: Record<string, StringPath<Messages>> = {
+  'Commit unavailable': 'git.reasons.commitUnavailableNoWorktree',
+  'Push unavailable': 'git.reasons.pushUnavailableNoWorktree',
+  'Create PR unavailable': 'git.reasons.prUnavailableNoWorktree',
+}
+
+/** Disabled-reason tooltips from the git action policy; unknown (dynamic, e.g. a forge's own
+ *  reason) strings pass through untouched. */
+export function gitActionReason(t: T, reason: string | undefined): string | undefined {
+  if (reason === undefined) return reason
+  const exact = GIT_REASON_KEYS[reason]
+  if (exact) return t(exact)
+  for (const [prefix, key] of Object.entries(GIT_NO_WORKTREE_KEYS)) {
+    if (reason === `${prefix} — ${NO_WORKTREE}`) return t(key, { reason: t('git.reasons.noWorktree') })
+  }
+  return reason
+}

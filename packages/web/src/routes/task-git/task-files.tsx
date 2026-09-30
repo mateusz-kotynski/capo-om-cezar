@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { FolderTreeIcon, TriangleAlertIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router'
@@ -32,6 +33,7 @@ export function TaskFilesRoute() {
 }
 
 function FilesView({ run }: { run: ApiRun }) {
+  const { t } = useLocale()
   // The root listing doubles as the "is there a worktree at all?" probe — a 409 here is the
   // server's answer for the whole view, same stance as the Changes tab's /changes 409.
   const root = useRunFile(run.id, '')
@@ -45,14 +47,14 @@ function FilesView({ run }: { run: ApiRun }) {
 
       {root.isPending ? (
         <p data-slot="files-loading" className="px-4 py-6 text-center text-xs text-soft-foreground md:px-6">
-          Loading files…
+          {t('git.files.loading')}
         </p>
       ) : root.isError ? (
         <CenteredState
           icon={refused ? <FolderTreeIcon /> : <TriangleAlertIcon />}
           tone={refused ? 'neutral' : 'danger'}
           heading="h2"
-          title={refused ? 'No files to browse' : 'Could not load the files'}
+          title={refused ? t('git.files.noneToBrowse') : t('git.files.loadFailed')}
           subtitle={root.error.message}
         />
       ) : (
