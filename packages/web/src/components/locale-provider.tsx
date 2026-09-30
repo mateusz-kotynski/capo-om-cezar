@@ -23,6 +23,9 @@ type LocaleContextValue = {
   tn: (key: PluralGroupPath<Messages>, count: number, params?: Params) => string
 }
 
+/** The `t` signature, for helpers that take the translator as a parameter. */
+export type TFn = LocaleContextValue['t']
+
 // Trees rendered without a provider (isolated component tests, embeds) read English rather than
 // crashing; the app always mounts <LocaleProvider> at the root (app.tsx).
 const FALLBACK_CONTEXT: LocaleContextValue = {

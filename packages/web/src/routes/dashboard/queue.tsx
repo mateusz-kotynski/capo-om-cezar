@@ -3,6 +3,7 @@ import { useRef } from 'react'
 import type { DashboardSnapshot } from '@open-mercato/cezar-api-client'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { useLocale } from '@/components/locale-provider'
 import { useDashboardPage, useDisplacedRows } from './pages'
 import { TaskRow, taskKey } from './rows'
 import { useStagedRows } from './state'
@@ -19,22 +20,23 @@ export function Queue({
   reviews: number
   more: (group: 'questions' | 'reviews', count: number) => void
 }) {
+  const { t } = useLocale()
   const live = useDashboardLive()
   return (
     <Card className="min-w-0 gap-0 overflow-hidden py-0">
       <div className="border-b p-4">
         <h2 id="dashboard-needs-you" tabIndex={-1} className="text-sm font-semibold">
-          Needs you · {snapshot.counts.questions + snapshot.counts.reviews}
+          {t('dashboard.needsYouCount', { count: snapshot.counts.questions + snapshot.counts.reviews })}
         </h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          {snapshot.counts.questions} questions · {snapshot.counts.reviews} reviews
+          {t('dashboard.questionsReviews', { questions: snapshot.counts.questions, reviews: snapshot.counts.reviews })}
         </p>
       </div>
       {healthy &&
       live.connected &&
       snapshot.counts.questions + snapshot.counts.reviews === 0 &&
       snapshot.coverage.projects.every((p) => p.state === 'complete') ? (
-        <p className="p-6 text-sm">All caught up — no tasks need your input</p>
+        <p className="p-6 text-sm">{t('dashboard.allCaughtUp')}</p>
       ) : null}
       <QueueSection snapshot={snapshot} group="questions" count={questions} more={more} />
       <QueueSection snapshot={snapshot} group="reviews" count={reviews} more={more} />
@@ -52,6 +54,7 @@ function QueueSection({
   count: number
   more: (group: 'questions' | 'reviews', count: number) => void
 }) {
+  const { t, tn } = useLocale()
   const initial = snapshot[group]
   const wanted = Math.max(count, initial.rows.length)
   const query = useDashboardPage(snapshot, group, wanted, wanted > initial.rows.length)
@@ -72,7 +75,7 @@ function QueueSection({
         tabIndex={-1}
         className="bg-muted/30 px-4 py-3 text-xs font-semibold uppercase tracking-wide"
       >
-        {group === 'questions' ? 'Questions' : 'Reviews'} · {initial.total}
+        {group === 'questions' ? t('dashboard.questions') : t('dashboard.reviews')} · {initial.total}
       </h3>
       {staged.updates > 0 && (
         <Button
@@ -83,7 +86,7 @@ function QueueSection({
             heading.current?.focus()
           }}
         >
-          {staged.updates} updates — Show
+          {tn('dashboard.updatesShow', staged.updates)}
         </Button>
       )}
       {staged.rows.map(({ row, removed }) => (
@@ -101,7 +104,7 @@ function QueueSection({
       ))}
       {(query.isError || displaced.isError) && (
         <p role="alert" className="p-4 text-sm">
-          Could not check current task state.{' '}
+          {t('dashboard.checkStateFailed')}{' '}
           <Button
             variant="ghost"
             className="min-h-11"
@@ -110,7 +113,7 @@ function QueueSection({
               void displaced.refetch()
             }}
           >
-            Retry
+            {t('dashboard.retry')}
           </Button>
         </p>
       )}
@@ -121,7 +124,7 @@ function QueueSection({
           disabled={query.isFetching}
           onClick={() => more(group, wanted + Math.min(20, initial.total - wanted))}
         >
-          Show {Math.min(20, initial.total - wanted)} more {group}
+          {tn(group === 'questions' ? 'dashboard.showMoreQuestions' : 'dashboard.showMoreReviews', Math.min(20, initial.total - wanted))}
         </Button>
       )}
     </section>

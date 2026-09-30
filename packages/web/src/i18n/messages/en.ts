@@ -7,6 +7,7 @@ import { en as gitEn } from '../areas/git'
 import { en as composeEn } from '../areas/compose'
 import { en as threadEn } from '../areas/thread'
 import { en as tasksEn } from '../areas/tasks'
+import { en as dashboardEn } from '../areas/dashboard'
 import { en as inboxEn } from '../areas/inbox'
 
 /**
@@ -183,4 +184,5 @@ export const en: Messages = {
   dialogs: dialogsEn,
   shell: shellEn,
   inbox: inboxEn,
+  dashboard: dashboardEn,
 }

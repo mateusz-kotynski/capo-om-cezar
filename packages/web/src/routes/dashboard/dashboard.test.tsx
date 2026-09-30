@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createQueryClient } from '@/api/query-client'
 import { dashboardKeys } from '@/api/dashboard'
 import { dashboardLive } from '@/api/dashboard-live'
+import { LocaleProvider } from '@/components/locale-provider'
+import { LOCALE_STORAGE_KEY } from '@/lib/locale'
 import { DashboardRoute } from './index'
 import type { DashboardTaskRow, DashboardSnapshot } from '@open-mercato/cezar-api-client'
 let entrySequence = 0
@@ -128,13 +130,15 @@ function setup(options: {
   const client = createQueryClient()
   render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[{ pathname: '/dashboard', search: options.search ?? '?view=operations', key: `entry-${++entrySequence}` }]}>
-        <Routes>
-          <Route path="/dashboard" element={<DashboardRoute />} />
-          <Route path="*" element={<Back />} />
-        </Routes>
-        <Location />
-      </MemoryRouter>
+      <LocaleProvider>
+        <MemoryRouter initialEntries={[{ pathname: '/dashboard', search: options.search ?? '?view=operations', key: `entry-${++entrySequence}` }]}>
+          <Routes>
+            <Route path="/dashboard" element={<DashboardRoute />} />
+            <Route path="*" element={<Back />} />
+          </Routes>
+          <Location />
+        </MemoryRouter>
+      </LocaleProvider>
     </QueryClientProvider>,
   )
   return { calls, client }
@@ -391,4 +395,25 @@ it('retries an initial snapshot failure from inside the operational Sheet', asyn
   expect(within(dialog).queryByRole('alert')).toBeNull()
   expect(screen.getByTestId('location').textContent).toBe('?panel=running')
   client.clear()
+})
+
+describe('dashboard in Polish', () => {
+  afterEach(() => {
+    localStorage.removeItem(LOCALE_STORAGE_KEY)
+    document.documentElement.removeAttribute('lang')
+  })
+
+  it('words the header, queue and controls in Polish and keeps task titles as they are', async () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'pl')
+    setup()
+
+    expect(await screen.findByText('Czeka na Ciebie · 2')).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Panel')
+    expect(screen.getByText('Pytania · 1')).toBeTruthy()
+    expect(screen.getByText('Przeglądy · 1')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Dostosuj' })).toBeTruthy()
+    expect(screen.getByRole('navigation', { name: 'Widoki panelu' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Task question' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Czeka na Ciebie: 2' })).toBeTruthy()
+  })
 })

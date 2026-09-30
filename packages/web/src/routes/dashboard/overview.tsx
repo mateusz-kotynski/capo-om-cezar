@@ -10,6 +10,9 @@ import { Link } from 'react-router'
 import type { DashboardOverview, DashboardOverviewGroup } from '@open-mercato/cezar-api-client'
 import { useDashboardOverview } from '@/api/dashboard-overview'
 import { Button } from '@/components/ui/button'
+import { useLocale } from '@/components/locale-provider'
+import { RichText } from '@/components/rich-text'
+import { attentionLabel } from '@/i18n/ui-labels'
 import { Card } from '@/components/ui/card'
 import {
   Sheet,
@@ -26,12 +29,12 @@ import { Coverage } from './rows'
 import { ExportRows } from './export-rows'
 import { useDashboardFilter } from './url-filter'
 
-const labels = {
-  running: 'Running now',
-  'needs-you': 'Needs you',
-  completed: 'Completed',
-  failed: 'Failed outcomes',
-}
+const LABEL_KEYS = {
+  running: 'dashboard.runningNow',
+  'needs-you': 'dashboard.needsYou',
+  completed: 'dashboard.completed',
+  failed: 'dashboard.failedOutcomes',
+} as const
 const metricTints = {
   'needs-you': 'from-violet/10',
   running: 'from-info/10',
@@ -60,6 +63,13 @@ export function Overview({
   onCurrent?: (group: 'running' | 'needs-you', target: HTMLElement) => void
   children: (modules: { overview?: ReactNode; portfolio?: ReactNode }) => ReactNode
 }) {
+  const { t, tn } = useLocale()
+  const labels = {
+    running: t(LABEL_KEYS.running),
+    'needs-you': t(LABEL_KEYS['needs-you']),
+    completed: t(LABEL_KEYS.completed),
+    failed: t(LABEL_KEYS.failed),
+  }
   const [period, setPeriod] = useDashboardFilter('period', ['7d', '30d'] as const, '7d')
   const trigger = useSheetTrigger('outcome', '[data-outcome-trigger]')
   const projects = useProjects().data?.projects
@@ -83,9 +93,9 @@ export function Overview({
   const overview = (
     <Card className="gap-0 py-0">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
-        <h2 className={widgetHeading}>Workspace overview</h2>
+        <h2 className={widgetHeading}>{t('dashboard.moduleOverview')}</h2>
         <label className="flex items-center gap-2 text-sm">
-          Outcomes period
+          {t('dashboard.outcomesPeriod')}
           <select
             value={period}
             onChange={(e) => {
@@ -94,18 +104,18 @@ export function Overview({
             }}
             className="min-h-11 rounded-md border bg-background px-3"
           >
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
+            <option value="7d">{t('dashboard.last7')}</option>
+            <option value="30d">{t('dashboard.last30')}</option>
           </select>
         </label>
       </div>
       <div className="space-y-3 p-4">
-        {query.isPending && <p role="status">Loading overview…</p>}
+        {query.isPending && <p role="status">{t('dashboard.loadingOverview')}</p>}
         {query.isError && (
           <p role="alert">
-            {data ? 'Showing previous results. ' : ''}Could not refresh overview.{' '}
+            {data ? t('dashboard.showingPrevious') : ''}{t('dashboard.refreshOverviewFailed')}{' '}
             <Button variant="outline" onClick={() => void query.refetch()}>
-              Retry overview
+              {t('dashboard.retryOverview')}
             </Button>
           </p>
         )}
@@ -113,12 +123,12 @@ export function Overview({
           <>
             <p className="text-sm">
               {data.metrics.needsYou
-                ? `${data.metrics.needsYou} tasks require your input or review.`
+                ? tn('dashboard.requireInput', data.metrics.needsYou)
                 : complete && live.connected && !query.isError
-                  ? 'No tasks currently require your input or review.'
-                  : 'No waiting tasks found in the available data.'}{' '}
-              {data.metrics.failed} failed {data.metrics.failed === 1 ? 'outcome' : 'outcomes'}{' '}
-              in this period. Includes subtasks; completed does not mean accepted or deployed.
+                  ? t('dashboard.noneRequireInput')
+                  : t('dashboard.noWaitingFound')}{' '}
+              {tn('dashboard.failedOutcomesCount', data.metrics.failed)}
+              {t('dashboard.inThisPeriod')}
             </p>
             <Coverage coverage={data.coverage} retry={() => void query.refetch()} />
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -145,40 +155,37 @@ export function Overview({
                       icon={<Icon className="size-4" />}
                     >
                       {group === 'running' || group === 'needs-you'
-                        ? 'Current state'
-                        : `Last ${period === '7d' ? 7 : 30} calendar days`}
+                        ? t('dashboard.currentState')
+                        : t('dashboard.lastDays', { days: period === '7d' ? 7 : 30 })}
                     </MetricContent>
                     <span
                       data-export-exclude
                       className="mt-3 flex items-center gap-1 text-xs font-medium"
                     >
-                      View tasks <ChevronRight className="size-3" aria-hidden="true" />
+                      {t('dashboard.viewTasks')} <ChevronRight className="size-3" aria-hidden="true" />
                     </span>
                   </Button>
                 )
               })}
             </div>
             <p className="text-sm">
-              Median cycle time <strong>{hours(data.metrics.medianCycleHours)}</strong> ·{' '}
-              {data.metrics.timedTasks}/{data.metrics.completed} completed tasks have valid
-              timings.{' '}
+              {t('dashboard.medianCycle')} <strong>{hours(data.metrics.medianCycleHours)}</strong> ·{' '}
+              {t('dashboard.validTimings', { timed: data.metrics.timedTasks, completed: data.metrics.completed })}{' '}
               <Button variant="ghost" onClick={() => open('completed')}>
-                Inspect completed tasks
+                {t('dashboard.inspectCompleted')}
               </Button>
             </p>
             <p className="text-xs text-muted-foreground">
               <time dateTime={data.asOf} title={new Date(data.asOf).toLocaleString(formatLocale())}>
-                Updated {shortAge(data.asOf)} ago
+                {t('dashboard.updatedAgo', { age: shortAge(data.asOf) })}
               </time>
             </p>
             <details className="text-xs text-muted-foreground">
               <summary data-export-heading="Metric definitions" className="cursor-pointer py-2">
-                How these metrics work
+                {t('dashboard.howMetricsWork')}
               </summary>
               <p>
-                Outcomes use finish dates, including archived tasks. Scheduled retries are
-                excluded from failed outcomes. Period includes today at your current fixed UTC
-                offset.
+                {t('dashboard.overviewMetricsNote')}
               </p>
             </details>
             <ExportRows
@@ -205,30 +212,36 @@ export function Overview({
         className="gap-3 p-4"
         data-export-context={`Outcomes: Last ${period === '7d' ? 7 : 30} calendar days; workload: current state`}
       >
-        <h2 className={widgetHeading}>Projects</h2>
+        <h2 className={widgetHeading}>{t('dashboard.modulePortfolio')}</h2>
         <p className="text-xs text-muted-foreground">
-          Current workload and outcomes for the selected period. Sorted by tasks needing you,
-          then running tasks. Counts include subtasks.
+          {t('dashboard.projectsIntro')}
         </p>
         <div
           className="overflow-x-auto"
           role="region"
-          aria-label="Project outcomes"
+          aria-label={t('dashboard.projectOutcomesAria')}
           tabIndex={0}
         >
           <table className="w-full text-left text-sm">
             <thead>
               <tr>
-                {['Project', 'Needs you', 'Running', 'Completed', 'Failed', 'Median cycle'].map(
-                  (label) => (
-                    <th
-                      key={label}
-                      className={`whitespace-nowrap px-3 py-2 font-medium ${label === 'Project' ? '' : 'text-right'}`}
-                    >
-                      {label}
-                    </th>
-                  ),
-                )}
+                {(
+                  [
+                    ['project', t('dashboard.colProject')],
+                    ['needsYou', t('dashboard.colNeedsYou')],
+                    ['running', t('dashboard.colRunning')],
+                    ['completed', t('dashboard.colCompleted')],
+                    ['failed', t('dashboard.colFailed')],
+                    ['median', t('dashboard.colMedian')],
+                  ] as const
+                ).map(([id, label]) => (
+                  <th
+                    key={id}
+                    className={`whitespace-nowrap px-3 py-2 font-medium ${id === 'project' ? '' : 'text-right'}`}
+                  >
+                    {label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -247,7 +260,7 @@ export function Overview({
                       </Link>
                       {source?.state !== 'complete' && (
                         <span className="block text-xs text-muted-foreground">
-                          Incomplete data
+                          {t('dashboard.incompleteData')}
                         </span>
                       )}
                     </td>
@@ -257,12 +270,12 @@ export function Overview({
                           data-export-keep
                           variant="ghost"
                           className="min-h-11 tabular-nums"
-                          aria-label={`${projectName(project.projectId)}: ${labels[group]}: ${source?.state === 'unavailable' ? 'Unavailable' : project[group === 'needs-you' ? 'needsYou' : group]}`}
+                          aria-label={`${projectName(project.projectId)}: ${labels[group]}: ${source?.state === 'unavailable' ? t('dashboard.unavailableCap') : project[group === 'needs-you' ? 'needsYou' : group]}`}
                           disabled={source?.state === 'unavailable'}
                           onClick={() => open(group, project.projectId)}
                         >
                           {source?.state === 'unavailable'
-                            ? 'Unavailable'
+                            ? t('dashboard.unavailableCap')
                             : project[group === 'needs-you' ? 'needsYou' : group]}
                         </Button>
                       </td>
@@ -270,7 +283,7 @@ export function Overview({
                     <td className="px-3 py-2 text-right tabular-nums">
                       {hours(project.medianCycleHours)}
                       <span className="block text-xs text-muted-foreground">
-                        {project.timedTasks}/{project.completed} timed
+                        {t('dashboard.timed', { timed: project.timedTasks, completed: project.completed })}
                       </span>
                     </td>
                   </tr>
@@ -278,7 +291,7 @@ export function Overview({
               })}
             </tbody>
           </table>
-          {!data.projects.length && <p className="py-4">No projects to compare yet.</p>}
+          {!data.projects.length && <p className="py-4">{t('dashboard.noProjects')}</p>}
         </div>
         <ExportRows
           rows={data.projects.flatMap(({ projectId, ...metrics }) =>
@@ -319,12 +332,11 @@ export function Overview({
         >
           <SheetHeader>
             <SheetTitle>
-              {selection ? labels[selection.group] : 'Tasks'}
+              {selection ? labels[selection.group] : t('dashboard.tasks')}
               {selection?.projectId ? ` · ${selection.projectId}` : ''}
             </SheetTitle>
             <SheetDescription>
-              Tasks behind the selected metric. Includes subtasks. Snapshot keeps counts and
-              rows consistent.
+              {t('dashboard.outcomeSheetDescription')}
             </SheetDescription>
           </SheetHeader>
           {selection && (
@@ -352,6 +364,7 @@ function OutcomeTasks({
   refresh: () => void
   projectName: (id: string) => string
 }) {
+  const { t } = useLocale()
   const [offset, setOffset] = useSheetState(`outcome:${selection.identity}:offset`, 0)
   const query = useDashboardOverview({
     period: selection.snapshot.period,
@@ -374,25 +387,34 @@ function OutcomeTasks({
   }
   return (
     <div className="space-y-3 p-4" data-sheet-loading={query.isFetching}>
-      {query.isPending && <p>Loading tasks…</p>}
+      {query.isPending && <p>{t('dashboard.loadingTasks')}</p>}
       {query.isError && (
         <p role="alert">
-          This snapshot may have expired or become unavailable.{' '}
-          <Button onClick={refresh}>Refresh overview</Button>
+          {t('dashboard.snapshotExpired')}{' '}
+          <Button onClick={refresh}>{t('dashboard.refreshOverview')}</Button>
         </p>
       )}
       {query.data && (
         <>
           <p ref={summary} tabIndex={-1} className="text-xs text-muted-foreground">
-            {query.data.page.total} tasks · Snapshot from{' '}
-            <time dateTime={query.data.asOf} title={new Date(query.data.asOf).toLocaleString(formatLocale())}>
-              {shortAge(query.data.asOf)} ago
-            </time>
+            <RichText
+              text={t('dashboard.snapshotFrom', {
+                total: query.data.page.total,
+                ago: t('dashboard.ago', { age: shortAge(query.data.asOf) }),
+              })}
+              tags={{
+                time: (ago) => (
+                  <time dateTime={query.data!.asOf} title={new Date(query.data!.asOf).toLocaleString(formatLocale())}>
+                    {ago}
+                  </time>
+                ),
+              }}
+            />
           </p>
           {query.data.page.rows.map((row) => (
             <OutcomeTask key={`${row.projectId}:${row.id}`} row={row} group={selection.group} projectName={projectName} />
           ))}
-          {!query.data.page.rows.length && <p>No tasks in this group.</p>}
+          {!query.data.page.rows.length && <p>{t('dashboard.noTasksInGroup')}</p>}
         </>
       )}
       <div className="flex gap-2">
@@ -401,14 +423,14 @@ function OutcomeTasks({
           disabled={!offset || query.isFetching}
           onClick={() => goToPage(Math.max(0, offset - 20))}
         >
-          Previous
+          {t('dashboard.previous')}
         </Button>
         <Button
           variant="outline"
           disabled={!query.data || query.data.page.nextOffset === null || query.isFetching}
           onClick={() => goToPage(query.data!.page.nextOffset!)}
         >
-          Next
+          {t('dashboard.next')}
         </Button>
       </div>
     </div>
@@ -424,6 +446,7 @@ function OutcomeTask({
   group: DashboardOverviewGroup
   projectName: (id: string) => string
 }) {
+  const { t } = useLocale()
   const truth = useDashboardTruth(row)
   const current = group === 'running' || group === 'needs-you'
   // Outcomes retain their historical status; operational groups must stop
@@ -436,10 +459,10 @@ function OutcomeTask({
   const inactive = removed || obsolete
   const attention = deriveAttention(row)
   const label = current && removed
-    ? 'Task removed'
+    ? t('dashboard.taskRemoved')
     : obsolete
-      ? group === 'running' ? 'No longer running' : 'No longer needs you'
-      : attention.label
+      ? group === 'running' ? t('dashboard.noLongerRunning') : t('dashboard.noLongerNeedsYou')
+      : attentionLabel(t, attention.label)
   return (
     <div className="border-b py-3">
       <Link
@@ -455,13 +478,14 @@ function OutcomeTask({
       </Link>
       <p className="text-xs text-muted-foreground">
         <StatusDot tone={attention.tone} /> {projectName(row.projectId)} ·{' '}
-        {label} · {row.archived ? 'Archived · ' : ''}
+        {label} · {row.archived ? t('dashboard.archivedPrefix') : ''}
         <time
           dateTime={row.finishedAt ?? row.createdAt}
           title={new Date(row.finishedAt ?? row.createdAt).toLocaleString(formatLocale())}
         >
-          {row.finishedAt ? 'Finished' : 'Created'}{' '}
-          {shortAge(row.finishedAt ?? row.createdAt)} ago
+          {t(row.finishedAt ? 'dashboard.finishedAgo' : 'dashboard.createdAgo', {
+            age: shortAge(row.finishedAt ?? row.createdAt),
+          })}
         </time>
       </p>
     </div>

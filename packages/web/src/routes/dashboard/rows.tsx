@@ -10,6 +10,8 @@ import { deriveAttention } from '@/lib/attention'
 import { taskReferences } from '@/lib/tasks-table'
 import { shortAge } from '@/lib/format'
 import { Button } from '@/components/ui/button'
+import { useLocale } from '@/components/locale-provider'
+import { attentionLabel } from '@/i18n/ui-labels'
 export const taskKey = (row: DashboardTaskRow) => `${row.projectId}:${row.id}`
 export function TaskRow({
   row,
@@ -24,6 +26,7 @@ export function TaskRow({
   removed?: boolean
   queue?: boolean
 }) {
+  const { t } = useLocale()
   const reconciled = useContext(DashboardReconciledContext) && !checking && !checkFailed
   const truth = useDashboardTruth(row)
   removed = removed || truth === null || (queue && truth?.archived === true)
@@ -68,19 +71,19 @@ export function TaskRow({
             <span>{row.projectId}</span>
             <span>
               {checkFailed
-                ? 'Could not check current state'
+                ? t('dashboard.checkingFailed')
                 : !reconciled
-                  ? 'Checking current state…'
+                  ? t('dashboard.checking')
                   : removed
                     ? queue && truth !== null
-                      ? 'No longer needs you'
-                      : 'Task removed'
+                      ? t('dashboard.noLongerNeedsYou')
+                      : t('dashboard.taskRemoved')
                     : obsolete
-                      ? 'No longer needs you'
-                      : attention.label}
+                      ? t('dashboard.noLongerNeedsYou')
+                      : attentionLabel(t, attention.label)}
             </span>
             <span>{shortAge(row.createdAt)}</span>
-            {row.dispatch && <span>Subtask</span>}
+            {row.dispatch && <span>{t('dashboard.subtask')}</span>}
             {!inactive &&
               taskReferences(row).map((ref) => (
                 <ReferenceChip
@@ -106,33 +109,37 @@ export function Coverage({
   count?: number
   retry: () => void
 }) {
+  const { t, tn } = useLocale()
   const unavailable = coverage.projects.filter((p) => p.state !== 'complete')
   if (!unavailable.length) return null
   return (
     <div className="rounded-md border border-pending/40 bg-muted/40 p-3 text-sm" role="status">
       <p>
         {count !== undefined
-          ? `${count} tasks need you in the available data. Complete coverage: ${coverage.projects.length - unavailable.length} of ${coverage.projects.length} projects. `
+          ? tn('dashboard.coverageNeedYou', count, {
+              complete: coverage.projects.length - unavailable.length,
+              total: coverage.projects.length,
+            })
           : ''}
         {unavailable.length === 1
           ? unavailable[0]!.state === 'unavailable'
-            ? 'One project is unavailable.'
-            : 'One project has incomplete coverage.'
-          : `${unavailable.length} projects have incomplete coverage.`}
+            ? t('dashboard.projectUnavailable')
+            : t('dashboard.projectIncomplete')
+          : t('dashboard.projectsIncomplete', { count: unavailable.length })}
       </p>
       <details className="mt-2">
         <summary className="min-h-11 cursor-pointer py-2">
-          View unavailable {unavailable.length === 1 ? 'project' : 'projects'}
+          {unavailable.length === 1 ? t('dashboard.viewUnavailableOne') : t('dashboard.viewUnavailableMany')}
         </summary>
         {unavailable.map((p) => (
           <p key={p.projectId}>
             {p.projectId}: {p.reason ?? p.state}
-            {p.omittedRuns > 0 ? ` · ${p.omittedRuns} omitted tasks` : ''}
+            {p.omittedRuns > 0 ? t('dashboard.omittedTasks', { count: p.omittedRuns }) : ''}
           </p>
         ))}
       </details>
       <Button variant="outline" onClick={retry} className="min-h-11">
-        Retry
+        {t('dashboard.retry')}
       </Button>
     </div>
   )

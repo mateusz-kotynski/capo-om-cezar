@@ -45,7 +45,7 @@ const summaryLabels: Record<string, { label: string; usd?: boolean }> = {
 function formatSummaryValue(value: number | string | null, usd?: boolean) {
   if (value == null) return 'Unavailable'
   if (typeof value === 'string') return value
-  return formatAmount(value, usd)
+  return formatAmount(value, usd, 'en')
 }
 function summaryTiles(report: DashboardExport) {
   const seen = new Set<string>()

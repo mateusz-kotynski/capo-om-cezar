@@ -10,6 +10,7 @@ import { useDashboardCosts } from '@/api/dashboard-costs'
 import { useHealth } from '@/api/queries'
 import { usageMetricVisibility, type UsageMetricVisibility } from '@/lib/token-metrics'
 import { Button } from '@/components/ui/button'
+import { useLocale } from '@/components/locale-provider'
 import { Card } from '@/components/ui/card'
 import {
   Tooltip,
@@ -22,7 +23,11 @@ import { accents } from './cost-visuals'
 type Metric = 'cost' | 'input' | 'output'
 type TrendPeriod = Extract<DashboardCosts['period'], '7d' | '30d'>
 const fields = { cost: 'costUsd', input: 'inputTokens', output: 'outputTokens' } as const
-const labels = { cost: 'Reported USD', input: 'Input tokens', output: 'Output tokens' } as const
+const LABEL_KEYS = {
+  cost: 'dashboard.reportedUsd',
+  input: 'dashboard.inputTokens',
+  output: 'dashboard.outputTokens',
+} as const
 function choices(visibility: UsageMetricVisibility): Metric[] {
   return [
     ...(visibility.cost ? (['cost'] as const) : []),
@@ -53,10 +58,11 @@ function BarRow({
   describe: (point: DashboardCostSeriesPoint) => string
   renderTooltip: (point: DashboardCostSeriesPoint) => ReactNode
 }) {
+  const { t } = useLocale()
   const max = Math.max(1, ...series.map(height))
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="flex h-20 items-end gap-0.5" role="group" aria-label="Daily trend">
+      <div className="flex h-20 items-end gap-0.5" role="group" aria-label={t('dashboard.dailyTrendAria')}>
         {series.map((point) => {
           const value = height(point)
           const pct = Math.max(value > 0 ? 4 : 0, (value / max) * 100)
@@ -96,18 +102,19 @@ function DailyValuesTable({
   metrics: Metric[]
   series: DashboardCostSeriesPoint[]
 }) {
+  const { t } = useLocale()
   return (
     <table className="w-full text-left text-xs">
       <thead>
         <tr className="border-b">
-          <th className="py-1 pr-2 font-medium">Date</th>
+          <th className="py-1 pr-2 font-medium">{t('dashboard.colDate')}</th>
           {metrics.map((metric) => (
             <th key={metric} className="py-1 pr-2 text-right font-medium">
-              {labels[metric]}
+              {t(LABEL_KEYS[metric])}
             </th>
           ))}
-          <th className="py-1 pr-2 text-right font-medium">Completed</th>
-          <th className="py-1 text-right font-medium">Avg cycle</th>
+          <th className="py-1 pr-2 text-right font-medium">{t('dashboard.colCompletedShort')}</th>
+          <th className="py-1 text-right font-medium">{t('dashboard.colAvgCycle')}</th>
         </tr>
       </thead>
       <tbody>
@@ -136,35 +143,48 @@ function TrendMetricChart({
   metric: Metric
   series: DashboardCostSeriesPoint[]
 }) {
+  const { t } = useLocale()
+  const label = t(LABEL_KEYS[metric])
   const accent = accents[metric]
   const field = fields[metric]
   const reported = series.reduce((n, p) => n + (p[field]?.reportedTasks ?? 0), 0)
   return (
     <div className="rounded-xl border p-3">
-      <p className={`text-xs font-medium ${accent.text}`}>{labels[metric]}</p>
+      <p className={`text-xs font-medium ${accent.text}`}>{label}</p>
       <div className="mt-2">
         <BarRow
           series={series}
           describe={(p) =>
-            `${p.date}, ${labels[metric]}: ${formatValue(p[field]?.value, metric)}, ${p[field]?.reportedTasks ?? 0} of ${p.tasks} tasks reported`
+            t('dashboard.barDescribe', {
+              date: p.date,
+              label,
+              value: formatValue(p[field]?.value, metric),
+              reported: p[field]?.reportedTasks ?? 0,
+              tasks: p.tasks,
+            })
           }
           height={(p) => p[field]?.value ?? 0}
           accent={accent.fill}
           renderTooltip={(p) => (
             <p>
-              {formatDate(p.date)} · {formatValue(p[field]?.value, metric)} ·{' '}
-              {p[field]?.reportedTasks ?? 0}/{p.tasks} tasks reported
+              {t('dashboard.barTooltip', {
+                date: formatDate(p.date),
+                value: formatValue(p[field]?.value, metric),
+                reported: p[field]?.reportedTasks ?? 0,
+                tasks: p.tasks,
+              })}
             </p>
           )}
         />
       </div>
       {reported === 0 && (
-        <p className="mt-2 text-xs text-muted-foreground">No reports in this period.</p>
+        <p className="mt-2 text-xs text-muted-foreground">{t('dashboard.noReportsPeriod')}</p>
       )}
     </div>
   )
 }
 function ThroughputChart({ series }: { series: DashboardCostSeriesPoint[] }) {
+  const { t } = useLocale()
   const totalCompleted = series.reduce((n, p) => n + p.completed, 0)
   const weightedHours = series.reduce(
     (sum, p) => sum + (p.avgCycleHours ?? 0) * (p.cycleReportedTasks ?? p.completed),
@@ -175,40 +195,46 @@ function ThroughputChart({ series }: { series: DashboardCostSeriesPoint[] }) {
   return (
     <div className="rounded-xl border p-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-xs font-medium text-success">Completed tasks</p>
+        <p className="text-xs font-medium text-success">{t('dashboard.completedTasks')}</p>
         <p className="text-xs text-muted-foreground">
-          {totalCompleted} done · avg cycle{' '}
-          {avgCycleHours === null ? 'unavailable' : formatHours(avgCycleHours)}
+          {t('dashboard.doneAvg', {
+            done: totalCompleted,
+            cycle: avgCycleHours === null ? t('dashboard.unavailable') : formatHours(avgCycleHours),
+          })}
         </p>
       </div>
       <p className="text-xs text-muted-foreground">
-        {timed}/{totalCompleted} completed tasks have valid cycle times.
+        {t('dashboard.validCycleTimes', { timed, total: totalCompleted })}
       </p>
       <div className="mt-2">
         <BarRow
           series={series}
           describe={(p) =>
-            `${p.date}: ${p.completed} completed tasks, average cycle ${p.avgCycleHours == null ? 'Unavailable' : formatHours(p.avgCycleHours)}`
+            t('dashboard.completedDescribe', {
+              date: p.date,
+              completed: p.completed,
+              cycle: p.avgCycleHours == null ? t('dashboard.unavailableCap') : formatHours(p.avgCycleHours),
+            })
           }
           height={(p) => p.completed}
           accent="bg-success"
           renderTooltip={(p) => (
             <div>
               <p>
-                {formatDate(p.date)} · {p.completed} completed
+                {t('dashboard.completedTooltip', { date: formatDate(p.date), completed: p.completed })}
               </p>
               <p>
-                Avg cycle{' '}
-                {p.avgCycleHours === null ? 'unavailable' : formatHours(p.avgCycleHours)} ·
-                Median{' '}
-                {p.medianCycleHours === null ? 'unavailable' : formatHours(p.medianCycleHours)}
+                {t('dashboard.avgMedian', {
+                  avg: p.avgCycleHours === null ? t('dashboard.unavailable') : formatHours(p.avgCycleHours),
+                  median: p.medianCycleHours === null ? t('dashboard.unavailable') : formatHours(p.medianCycleHours),
+                })}
               </p>
             </div>
           )}
         />
       </div>
       {totalCompleted === 0 && (
-        <p className="mt-2 text-xs text-muted-foreground">No tasks finished in this period.</p>
+        <p className="mt-2 text-xs text-muted-foreground">{t('dashboard.noTasksFinished')}</p>
       )}
     </div>
   )
@@ -218,6 +244,7 @@ export function DashboardTrends() {
   return <Trends visibility={visibility} />
 }
 export function Trends({ visibility }: { visibility: UsageMetricVisibility }) {
+  const { t } = useLocale()
   const [period, setPeriod] = useDashboardFilter('trendPeriod', ['7d', '30d'] as const, '7d')
   const sort: DashboardCosts['sort'] = visibility.cost ? 'cost' : 'input'
   const query = useDashboardCosts(period, sort, `${visibility.cost}:${visibility.tokens}`)
@@ -234,16 +261,16 @@ export function Trends({ visibility }: { visibility: UsageMetricVisibility }) {
   return (
     <Card className="gap-0 py-0">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
-        <h2 className="text-sm font-semibold">Trends</h2>
+        <h2 className="text-sm font-semibold">{t('dashboard.trends')}</h2>
         <label className="flex min-h-11 items-center gap-2 text-xs">
-          Period
+          {t('dashboard.period')}
           <select
             className="min-h-11 rounded-md border bg-background px-2 text-xs"
             value={period}
             onChange={(e) => setPeriod(e.target.value as TrendPeriod)}
           >
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
+            <option value="7d">{t('dashboard.last7')}</option>
+            <option value="30d">{t('dashboard.last30')}</option>
           </select>
         </label>
       </div>
@@ -298,20 +325,18 @@ export function Trends({ visibility }: { visibility: UsageMetricVisibility }) {
 
         <details className="text-xs text-muted-foreground">
           <summary data-export-heading="Metric definitions" className="cursor-pointer py-2">
-            How these metrics work
+            {t('dashboard.howMetricsWork')}
           </summary>
           <p>
-            Usage is grouped by creation date, not spending date. Completed tasks are grouped by
-            finish date. Calendar days use your current UTC offset (fixed across the period),
-            including today.
+            {t('dashboard.trendsNote')}
           </p>
         </details>
-        {query.isPending && <p>Loading trends…</p>}
+        {query.isPending && <p>{t('dashboard.loadingTrends')}</p>}
         {query.isError && (
           <p role="alert">
-            {data ? 'Showing stale trends. Could not refresh.' : 'Could not load trends.'}{' '}
+            {data ? t('dashboard.staleTrends') : t('dashboard.loadTrendsFailed')}{' '}
             <Button className="min-h-11" onClick={() => void query.refetch()}>
-              Retry
+              {t('dashboard.retry')}
             </Button>
           </p>
         )}
@@ -322,7 +347,7 @@ export function Trends({ visibility }: { visibility: UsageMetricVisibility }) {
         )}
         {data && <Coverage coverage={data.coverage} retry={() => void query.refetch()} />}
         {data && empty && (
-          <p className="text-muted-foreground">No retained tasks in this period yet.</p>
+          <p className="text-muted-foreground">{t('dashboard.noRetainedPeriod')}</p>
         )}
         {data && !empty && data.series.length > 0 && (
           <>
@@ -341,7 +366,7 @@ export function Trends({ visibility }: { visibility: UsageMetricVisibility }) {
                 data-export-heading="Daily data"
                 className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-xs font-medium text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden"
               >
-                <Table2 className="size-4" aria-hidden="true" /> View data table
+                <Table2 className="size-4" aria-hidden="true" /> {t('dashboard.viewDataTable')}
                 <ChevronDown
                   className="ml-auto size-4 transition-transform group-open:rotate-180"
                   aria-hidden="true"
@@ -350,7 +375,7 @@ export function Trends({ visibility }: { visibility: UsageMetricVisibility }) {
               <div
                 className="max-h-80 overflow-auto border-t p-3 print:max-h-none print:overflow-visible"
                 role="region"
-                aria-label="Daily trend values"
+                aria-label={t('dashboard.dailyValuesAria')}
                 tabIndex={0}
               >
                 <DailyValuesTable metrics={metrics} series={data.series} />
