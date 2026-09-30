@@ -38,6 +38,20 @@ describe('message dictionaries', () => {
     expect(mismatched).toEqual([])
   })
 
+  it('use the same <rich> tags in both languages, key by key', () => {
+    const tags = (text: string) => [...text.matchAll(/<(\w+)>/g)].map((match) => match[1]!).sort().join()
+    const mismatched = [...enLeaves.entries()]
+      .filter(([path, text]) => tags(text) !== tags(plLeaves.get(path) ?? ''))
+      .map(([path]) => path)
+    expect(mismatched).toEqual([])
+  })
+
+  it('keeps the space between a link slot and the words after it (English wording is unchanged)', () => {
+    expect(en.tasks.global.tagHint).toBe(
+      'Tag connected repositories in <link>Settings → Projects</link> to group their tasks together here.',
+    )
+  })
+
   it('never ship an empty Polish string', () => {
     const empty = [...plLeaves.entries()]
       .filter(([path, text]) => text.trim() === '' && !ALLOWED_EMPTY_PL.has(path))

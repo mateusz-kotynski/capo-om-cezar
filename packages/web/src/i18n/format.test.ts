@@ -67,6 +67,11 @@ describe('resolveMessage (t)', () => {
     )
   })
 
+  it('does not resolve {placeholders} through the prototype chain', () => {
+    expect(interpolate('a {constructor} b {toString}', { x: 1 })).toBe('a {constructor} b {toString}')
+    expect(interpolate('a {x}', { x: 1 })).toBe('a 1')
+  })
+
   it('falls back to the raw path for an unknown key rather than throwing', () => {
     expect(resolveMessage('en', 'nope.not.a.key')).toBe('nope.not.a.key')
   })
@@ -85,6 +90,22 @@ describe('resolvePlural (tn) — the requirement worked example', () => {
     expect(resolvePlural('pl', 'tasksPage.count', 0)).toBe('0 zadań')
     expect(resolvePlural('pl', 'tasksPage.count', 11)).toBe('11 zadań')
     expect(resolvePlural('pl', 'tasksPage.count', 22)).toBe('22 zadania')
+  })
+
+  it('sends the teens (12–14) and 112 to "many", and 22–24 / 102 back to "few"', () => {
+    for (const n of [12, 13, 14, 112, 113, 114]) {
+      expect(resolvePlural('pl', 'tasksPage.count', n), String(n)).toBe(`${n} zadań`)
+    }
+    for (const n of [22, 23, 24, 102, 103, 104]) {
+      expect(resolvePlural('pl', 'tasksPage.count', n), String(n)).toBe(`${n} zadania`)
+    }
+    expect(resolvePlural('pl', 'tasksPage.count', 21)).toBe('21 zadań')
+    expect(resolvePlural('pl', 'tasksPage.count', 101)).toBe('101 zadań')
+  })
+
+  it('uses the genitive-singular "other" form for fractions', () => {
+    expect(resolvePlural('pl', 'tasksPage.count', 1.5)).toBe('1.5 zadania')
+    expect(resolvePlural('pl', 'tasksPage.count', 0.5)).toBe('0.5 zadania')
   })
 
   it('renders the English one/other split for the same key', () => {

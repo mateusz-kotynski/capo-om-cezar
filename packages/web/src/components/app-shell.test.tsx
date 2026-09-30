@@ -7,6 +7,7 @@ import { AppShell, routeOwnsScrollArrival, type AppShellProps } from './app-shel
 import { LocaleProvider } from './locale-provider'
 import { NAV_ITEMS, visibleNavItems } from './nav-items'
 import { ThemeProvider } from './theme-provider'
+import { LOCALE_STORAGE_KEY } from '@/lib/locale'
 
 afterEach(() => {
   cleanup()
@@ -966,5 +967,39 @@ describe('Dashboard active navigation', () => {
     const link = screen.getByRole('link', { name: 'Dashboard' })
     expect(link.getAttribute('aria-current')).toBeNull()
     expect(link.classList.contains('bg-muted')).toBe(false)
+  })
+})
+
+describe('AppShell in Polish', () => {
+  beforeEach(() => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'pl')
+  })
+  afterEach(() => {
+    document.documentElement.removeAttribute('lang')
+  })
+
+  it('renders the sidebar navigation, brand-adjacent controls and footer in Polish', () => {
+    renderShell('/')
+
+    // The landmark is named in Polish but keeps its stable e2e hook.
+    const main = screen.getByRole('navigation', { name: 'Główna' })
+    expect(main.getAttribute('data-slot')).toBe('main-nav')
+    const labels = within(main)
+      .getAllByRole('link')
+      .map((link) => link.textContent)
+    expect(labels).toContain('Zadania')
+    expect(labels).toContain('Git')
+    expect(labels).toContain('Skille')
+    expect(labels).toContain('Workflow')
+    expect(labels).toContain('Ustawienia')
+    expect(labels).not.toContain('Settings')
+    expect(document.documentElement.lang).toBe('pl')
+  })
+
+  it('translates the sidebar footer tooltips and toggles', () => {
+    renderShell('/')
+
+    expect(footer().querySelector('[data-slot="theme-toggle"]')?.getAttribute('aria-label')).toMatch(/^Motyw:/)
+    expect(sidebar().innerHTML).toContain('paleta poleceń')
   })
 })
