@@ -387,7 +387,7 @@ function ProjectGroup({
   position: number
   total: number
 }) {
-  const { t } = useLocale()
+  const { t, tn } = useLocale()
   const missing = project.status === 'missing'
   // A missing project holds its place in the order but is not draggable: its row is deliberately
   // inert (there is nothing behind the chevron either), and a folder that is gone is one to
@@ -595,7 +595,7 @@ function ProjectGroup({
               // one-click Add; repeating the button here would put a registry write in the nav.
               <span
                 data-slot="project-unregistered"
-                title="cezar is serving this folder — it is not in your saved projects. Add it in Global settings → Projects."
+                title={t('nav.notSavedTitle')}
                 className="shrink-0 rounded-full bg-muted px-[7px] py-px text-[10px] font-medium text-soft-foreground"
               >
                 {t('nav.notSaved')}
@@ -604,7 +604,7 @@ function ProjectGroup({
             {waiting ? (
               <span
                 data-slot="project-attention"
-                title={`${waiting} task${waiting === 1 ? '' : 's'} need${waiting === 1 ? 's' : ''} you`}
+                title={tn('nav.waitingTitle', waiting)}
                 className="shrink-0 rounded-full bg-violet px-1.5 py-px text-[10.5px] font-semibold text-violet-foreground"
               >
                 {waiting}

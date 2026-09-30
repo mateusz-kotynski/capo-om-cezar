@@ -1,4 +1,5 @@
 import { useLocale } from '@/components/locale-provider'
+import { RichText } from '@/components/rich-text'
 import { SettingsIcon } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link as RouterLink, useNavigate } from 'react-router'
@@ -166,7 +167,7 @@ export function CloneProjectDialog({
         <DialogHeader>
           <DialogTitle>{t('dialogs.clone.title')}</DialogTitle>
           <DialogDescription>
-            {t('dialogs.clone.descriptionPrefix')}<code>gh</code>{t('dialogs.clone.descriptionSuffix')}
+            <RichText text={t('dialogs.clone.description')} tags={{ code: (c) => <code>{c}</code> }} />
           </DialogDescription>
         </DialogHeader>
 

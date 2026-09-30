@@ -1,4 +1,5 @@
 import { useLocale } from '@/components/locale-provider'
+import { RichText } from '@/components/rich-text'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ExternalLinkIcon, LinkIcon, UnplugIcon } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
@@ -60,7 +61,7 @@ export function TrackerSection() {
       setPickerOpen(false)
       setSelected(null)
       await refresh(result.projectId)
-      toast(`${result.association.externalName} connected`)
+      toast(t('prefs.trackerSettings.connected', { name: result.association.externalName }))
     },
     onError: (error: Error) => toast(error.message, { tone: 'danger' }),
   })
@@ -149,7 +150,7 @@ export function TrackerSection() {
 
       {savedAssociation && currentConnection && !connection.isError && !connection.data?.demo && !scopeConnected ? <p className="text-sm text-warning">{t('prefs.trackerSettings.reconnect')}</p> : null}
       {connection.data?.error ? <p role="alert" className="text-sm text-danger">{connection.data.error}</p> : null}
-      <p className="text-xs text-muted-foreground">{t('prefs.trackerSettings.cleanupPrefix')}<code>cez tracker-connections list</code>{t('prefs.trackerSettings.cleanupMiddle')}<code>cez tracker-connections remove &lt;id&gt;</code>{t('prefs.trackerSettings.cleanupSuffix')}</p>
+      <p className="text-xs text-muted-foreground"><RichText text={t('prefs.trackerSettings.cleanup')} tags={{ code: (c) => <code>{c}</code> }} /></p>
       {connection.isError ? <p className="text-sm text-danger">{t('prefs.trackerSettings.loadFailed')} <button onClick={() => void connection.refetch()}>{t('prefs.trackerSettings.retry')}</button></p> : null}
       <section className="rounded-lg border border-border bg-card p-4">
         <h2 className="text-sm font-semibold">{t('prefs.trackerSettings.connectTitle')}</h2>

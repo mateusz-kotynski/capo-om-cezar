@@ -18,6 +18,7 @@
 
 import { useEffect, useState } from 'react'
 
+import { useLocale } from '@/components/locale-provider'
 import { formatLocale } from '@/lib/locale'
 
 /** One formatter per shape and locale, built once: hundreds of thread rows format on every paint. */
@@ -80,12 +81,16 @@ export function localDayKey(ts: string | undefined): string | undefined {
  * `now` is injected (defaulted, as `scheduledResume` does) so the label is a pure function of
  * its inputs in tests.
  */
-export function dayLabel(ts: string | undefined, now: Date = new Date()): string | undefined {
+export function dayLabel(
+  ts: string | undefined,
+  now: Date = new Date(),
+  words: { today: string; yesterday: string } = { today: 'Today', yesterday: 'Yesterday' },
+): string | undefined {
   const at = parse(ts)
   if (at === undefined) return undefined
   const key = keyOf(at)
-  if (key === keyOf(now)) return 'Today'
-  if (key === keyOf(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1))) return 'Yesterday'
+  if (key === keyOf(now)) return words.today
+  if (key === keyOf(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1))) return words.yesterday
   return (at.getFullYear() === now.getFullYear() ? DAY : DAY_WITH_YEAR)().format(at)
 }
 
@@ -178,11 +183,13 @@ export function TurnTime({ startedAt, completedAt }: { startedAt?: string; compl
  *  behind "Today"/"Yesterday" when `dayLabel` returned one of those, since a relative word alone
  *  is not an anchor and the date alone loses the very cue a returning reader wants. */
 export function DaySeparator({ ts }: { ts: string }) {
-  const label = dayLabel(ts)
+  const { t } = useLocale()
+  const words = { today: t('thread.time.today'), yesterday: t('thread.time.yesterday') }
+  const label = dayLabel(ts, new Date(), words)
   const at = parse(ts)
   if (label === undefined || at === undefined) return null
   const exact = FULL_DAY().format(at)
-  const relative = label === 'Today' || label === 'Yesterday'
+  const relative = label === words.today || label === words.yesterday
   return (
     <div
       data-slot="day-separator"

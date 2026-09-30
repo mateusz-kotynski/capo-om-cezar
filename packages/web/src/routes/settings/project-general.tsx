@@ -1,4 +1,5 @@
 import { useLocale } from '@/components/locale-provider'
+import { formatLocale } from '@/lib/locale'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 
@@ -42,14 +43,14 @@ import { SettingsField } from './settings-field'
 /** `2026-07-20T…` → a full local date. Unlike the registry table's compact `Jul 20`, this page has
  *  the room and is the place someone comes to check WHEN. An unparseable stamp degrades to an em
  *  dash rather than `Invalid Date`. */
-function fullDate(iso: string, locale: string): string {
+function fullDate(iso: string): string {
   const at = new Date(iso)
   if (Number.isNaN(at.getTime())) return '—'
-  return at.toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' })
+  return at.toLocaleDateString(formatLocale(), { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 export function ProjectGeneral({ capabilities }: { capabilities?: Partial<Pick<Capabilities, 'singleProject'>> }) {
-  const { t, locale } = useLocale()
+  const { t } = useLocale()
   const projectId = useActiveProjectId()
   const projects = useProjects()
   const config = useWorkspaceConfig()
@@ -125,7 +126,7 @@ export function ProjectGeneral({ capabilities }: { capabilities?: Partial<Pick<C
  *  `canRemove` is whether the Remove field is rendered below — the missing-folder hint points at
  *  it, and must not point at a field single-project mode took away. */
 function ProjectFacts({ project, canRemove }: { project: ProjectListEntry; canRemove: boolean }) {
-  const { t, locale } = useLocale()
+  const { t } = useLocale()
   return (
     <SettingsField
       title={t('prefs.general.factsTitle')}
@@ -172,14 +173,14 @@ function ProjectFacts({ project, canRemove }: { project: ProjectListEntry; canRe
           <>
             <dt className="text-muted-foreground">{t('prefs.general.added')}</dt>
             <dd className="text-foreground">
-              {fullDate(project.addedAt, locale)}
+              {fullDate(project.addedAt)}
               <span className="text-soft-foreground">
                 {project.source === 'checkout' ? t('prefs.general.cloned') : t('prefs.general.opened')}
               </span>
             </dd>
 
             <dt className="text-muted-foreground">{t('prefs.general.lastOpened')}</dt>
-            <dd className="text-foreground">{fullDate(project.lastOpenedAt, locale)}</dd>
+            <dd className="text-foreground">{fullDate(project.lastOpenedAt)}</dd>
           </>
         )}
       </dl>

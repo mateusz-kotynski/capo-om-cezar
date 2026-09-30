@@ -45,7 +45,7 @@ const CPU_DANGER_PCT = 85
 const clampPct = (value: number): number => Math.min(100, Math.max(0, value))
 
 export function MachineCard() {
-  const { t } = useLocale()
+  const { t, tn } = useLocale()
   useHostUsageSubscription({ enabled: !useIsDesktop() })
   const transport = useHostTransport()
   const topicUnavailable = useHostTopicUnavailable()
@@ -238,8 +238,8 @@ export function MachineCard() {
                     className="rounded-md border border-border px-1.5 py-0.5 text-[11px] text-soft-foreground"
                   >
                     {view.hasContainer && view.hostCpuCount !== undefined
-                      ? t('prefs.machine.hostCores', { count: view.hostCpuCount })
-                      : t('prefs.machine.cores', { count: sample.cpuCount })}
+                      ? tn('prefs.machine.hostCores', view.hostCpuCount)
+                      : tn('prefs.machine.cores', sample.cpuCount)}
                   </span>
                 </span>
               </div>

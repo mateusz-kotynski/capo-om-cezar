@@ -57,20 +57,20 @@ export function formatCost(usd: number | undefined): string {
 export function scheduledResume(
   run: Pick<RunRecord, 'status' | 'autoResumeAt'>,
   now: Date = new Date(),
-): { label: string; title: string } | undefined {
+): { label: string; title: string; when: string } | undefined {
   if (run.status !== 'failed' || !run.autoResumeAt) return undefined
   const at = new Date(run.autoResumeAt)
   if (!Number.isFinite(at.getTime())) return undefined
   const sameDay = at.toDateString() === now.toDateString()
   const time = new Intl.DateTimeFormat(formatLocale(), { hour: 'numeric', minute: '2-digit' }).format(at)
+  const when = new Intl.DateTimeFormat(formatLocale(), { dateStyle: 'medium', timeStyle: 'long' }).format(at)
   return {
+    when,
     label: sameDay
       ? time
       : `${new Intl.DateTimeFormat(formatLocale(), { month: 'short', day: 'numeric' }).format(at)} ${time}`,
-    title: `Resumes automatically at ${new Intl.DateTimeFormat(formatLocale(), {
-      dateStyle: 'medium',
-      timeStyle: 'long',
-    }).format(at)}`,
+    // English only: the render sites build the translated tooltip from `when`.
+    title: `Resumes automatically at ${when}`,
   }
 }
 

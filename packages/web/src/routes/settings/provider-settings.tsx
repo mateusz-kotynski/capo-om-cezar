@@ -40,11 +40,11 @@ const STATUS_LABEL_KEYS = {
 } as const
 
 const STATUS_PRESENTATION = {
-  connected: { label: 'Credentials found', tone: 'success' },
-  disconnected: { label: 'Not connected', tone: 'pending' },
-  'not-installed': { label: 'Not installed', tone: 'neutral' },
-  unknown: { label: 'Could not verify', tone: 'danger' },
-} as const satisfies Record<string, { label: string; tone: StatusDotTone }>
+  connected: { tone: 'success' },
+  disconnected: { tone: 'pending' },
+  'not-installed': { tone: 'neutral' },
+  unknown: { tone: 'danger' },
+} as const satisfies Record<string, { tone: StatusDotTone }>
 
 interface ManualCommand {
   provider: ProviderId
@@ -222,7 +222,7 @@ export function ProviderSettings() {
           const presentation = state
             ? STATUS_PRESENTATION[state]
             : status.isPending
-              ? { label: 'Checking…', tone: 'neutral' as const }
+              ? { tone: 'neutral' as const }
               : STATUS_PRESENTATION.unknown
           const presentationLabel = state
             ? t(STATUS_LABEL_KEYS[state])

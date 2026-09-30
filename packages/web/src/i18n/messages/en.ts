@@ -48,6 +48,14 @@ export const en: Messages = {
     updateCezar: 'Update cezar',
     skillsUpdateAvailable: 'Skills update available',
     notSaved: 'not saved',
+    notSavedTitle: 'cezar is serving this folder — it is not in your saved projects. Add it in Global settings → Projects.',
+    mainAria: 'Main',
+    waitingTitle: {
+      one: '{count} task needs you',
+      few: '{count} tasks need you',
+      many: '{count} tasks need you',
+      other: '{count} tasks need you',
+    },
     more: 'More…',
     unreadTasksTitle: {
       one: '{count} unread finished task',
@@ -98,8 +106,7 @@ export const en: Messages = {
     indexSubtitleGlobal: 'Preferences for you and this machine, shared by every project.',
     indexSubtitleProject: 'Configure this project and its agents.',
     crossLinkProjectScoped: 'Agents, worktrees, bookmarklets and prompt templates are per project.',
-    crossLinkGlobalPrefix: 'Appearance, notifications, host resources and the project registry live in',
-    crossLinkGlobalSuffix: '.',
+    crossLinkGlobal: 'Appearance, notifications, host resources and the project registry live in <link>{title}</link>.',
     sections: {
       tracker: { title: 'Issue tracker', description: 'Connect this project to Jira or Linear.' },
       agents: { title: 'Agents', description: 'Default runner, models and system prompt.' },
@@ -148,7 +155,7 @@ export const en: Messages = {
     languageEnglish: 'English',
     languagePolish: 'Polski',
     accentTitle: 'Accent',
-    accentHint: 'The primary action color. Saved with this repo’s cockpit state.',
+    accentHint: "The primary action color. Saved with this repo's cockpit state.",
     accentLime: 'Lime',
     accentViolet: 'Violet',
     densityTitle: 'Density',
@@ -158,7 +165,7 @@ export const en: Messages = {
     densityUltra: 'Compact for real',
     widthTitle: 'Reading width',
     widthHint:
-      'Wide lets a task’s session and commits use more of the screen. Narrow keeps a comfortable reading column. The Changes tab is always full-width.',
+      "Wide lets a task's session and commits use more of the screen. Narrow keeps a comfortable reading column. The Changes tab is always full-width.",
     widthNarrow: 'Narrow',
     widthWide: 'Wide',
     projectOrderTitle: 'Project order',

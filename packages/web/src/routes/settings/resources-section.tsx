@@ -1,4 +1,5 @@
 import { useLocale } from '@/components/locale-provider'
+import { RichText } from '@/components/rich-text'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { GaugeIcon } from 'lucide-react'
 import { useState } from 'react'
@@ -154,15 +155,20 @@ function ResourcesForm({ config }: { config: WorkspaceConfigResponse }) {
           onCommit={(maxParallel) => save.mutateAsync({ resources: { maxParallel: maxParallel ?? MAX_PARALLEL_MIN } })}
         />
         <p className="text-[11px] text-soft-foreground">
-          {t('prefs.resources.perProjectPrefix')}{' '}
-          <Link
-            to="/settings/global/projects"
-            data-slot="resources-project-limits-link"
-            className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
-          >
-            {t('prefs.resources.perProjectLink')}
-          </Link>
-          .
+          <RichText
+            text={t('prefs.resources.perProject')}
+            tags={{
+              link: (label) => (
+                <Link
+                  to="/settings/global/projects"
+                  data-slot="resources-project-limits-link"
+                  className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+                >
+                  {label}
+                </Link>
+              ),
+            }}
+          />
         </p>
       </SettingsField>
 

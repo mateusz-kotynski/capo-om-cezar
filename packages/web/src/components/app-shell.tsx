@@ -669,7 +669,7 @@ function SidebarContent({
         </>
       ) : (
         <>
-          <nav aria-label="Main" className="px-2.5 py-1.5">
+          <nav aria-label={t('nav.mainAria')} data-slot="main-nav" className="px-2.5 py-1.5">
             {items.map((item) => {
               const isActive = item.to === activeTo
               const Icon = item.icon

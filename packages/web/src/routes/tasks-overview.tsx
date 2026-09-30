@@ -230,10 +230,13 @@ export function TasksOverview({
         ) : (
           <>
             {/* ≥md: the table. */}
+            {/* The count as a polite, visually hidden announcement — a landmark named "5 tasks"
+                would clutter the rotor, and the table itself has no other count for a screen reader. */}
+            <p data-slot="tasks-count" aria-live="polite" className="sr-only">
+              {tn('tasksPage.count', visible.length)}
+            </p>
             <div
               data-slot="tasks-table"
-              role="region"
-              aria-label={tn('tasksPage.count', visible.length)}
               className="hidden overflow-x-auto rounded-lg border border-border bg-card shadow-xs md:block"
             >
               <TooltipProvider>
@@ -689,7 +692,7 @@ function TaskTableCell({
         <td data-column-id={column.id} className={TD_BASE}>
           {/* A scheduled run wears its appointment in the pill, the way a queued one wears its
               queue position — the row's whole answer to "what is this waiting for?". */}
-          <Pill dot={attention.tone} pulse={attention.pulse} title={scheduled?.title}>
+          <Pill dot={attention.tone} pulse={attention.pulse} title={scheduled ? t('tasks.overview.resumesAt', { when: scheduled.when }) : undefined}>
             {attentionLabel(t, attention.label)}
             {scheduled ? <span className="tabular-nums">{scheduled.label}</span> : null}
           </Pill>
@@ -1005,7 +1008,7 @@ function TaskCard({
       className="cursor-pointer rounded-lg border border-border bg-card px-3.5 py-3 shadow-xs"
     >
       <div className="flex items-start gap-2.5">
-        <Pill dot={attention.tone} pulse={attention.pulse} className="mt-px shrink-0" title={scheduled?.title}>
+        <Pill dot={attention.tone} pulse={attention.pulse} className="mt-px shrink-0" title={scheduled ? t('tasks.overview.resumesAt', { when: scheduled.when }) : undefined}>
           {attentionLabel(t, attention.label)}
           {scheduled ? <span className="tabular-nums">{scheduled.label}</span> : null}
         </Pill>

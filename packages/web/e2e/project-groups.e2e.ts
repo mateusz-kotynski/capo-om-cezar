@@ -223,7 +223,7 @@ describe('the grouped multi-project sidebar', () => {
     expect(browser.isVisible('[data-slot="project-groups"]')).toBe(true)
     // The flat shell is genuinely gone, not merely covered: its nav and its single quick-list
     // are the two surfaces `AppShell` swaps out for the group list.
-    expect(browser.count('[data-slot="sidebar"] nav[aria-label="Main"]')).toBe(0)
+    expect(browser.count('[data-slot="sidebar"] nav[data-slot="main-nav"]')).toBe(0)
     expect(browser.count('[data-slot="task-quick-list"]')).toBe(0)
     // …and so is the repo chip, which the first group's header now says instead.
     expect(browser.count('[data-slot="repo-chip"]')).toBe(0)
@@ -525,7 +525,7 @@ describe('the constrained single-project workspace', () => {
 
     browser.goto(baseUrl + scoped(bootProject, '/'))
     browser.waitForFunction(
-      `document.querySelector('[data-slot="sidebar"] nav[aria-label="Main"]') !== null`,
+      `document.querySelector('[data-slot="sidebar"] nav[data-slot="main-nav"]') !== null`,
     )
     // Health resolves after the shell's first paint; before that the safe default preserves the
     // ordinary Add-project control. Wait for the capability-driven repaint, not merely the nav.
@@ -535,7 +535,7 @@ describe('the constrained single-project workspace', () => {
     // capability, rather than destructive fixture trimming, must collapse every UI consumer.
     expect(readSharedProjects().map((project) => project.id)).toEqual([bootProject, ALPHA.id])
     expect(browser.count('[data-slot="project-groups"]')).toBe(0)
-    expect(browser.isVisible('[data-slot="sidebar"] nav[aria-label="Main"]')).toBe(true)
+    expect(browser.isVisible('[data-slot="sidebar"] nav[data-slot="main-nav"]')).toBe(true)
     expect(browser.count('button[aria-label="Add project"]')).toBe(0)
 
     browser.goto(`${baseUrl}/settings/global`)

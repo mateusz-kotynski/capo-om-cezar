@@ -57,7 +57,7 @@ function getIn(dict: unknown, path: string): unknown {
  *  an obviously-wrong string, never blank the screen. */
 export function interpolate(template: string, params?: Record<string, string | number>): string {
   if (!params) return template
-  return template.replace(/\{(\w+)\}/g, (match, key: string) => (key in params ? String(params[key]) : match))
+  return template.replace(/\{(\w+)\}/g, (match, key: string) => (Object.hasOwn(params, key) ? String(params[key]) : match))
 }
 
 const DICTIONARIES: Record<Locale, Messages> = { en, pl }
@@ -73,9 +73,16 @@ export function resolveMessage(locale: Locale, path: string, params?: Record<str
 
 /** Picks the CLDR cardinal category for `count` in `locale`. Defensive about environments
  *  without `Intl.PluralRules` (very old engines) — falls back to the English one/other split. */
+const PLURAL_RULES = new Map<Locale, Intl.PluralRules>()
+
 export function pluralCategory(locale: Locale, count: number): keyof PluralForms {
   try {
-    const category = new Intl.PluralRules(locale).select(count)
+    let rules = PLURAL_RULES.get(locale)
+    if (!rules) {
+      rules = new Intl.PluralRules(locale)
+      PLURAL_RULES.set(locale, rules)
+    }
+    const category = rules.select(count)
     return category === 'one' || category === 'few' || category === 'many' ? category : 'other'
   } catch {
     return count === 1 ? 'one' : 'other'

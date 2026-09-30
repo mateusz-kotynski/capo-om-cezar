@@ -36,17 +36,18 @@ import { useFinishRun } from './use-finish-run'
  * fallback), and ✓ Accept (the shared finish action from use-finish-run.ts).
  */
 export function ReviewPanel({ run }: { run: ApiRun }) {
+  const { t } = useLocale()
   return (
-    <section data-slot="review-panel" aria-label="Review the changes" className="flex flex-col gap-3">
+    <section data-slot="review-panel" aria-label={t('thread.review.regionAria')} className="flex flex-col gap-3">
       <div
         data-slot="review-banner"
         className="flex items-center gap-2.5 rounded-md border border-violet/30 bg-violet/10 px-3.5 py-2.5"
       >
         <EyeIcon className="size-4 shrink-0 text-violet" aria-hidden="true" />
         <p className="min-w-0 text-[13px]">
-          <span className="font-semibold">Review the changes before anything lands.</span>{' '}
+          <span className="font-semibold">{t('thread.review.bannerTitle')}</span>{' '}
           <span className="text-muted-foreground">
-            Read the diff, send notes back, draft a PR — or accept. Nothing merges on its own.
+            {t('thread.review.bannerBody')}
           </span>
         </p>
       </div>

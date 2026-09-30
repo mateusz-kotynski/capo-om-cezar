@@ -54,7 +54,7 @@ export function RepoChangesSection() {
         data-slot="repo-changes-toolbar"
         className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 border-b border-border px-4 py-2 md:px-6"
       >
-        <span className="text-xs text-muted-foreground">Uncommitted changes</span>
+        <span className="text-xs text-muted-foreground">{t('git.changes.uncommitted')}</span>
         {changes.data ? <AnimatedDiffStat stat={changes.data.stat} /> : null}
         {/* Same rule as the task toolbar: toggles exist ≥md only — phones force unified+wrap. */}
         <span className="ml-auto hidden items-center gap-1 md:flex">

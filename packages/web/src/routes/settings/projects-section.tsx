@@ -1,4 +1,5 @@
 import { useLocale } from '@/components/locale-provider'
+import { formatLocale } from '@/lib/locale'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { FoldersIcon, XIcon } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
@@ -72,10 +73,10 @@ export const STATUS_LABEL_KEYS = {
 
 /** `2026-07-20T…` → `Jul 20`, in the reader's locale. Registry timestamps are ISO strings; an
  *  unparseable one (hand-edited config) degrades to an em dash rather than `Invalid Date`. */
-function shortDate(iso: string, locale: string): string {
+function shortDate(iso: string): string {
   const at = new Date(iso)
   if (Number.isNaN(at.getTime())) return '—'
-  return at.toLocaleDateString(locale, { month: 'short', day: 'numeric' })
+  return at.toLocaleDateString(formatLocale(), { month: 'short', day: 'numeric' })
 }
 
 export function ProjectsSection() {
@@ -353,7 +354,7 @@ function ProjectRow({
   disabled: boolean
   onRemove: () => void
 }) {
-  const { t, locale } = useLocale()
+  const { t } = useLocale()
   return (
     <tr data-slot="project-row" data-project={project.id} className="border-b border-border last:border-0">
       <th scope="row" className="max-w-0 px-3 py-2 text-left font-normal">
@@ -397,7 +398,7 @@ function ProjectRow({
         )}
       </td>
       <td className="px-3 py-2 tabular-nums text-soft-foreground">
-        {project.unregistered ? '—' : shortDate(project.addedAt, locale)}
+        {project.unregistered ? '—' : shortDate(project.addedAt)}
       </td>
       <td className="px-3 py-2 text-right">
         {project.unregistered ? (

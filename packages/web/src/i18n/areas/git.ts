@@ -5,13 +5,14 @@ export const en = {
   tabs: { changes: 'Changes', commits: 'Commits', branches: 'Branches' },
   page: {
     loadingRepo: 'Loading repository…',
-    fetchingState: 'Fetching the repo’s git state.',
+    fetchingState: "Fetching the repo's git state.",
     loadFailed: 'Could not load the repository',
     notGitTitle: 'Not a git repository',
     notGitSubtitle:
       'cezar is running outside a git repository — start it inside one to browse changes, commits and branches.',
   },
   changes: {
+    uncommitted: 'Uncommitted changes',
     loading: 'Loading changes…',
     none: 'No changes to show',
     loadFailed: 'Could not load the changes',
@@ -27,7 +28,7 @@ export const en = {
     noneTitle: 'No commits yet',
     repoNoneSubtitle: 'The log is empty — this repository has no commits to show.',
     taskNoneSubtitle:
-      'This task hasn’t committed anything on its branch. Autosave commits and any the agent makes appear here.',
+      "This task hasn't committed anything on its branch. Autosave commits and any the agent makes appear here.",
     all: 'All commits',
     unavailable: 'No commits to show',
     loadFailed: 'Could not load the commits',
@@ -35,9 +36,10 @@ export const en = {
     loadOneFailed: 'Could not load the commit',
     noFileChangesTitle: 'No file changes',
     noFileChangesSubtitle:
-      'This commit carries no diff of its own — a merge commit’s changes live on the commits it merged.',
+      "This commit carries no diff of its own — a merge commit's changes live on the commits it merged.",
   },
   files: {
+    treeAria: 'Worktree files',
     loading: 'Loading files…',
     loadingEmpty: 'Loading…',
     emptyDir: 'Empty directory',
@@ -72,8 +74,8 @@ export const en = {
   },
   commitDialog: {
     title: 'Commit changes',
-    description: 'Stages everything in the task’s worktree (git add -A) and commits to {branch}.',
-    descriptionNoBranch: 'Stages everything in the task’s worktree (git add -A) and commits to its branch.',
+    description: "Stages everything in the task's worktree (git add -A) and commits to {branch}.",
+    descriptionNoBranch: "Stages everything in the task's worktree (git add -A) and commits to its branch.",
     messageAria: 'Commit message',
     committing: 'Committing…',
     committed: 'Committed {sha}',
@@ -137,6 +139,7 @@ export const pl: typeof en = {
       'cezar działa poza repozytorium git — uruchom go w repozytorium, aby przeglądać zmiany, commity i gałęzie.',
   },
   changes: {
+    uncommitted: 'Niezacommitowane zmiany',
     loading: 'Wczytywanie zmian…',
     none: 'Brak zmian do pokazania',
     loadFailed: 'Nie udało się wczytać zmian',
@@ -163,6 +166,7 @@ export const pl: typeof en = {
       'Ten commit nie ma własnego diffu — zmiany merge commita znajdują się w commitach, które scalił.',
   },
   files: {
+    treeAria: 'Pliki worktree',
     loading: 'Wczytywanie plików…',
     loadingEmpty: 'Wczytywanie…',
     emptyDir: 'Pusty katalog',
@@ -182,8 +186,8 @@ export const pl: typeof en = {
   },
   diff: {
     layout: 'Układ diffu',
-    unified: 'połączony',
-    split: 'rozdzielony',
+    unified: 'unified',
+    split: 'split',
     wrap: 'Zawijaj długie linie',
   },
   toolbar: {
@@ -241,7 +245,7 @@ export const pl: typeof en = {
     pushNoRemote: 'Push niedostępny — brak skonfigurowanego remote',
     pushNoBranch: 'Push niedostępny — uruchomienie nie ma gałęzi do wypchnięcia',
     pushRunning: 'Push niedostępny — agent wciąż pracuje w tym worktree',
-    prNoForge: 'Tworzenie PR niedostępne — nie wykryto obsługiwanego zdalnego forge (GitHub)',
+    prNoForge: 'Tworzenie PR niedostępne — nie wykryto obsługiwanego remote’a forge (GitHub)',
     prActive: 'Tworzenie PR niedostępne — uruchomienie wciąż trwa; poczekaj na bramkę przeglądu',
     terminalNoSession: 'Terminal niedostępny — brak sesji agenta do wznowienia',
     terminalActive: 'Terminal niedostępny — sesja wciąż jest aktywna w silniku',

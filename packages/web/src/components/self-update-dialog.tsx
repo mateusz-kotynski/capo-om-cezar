@@ -1,4 +1,5 @@
 import { useLocale } from '@/components/locale-provider'
+import { formatLocale } from '@/lib/locale'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
@@ -45,7 +46,7 @@ export function SelfUpdateDialog({
    *  the dialog opens to its warning and waits for "Update & restart" like every other entry. */
   autoApply?: string
 }) {
-  const { t, tn, locale } = useLocale()
+  const { t, tn } = useLocale()
   const status = useSelfUpdate(open)
   const refresh = useRefreshSelfUpdate()
   const setChannel = useSetSelfUpdateChannel()
@@ -144,10 +145,12 @@ export function SelfUpdateDialog({
   )
 }
 
-const CHANNELS: { value: UpdateChannel; label: string }[] = [
-  { value: 'stable', label: 'Stable' },
-  { value: 'nightly', label: 'Nightly' },
-]
+const CHANNELS: { value: UpdateChannel }[] = [{ value: 'stable' }, { value: 'nightly' }]
+
+/** The channel's lower-case name as running prose says it ("on stable"); the toggle buttons use
+ *  the capitalised `stable` / `nightly` labels instead. */
+const channelName = (t: ReturnType<typeof useLocale>['t'], channel: UpdateChannel): string =>
+  t(channel === 'stable' ? 'dialogs.selfUpdate.stableName' : 'dialogs.selfUpdate.nightlyName')
 
 function ChannelToggle({
   data,
@@ -210,7 +213,7 @@ function LatestCard({
   onApply: (version: string) => void
   applying: boolean
 }) {
-  const { t, tn, locale } = useLocale()
+  const { t, tn } = useLocale()
   const jobBusy = data.job?.status === 'running' || data.job?.status === 'restarting'
   const target = data.updateAvailable
   return (
@@ -227,18 +230,18 @@ function LatestCard({
         ) : target ? (
           <>
             <span className="font-semibold">v{target}</span>
-            {t('dialogs.selfUpdate.availableOn', { channel: data.channel })}
+            {t('dialogs.selfUpdate.availableOn', { channel: channelName(t, data.channel) })}
           </>
         ) : (
           <>
             {t('dialogs.selfUpdate.newest', {
-              channel: data.channel,
+              channel: channelName(t, data.channel),
               extra: data.channel === 'nightly' && data.latest.nightly ? ` (v${data.latest.nightly})` : '',
             })}
           </>
         )}
         {data.checkedAt ? (
-          <div className="text-[11.5px] text-muted-foreground">{t('dialogs.selfUpdate.checked', { time: new Date(data.checkedAt).toLocaleTimeString(locale) })}</div>
+          <div className="text-[11.5px] text-muted-foreground">{t('dialogs.selfUpdate.checked', { time: new Date(data.checkedAt).toLocaleTimeString(formatLocale()) })}</div>
         ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-2">
@@ -293,7 +296,7 @@ function VersionPicker({
   return (
     <div data-slot="self-update-picker" className="flex min-w-0 flex-col gap-2">
       <div className="text-[13px] font-semibold">
-        {t('dialogs.selfUpdate.pickVersion')} <span className="font-normal text-muted-foreground">· {data.channel}</span>
+        {t('dialogs.selfUpdate.pickVersion')} <span className="font-normal text-muted-foreground">· {channelName(t, data.channel)}</span>
       </div>
       <div className="flex min-w-0 items-center gap-2">
         <Select value={picked} onValueChange={onPick} disabled={options.length === 0 || jobBusy}>

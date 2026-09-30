@@ -51,7 +51,7 @@ export const pl: typeof en = {
     pinTitle: 'Przypnij na górze listy',
     machineUsage: 'Użycie komputera: {summary}. Otwórz Ustawienia, Zasoby.',
     updateTo: 'Zaktualizuj cezara do v{version} i zrestartuj',
-    resizeTitle: 'Przeciągnij, aby zmienić szerokość paska bocznego — kliknij dwukrotnie, aby zresetować',
+    resizeTitle: 'Przeciągnij, aby zmienić szerokość panelu bocznego — kliknij dwukrotnie, aby zresetować',
     searchTitle: 'Szukaj — paleta poleceń (⌘K / Ctrl+K)',
     versionUpdateTitle: 'v{version} — dostępna aktualizacja: v{latest}',
     versionAriaUpdate: 'cezar v{version}, dostępna aktualizacja do v{latest} — otwórz aktualizator',

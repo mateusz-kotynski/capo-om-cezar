@@ -55,6 +55,9 @@ export interface Messages {
     updateCezar: string
     skillsUpdateAvailable: string
     notSaved: string
+    notSavedTitle: string
+    mainAria: string
+    waitingTitle: PluralForms
     more: string
     unreadTasksTitle: PluralForms
   }
@@ -95,8 +98,7 @@ export interface Messages {
     indexSubtitleGlobal: string
     indexSubtitleProject: string
     crossLinkProjectScoped: string
-    crossLinkGlobalPrefix: string
-    crossLinkGlobalSuffix: string
+    crossLinkGlobal: string
     sections: {
       tracker: { title: string; description: string }
       agents: { title: string; description: string }

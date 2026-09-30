@@ -1,4 +1,5 @@
 import { useLocale } from '@/components/locale-provider'
+import { RichText } from '@/components/rich-text'
 import { settingsSectionLabel } from '@/i18n/ui-labels'
 import { ChevronRightIcon, SlidersHorizontalIcon } from 'lucide-react'
 import { Link as RouterLink, NavLink as RouterNavLink } from 'react-router'
@@ -270,15 +271,20 @@ export function SettingsIndexRoute({ scope, capabilities }: {
               <>{t('settings.crossLinkProjectScoped')}</>
             ) : (
               <>
-                {t('settings.crossLinkGlobalPrefix')}{' '}
-                <RouterLink
-                  to={settingsIndexPath('global')}
-                  data-slot="settings-global-link"
-                  className="underline underline-offset-2 hover:text-foreground"
-                >
-                  {t('settings.indexTitleGlobal')}
-                </RouterLink>
-                {t('settings.crossLinkGlobalSuffix')}
+                <RichText
+                  text={t('settings.crossLinkGlobal', { title: t('settings.indexTitleGlobal') })}
+                  tags={{
+                    link: (label) => (
+                      <RouterLink
+                        to={settingsIndexPath('global')}
+                        data-slot="settings-global-link"
+                        className="underline underline-offset-2 hover:text-foreground"
+                      >
+                        {label}
+                      </RouterLink>
+                    ),
+                  }}
+                />
               </>
             )}
           </p>

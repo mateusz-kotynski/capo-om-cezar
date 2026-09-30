@@ -78,6 +78,24 @@ export function attentionLabel(t: T, label: string): string {
   return key ? t(key) : label
 }
 
+/** The raw `RunRecord.status` words the cross-project page shows as facet options and group
+ *  headings (as opposed to `attentionLabel`, which words the status DOT). English is the raw id,
+ *  exactly as before; an unknown status passes through. */
+const RUN_STATUS_KEYS: Record<string, StringPath<Messages>> = {
+  queued: 'tasks.runStatus.queued',
+  running: 'tasks.runStatus.running',
+  waiting: 'tasks.runStatus.waiting',
+  review: 'tasks.runStatus.review',
+  done: 'tasks.runStatus.done',
+  failed: 'tasks.runStatus.failed',
+  cancelled: 'tasks.runStatus.cancelled',
+}
+
+export function runStatusLabel(t: T, status: string): string {
+  const key = RUN_STATUS_KEYS[status]
+  return key ? t(key) : status
+}
+
 /** Settings section titles/descriptions (`routes/settings/registry.tsx`) translated the same
  *  way — the registry keeps its English strings (used as the `comingSoon` fallback and by any
  *  code that logs/tests against them), and every render site (`SectionNav`, `SectionPills`,

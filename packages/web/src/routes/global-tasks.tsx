@@ -1,5 +1,6 @@
 import { useLocale } from '@/components/locale-provider'
-import { attentionLabel } from '@/i18n/ui-labels'
+import { RichText } from '@/components/rich-text'
+import { attentionLabel, runStatusLabel } from '@/i18n/ui-labels'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArchiveIcon,
@@ -464,6 +465,10 @@ export function GlobalTasksRoute() {
                       >
                         {group.label}
                       </Link>
+                    ) : groupBy === 'status' ? (
+                      runStatusLabel(t, group.key)
+                    ) : group.key === UNTAGGED ? (
+                      t('tasks.global.untagged')
                     ) : (
                       group.label
                     )}
@@ -597,7 +602,7 @@ function FilterBar({
           onToggle={(value) => onToggle('statuses', value)}
           onClear={() => onClearFacet('statuses')}
           options={allStatuses(tasks)
-            .map((status) => ({ value: status, label: status }))
+            .map((status) => ({ value: status, label: runStatusLabel(t, status) }))
             .map(withCount(counts.statuses))}
           emptyLabel={t('tasks.global.nothingToFilter')}
         />
@@ -666,11 +671,16 @@ function FilterBar({
         // invisible, and the sentence that fixes it is one line long — with the door in it,
         // since the pane that fixes it is two clicks away and outside this page.
         <p data-slot="no-tags-hint" className="text-[11px] text-soft-foreground">
-          {t('tasks.global.tagHintPrefix')}{' '}
-          <Link to="/settings/global/projects" className="font-medium text-violet hover:underline">
-            {t('tasks.global.tagHintLink')}
-          </Link>
-          {t('tasks.global.tagHintSuffix')}
+          <RichText
+            text={t('tasks.global.tagHint')}
+            tags={{
+              link: (label) => (
+                <Link to="/settings/global/projects" className="font-medium text-violet hover:underline">
+                  {label}
+                </Link>
+              ),
+            }}
+          />
         </p>
       )}
     </div>

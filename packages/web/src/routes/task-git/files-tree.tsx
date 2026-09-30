@@ -23,8 +23,9 @@ export function FilesTree({
   selected: string | null
   onSelect: (path: string) => void
 }) {
+  const { t } = useLocale()
   return (
-    <nav data-slot="files-tree" aria-label="Worktree files" className="min-w-0 text-[13px]">
+    <nav data-slot="files-tree" aria-label={t('git.files.treeAria')} className="min-w-0 text-[13px]">
       <ul className="flex flex-col gap-px">
         <DirChildren runId={runId} path="" depth={0} selected={selected} onSelect={onSelect} />
       </ul>

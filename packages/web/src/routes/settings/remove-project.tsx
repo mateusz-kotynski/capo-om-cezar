@@ -1,4 +1,5 @@
 import { useLocale } from '@/components/locale-provider'
+import { RichText } from '@/components/rich-text'
 import { useRemoveProject } from '@/api/queries'
 import type { ProjectListEntry } from '@open-mercato/cezar-api-client'
 import {
@@ -68,9 +69,7 @@ export function RemoveProjectDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>{t('prefs.removeProject.title', { name: project?.name ?? '' })}</AlertDialogTitle>
           <AlertDialogDescription>
-            {t('prefs.removeProject.body1')}
-            <strong>{t('prefs.removeProject.bodyStrong')}</strong>
-            {t('prefs.removeProject.body2')}
+            <RichText text={t('prefs.removeProject.body')} tags={{ strong: (c) => <strong>{c}</strong> }} />
             <span className="mt-1 block truncate font-mono text-[11px] text-foreground" title={project?.root}>
               {project?.root}
             </span>

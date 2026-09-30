@@ -882,6 +882,7 @@ function MetaRow({
  * or pruned) still gets its link, labelled by its id.
  */
 function DispatchParentLine({ run }: { run: ApiRun }) {
+  const { t } = useLocale()
   const runs = useRuns()
   const parentRunId = run.dispatch?.parentRunId
   if (parentRunId === undefined) return null
@@ -892,7 +893,7 @@ function DispatchParentLine({ run }: { run: ApiRun }) {
       data-slot="dispatch-parent-line"
       className="mt-1 flex min-w-0 items-center gap-2 overflow-hidden text-xs text-muted-foreground"
     >
-      <span className="shrink-0">Dispatched by</span>
+      <span className="shrink-0">{t('thread.dispatch.dispatchedBy')}</span>
       <Link
         to={`/tasks/${parentRunId}`}
         data-slot="dispatch-parent"

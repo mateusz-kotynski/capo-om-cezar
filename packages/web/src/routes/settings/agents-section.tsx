@@ -1,4 +1,5 @@
 import { useLocale } from '@/components/locale-provider'
+import { formatLocale } from '@/lib/locale'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { BotIcon } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
@@ -86,7 +87,7 @@ function AgentsForm({
   catalogs: ReturnType<typeof useRunnerModelCatalogs>
   providerStatus: ReturnType<typeof useProviderStatus>
 }) {
-  const { t, locale } = useLocale()
+  const { t } = useLocale()
   const repo = useRepo()
   const queryClient = useQueryClient()
 
@@ -238,8 +239,8 @@ function AgentsForm({
           {promptOverLimit ? (
             <p data-slot="agents-prompt-limit" className="text-[11px] text-danger">
               {t('prefs.agents.promptOverLimit', {
-                count: trimmedPrompt.length.toLocaleString(locale),
-                max: SYSTEM_PROMPT_MAX.toLocaleString(locale),
+                count: trimmedPrompt.length.toLocaleString(formatLocale()),
+                max: SYSTEM_PROMPT_MAX.toLocaleString(formatLocale()),
               })}
             </p>
           ) : (
@@ -359,7 +360,7 @@ function DefaultAgentField({
   saving: boolean
   onPick: (runner: Runner) => void
 }) {
-  const { t, locale } = useLocale()
+  const { t } = useLocale()
   const profiles = useAgentProfiles()
   const projects = useProjects()
   const scope = useProjectScope()

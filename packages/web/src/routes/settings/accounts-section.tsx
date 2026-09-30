@@ -115,11 +115,11 @@ const STATUS_LABEL_KEYS = {
 } as const
 
 const STATUS_PRESENTATION = {
-  connected: { label: 'Connected', tone: 'success' },
-  disconnected: { label: 'Not connected', tone: 'pending' },
-  'not-installed': { label: 'Not installed', tone: 'neutral' },
-  unknown: { label: 'Could not verify', tone: 'danger' },
-} as const satisfies Record<string, { label: string; tone: StatusDotTone }>
+  connected: { tone: 'success' },
+  disconnected: { tone: 'pending' },
+  'not-installed': { tone: 'neutral' },
+  unknown: { tone: 'danger' },
+} as const satisfies Record<string, { tone: StatusDotTone }>
 
 export function AccountsSection() {
   const { t } = useLocale()
@@ -164,7 +164,7 @@ function AccountsPane({ data }: { data: AgentProfilesResponse }) {
         data-slot="accounts-section"
         className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4 md:p-6"
       >
-        <h2 className="text-sm font-semibold text-foreground">Agent accounts</h2>
+        <h2 className="text-sm font-semibold text-foreground">{t('prefs.accounts.heading')}</h2>
         <p data-slot="accounts-hosted" className="text-[13px] text-soft-foreground">
           {t('prefs.accounts.hosted')}
         </p>
@@ -178,7 +178,7 @@ function AccountsPane({ data }: { data: AgentProfilesResponse }) {
       className="mx-auto flex w-full max-w-2xl flex-col gap-5 p-4 pb-[calc(90px+env(safe-area-inset-bottom))] md:p-6 md:pb-6"
     >
       <div>
-        <h2 className="text-sm font-semibold text-foreground">Agent accounts</h2>
+        <h2 className="text-sm font-semibold text-foreground">{t('prefs.accounts.heading')}</h2>
         <p className="text-[13px] text-muted-foreground">
           {t('prefs.accounts.intro')}
         </p>

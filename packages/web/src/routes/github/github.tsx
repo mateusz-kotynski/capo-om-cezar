@@ -1,4 +1,5 @@
 import { useLocale } from '@/components/locale-provider'
+import { RichText } from '@/components/rich-text'
 import type { StringPath } from '@/i18n/format'
 import type { Messages } from '@/i18n/messages/types'
 import { hashKey, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -357,7 +358,10 @@ export function GithubRoute({
           }
         >
           <p className="text-xs leading-relaxed text-soft-foreground">
-            {t('forge.requirements')}
+            <RichText
+              text={t('forge.requirements')}
+              tags={{ mono: (c) => <span className="font-mono">{c}</span> }}
+            />
           </p>
         </CenteredState>
       </div>
@@ -1130,8 +1134,8 @@ function GithubPrChanges({ item }: { item: GithubItem }) {
       toast(t('forge.changes.revisionChanged'))
     }
   }
-  if (query.isPending) return <p aria-live="polite" className="mt-6 text-sm text-muted-foreground">Loading changed files…</p>
-  if (query.isError || !data) return <p className="mt-6 text-sm text-danger">Changed files could not be loaded.</p>
+  if (query.isPending) return <p aria-live="polite" className="mt-6 text-sm text-muted-foreground">{t('forge.changes.loadingFiles')}</p>
+  if (query.isError || !data) return <p className="mt-6 text-sm text-danger">{t('forge.changes.loadFilesFailed')}</p>
   if (!data.available) return <p className="mt-6 text-sm text-muted-foreground">{data.reason}</p>
   const diffFiles: DiffFileChange[] = files.map((file) => ({
     path: file.path,
@@ -1535,11 +1539,11 @@ const REVIEW_STATE_KEYS = {
   dismissed: 'forge.thread.dismissed',
 } as const
 
-const REVIEW_CHIP: Record<NonNullable<GithubComment['reviewState']>, { label: string; tone: string }> = {
-  approved: { label: 'approved', tone: 'border-success/40 text-success' },
-  changes_requested: { label: 'changes requested', tone: 'border-danger/40 text-danger' },
-  commented: { label: 'commented', tone: 'border-border text-muted-foreground' },
-  dismissed: { label: 'dismissed', tone: 'border-border text-muted-foreground' },
+const REVIEW_CHIP: Record<NonNullable<GithubComment['reviewState']>, { tone: string }> = {
+  approved: { tone: 'border-success/40 text-success' },
+  changes_requested: { tone: 'border-danger/40 text-danger' },
+  commented: { tone: 'border-border text-muted-foreground' },
+  dismissed: { tone: 'border-border text-muted-foreground' },
 }
 
 /** One thread entry: avatar (letter fallback), author, age, an optional review-state chip, and the
