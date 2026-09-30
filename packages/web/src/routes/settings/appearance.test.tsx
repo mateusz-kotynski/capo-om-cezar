@@ -5,7 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createQueryClient } from '@/api/query-client'
 import { workspaceQueryKeys } from '@/api/queries'
 import { AppearanceProvider } from '@/components/appearance-provider'
+import { LocaleProvider } from '@/components/locale-provider'
 import { ThemeProvider } from '@/components/theme-provider'
+import { LOCALE_STORAGE_KEY } from '@/lib/locale'
 import { AppearanceSection } from './appearance'
 
 /**
@@ -60,11 +62,13 @@ function renderSection(projectIds: string[]) {
   seedProjects(client, projectIds)
   render(
     <QueryClientProvider client={client}>
-      <ThemeProvider>
-        <AppearanceProvider>
-          <AppearanceSection />
-        </AppearanceProvider>
-      </ThemeProvider>
+      <LocaleProvider>
+        <ThemeProvider>
+          <AppearanceProvider>
+            <AppearanceSection />
+          </AppearanceProvider>
+        </ThemeProvider>
+      </LocaleProvider>
     </QueryClientProvider>,
   )
 }
@@ -108,5 +112,34 @@ describe('Settings → Appearance: project order', () => {
 
     await waitFor(() => expect(screen.getByText('Reading width')).not.toBeNull())
     expect(document.querySelector(RESET)).toBeNull()
+  })
+})
+
+/**
+ * The Language control (this task): a segmented radio group right beside Theme, offering
+ * English / Polski, applying immediately and persisting to the same per-browser storage key
+ * `LocaleProvider` reads on boot (`lib/locale.ts`) — never a server round trip.
+ */
+describe('Settings → Appearance: language', () => {
+  it('renders beside Theme, defaulting to English in this (English-navigator) test env', async () => {
+    renderSection(['cezar'])
+
+    await waitFor(() => expect(screen.getByText('Language')).not.toBeNull())
+    const group = screen.getByRole('radiogroup', { name: 'Language' })
+    expect(group.querySelector('[data-value="en"][aria-checked="true"]')).not.toBeNull()
+    expect(screen.getByRole('radio', { name: 'Polski' })).not.toBeNull()
+  })
+
+  it('switching to Polski applies immediately (the section itself re-renders in Polish) and persists', async () => {
+    renderSection(['cezar'])
+    await waitFor(() => expect(screen.getByText('Language')).not.toBeNull())
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Polski' }))
+
+    // Immediate effect: this same section's OWN labels flip, not just the control that was clicked.
+    await waitFor(() => expect(screen.getByText('Motyw')).not.toBeNull())
+    expect(screen.getByText('Akcent')).not.toBeNull()
+    expect(localStorage.getItem(LOCALE_STORAGE_KEY)).toBe('pl')
+    expect(document.documentElement.lang).toBe('pl')
   })
 })

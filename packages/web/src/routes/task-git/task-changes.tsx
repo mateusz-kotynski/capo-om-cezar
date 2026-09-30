@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { FileDiffIcon, GitCommitHorizontalIcon } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
@@ -40,6 +41,7 @@ export function TaskChangesRoute() {
 }
 
 function ChangesView({ run }: { run: ApiRun }) {
+  const { t } = useLocale()
   const health = useHealth()
   // The remote that decides whether Push is offered comes from the PROJECT-scoped `/repo`, not
   // from `/api/health.repo`: health is bound to the boot folder, so a cezar booted outside a git
@@ -64,15 +66,15 @@ function ChangesView({ run }: { run: ApiRun }) {
     onSuccess: (result) =>
       toast(
         result.upstreamSet
-          ? `Pushed ${result.branch} to ${result.remote} (upstream set)`
-          : `Pushed ${result.branch} to ${result.remote}`,
+          ? t('git.toast.pushedUpstream', { branch: result.branch, remote: result.remote })
+          : t('git.toast.pushed', { branch: result.branch, remote: result.remote }),
       ),
     onError,
   })
   const createPr = useMutation({
     mutationFn: () => createRunPr(run.id),
     onSuccess: (result) => {
-      toast(`Draft PR created — ${result.url}`)
+      toast(t('git.toast.draftPrCreated', { url: result.url }))
       void invalidateRuns() // the record now carries pullRequestUrl → the policy flips to View PR
     },
     onError,
@@ -85,8 +87,8 @@ function ChangesView({ run }: { run: ApiRun }) {
       if (error instanceof ApiError && error.command) {
         void navigator.clipboard
           .writeText(error.command)
-          .then(() => toast('No terminal found — command copied to clipboard.'))
-          .catch(() => toast(`Run manually: ${error.command}`))
+          .then(() => toast(t('git.toast.noTerminal')))
+          .catch(() => toast(t('git.toast.runManually', { command: error.command ?? '' })))
         return
       }
       onError(error)
@@ -164,21 +166,23 @@ function ChangesView({ run }: { run: ApiRun }) {
 
       {changes.data?.repointedHead ? (
         <p data-slot="repointed-head-note" className="border-b px-4 py-2 text-xs text-soft-foreground md:px-6">
-          HEAD is on <code>{changes.data.repointedHead.headBranch}</code>, not this task&apos;s branch{' '}
-          <code>{changes.data.repointedHead.taskBranch}</code> — showing only what this task changed there.
+          {t('git.changes.repointed', {
+            head: changes.data.repointedHead.headBranch,
+            task: changes.data.repointedHead.taskBranch,
+          })}
         </p>
       ) : null}
 
       {changes.isPending ? (
         <p data-slot="changes-loading" className="px-4 py-6 text-center text-xs text-soft-foreground md:px-6">
-          Loading changes…
+          {t('git.changes.loading')}
         </p>
       ) : changes.isError ? (
         <CenteredState
           icon={changesRefused ? <FileDiffIcon /> : <GitCommitHorizontalIcon />}
           tone={changesRefused ? 'neutral' : 'danger'}
           heading="h2"
-          title={changesRefused ? 'No changes to show' : 'Could not load the changes'}
+          title={changesRefused ? t('git.changes.none') : t('git.changes.loadFailed')}
           subtitle={changes.error.message}
         />
       ) : files.length === 0 ? (
@@ -186,8 +190,8 @@ function ChangesView({ run }: { run: ApiRun }) {
           icon={<FileDiffIcon />}
           tone="neutral"
           heading="h2"
-          title="No changes yet"
-          subtitle="The worktree matches its base branch. Changes appear here as the agent works."
+          title={t('git.changes.taskNoneTitle')}
+          subtitle={t('git.changes.taskNoneSubtitle')}
         />
       ) : (
         <div className="flex min-h-0 flex-1 items-start gap-5 px-4 py-4 [--diff-sticky-top:10rem] md:px-6">

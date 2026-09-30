@@ -8,18 +8,20 @@ import {
 } from '@open-mercato/cezar-api-client'
 
 import { BranchChip } from '@/components/branch-chip'
+import { useLocale } from '@/components/locale-provider'
 import { Chip } from '@/components/chip'
 import { Input } from '@/components/ui/input'
+import { dayName } from '@/lib/automation-format'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 import { isScheduleEvery } from './editor-draft'
 
-const TYPES: ReadonlyArray<[ScheduleType, string]> = [
-  ['daily', 'Every day'],
-  ['weekdays', 'Weekdays'],
-  ['weekly', 'Weekly'],
-  ['hours', 'Every N hours'],
-]
+const TYPES = [
+  ['daily', 'automations.typeDaily'],
+  ['weekdays', 'automations.typeWeekdays'],
+  ['weekly', 'automations.typeWeekly'],
+  ['hours', 'automations.typeHours'],
+] as const satisfies ReadonlyArray<readonly [ScheduleType, string]>
 
 const pad = (n: number): string => String(n).padStart(2, '0')
 
@@ -38,52 +40,53 @@ export function EditorScheduleFields({
   timeZone: string
   onChange: (schedule: AutomationSchedule) => void
 }) {
+  const { t } = useLocale()
   const s = normalizeSchedule(schedule)
   const set = (patch: Partial<AutomationSchedule>) => onChange({ ...s, ...patch })
   return (
     <div data-slot="editor-schedule" className="flex flex-col gap-3.5">
-      <div role="group" aria-label="Schedule type" className="flex flex-wrap gap-1.5">
-        {TYPES.map(([value, label]) => (
+      <div role="group" aria-label={t('automations.scheduleTypeAria')} className="flex flex-wrap gap-1.5">
+        {TYPES.map(([value, labelKey]) => (
           <Chip key={value} active={s.type === value} aria-pressed={s.type === value} onClick={() => set({ type: value })}>
-            {label}
+            {t(labelKey)}
           </Chip>
         ))}
       </div>
       {s.type === 'weekly' ? (
-        <div role="group" aria-label="Weekday" className="flex flex-wrap gap-1.5">
-          {WEEKDAY_NAMES.map((name, index) => (
+        <div role="group" aria-label={t('automations.weekdayAria')} className="flex flex-wrap gap-1.5">
+          {WEEKDAY_NAMES.map((englishName, index) => (
             <Chip
-              key={name}
+              key={englishName}
               active={s.day === index + 1}
               aria-pressed={s.day === index + 1}
               className="px-[9px]"
               onClick={() => set({ day: index + 1 })}
             >
-              {name}
+              {dayName(index + 1, t)}
             </Chip>
           ))}
         </div>
       ) : null}
       {s.type === 'hours' ? (
         <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
-          every
+          {t('automations.every')}
           <Select value={String(s.every)} onValueChange={(value) => { const every = Number(value); if (isScheduleEvery(every)) set({ every }) }}>
-            <SelectTrigger size="sm" aria-label="Every N hours" className="text-[13px]">
+            <SelectTrigger size="sm" aria-label={t('automations.everyNHours')} className="text-[13px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {SCHEDULE_HOURS_OPTIONS.map((hours) => (
-                <SelectItem key={hours} value={String(hours)}>{hours} h</SelectItem>
+                <SelectItem key={hours} value={String(hours)}>{t('automations.hoursOption', { hours })}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          starting at 00:00
+          {t('automations.startingAt')}
         </div>
       ) : (
         <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
-          at
+          {t('automations.at')}
           <Input
-            aria-label="Hour"
+            aria-label={t('automations.hour')}
             inputMode="numeric"
             value={pad(s.hour)}
             onChange={(event) => set({ hour: Math.min(23, Math.max(0, Number(event.target.value) || 0)) })}
@@ -91,7 +94,7 @@ export function EditorScheduleFields({
           />
           :
           <Input
-            aria-label="Minute"
+            aria-label={t('automations.minute')}
             inputMode="numeric"
             value={pad(s.minute)}
             onChange={(event) => set({ minute: Math.min(59, Math.max(0, Number(event.target.value) || 0)) })}
@@ -101,7 +104,7 @@ export function EditorScheduleFields({
         </div>
       )}
       <div className="flex items-center gap-2.5 font-mono text-xs text-soft-foreground">
-        <span>cron</span>
+        <span>{t('automations.cron')}</span>
         <BranchChip data-slot="editor-cron">{cronOf(s)}</BranchChip>
       </div>
     </div>

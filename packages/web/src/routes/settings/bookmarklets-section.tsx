@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { TriangleAlertIcon, ZapIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
@@ -14,6 +15,7 @@ import { orderSkills } from '@/lib/skills'
 /** Settings → Bookmarklets (spec 011): the legacy generic and per-skill launchers promoted
  *  to a first-class, discoverable Settings subpage. */
 export function BookmarkletsSection() {
+  const { t } = useLocale()
   const skillsQuery = useSkills()
 
   // Without this the in-flight catalog renders as the panel's empty state, which tells the
@@ -21,7 +23,7 @@ export function BookmarkletsSection() {
   if (skillsQuery.isPending) {
     return (
       <p data-slot="bookmarklets-loading" className="p-4 text-[13px] text-soft-foreground md:p-6">
-        Loading bookmarklets…
+        {t('prefs.bookmarklets.loading')}
       </p>
     )
   }
@@ -31,7 +33,7 @@ export function BookmarkletsSection() {
         icon={<TriangleAlertIcon />}
         tone="danger"
         heading="h2"
-        title="Could not load bookmarklets"
+        title={t('prefs.bookmarklets.loadFailed')}
         subtitle={skillsQuery.error.message}
       />
     )
@@ -58,6 +60,7 @@ export function BookmarkletsSection() {
  * generator also has its own Settings subpage.
  */
 export function BookmarkletPanel({ skills }: { skills: readonly Skill[] }) {
+  const { t } = useLocale()
   const launchKey = useLaunchKey()
   const health = useHealth()
   const projects = useProjects()
@@ -92,10 +95,9 @@ export function BookmarkletPanel({ skills }: { skills: readonly Skill[] }) {
 
   return (
     <div data-slot="bookmarklet-panel" className="mx-auto w-full max-w-2xl">
-      <h2 className="text-base font-semibold">Run from GitHub</h2>
+      <h2 className="text-base font-semibold">{t('prefs.bookmarklets.heading')}</h2>
       <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-        Drag a button below to your browser&apos;s bookmarks bar. On any GitHub PR or issue, click it
-        to open this cockpit directly. The cockpit must be running: <span className="font-mono">npx cezar</span>.
+        {t('prefs.bookmarklets.intro')}<span className="font-mono">npx cezar</span>.
       </p>
 
       <label className="mt-4 flex items-center gap-2 text-[13px] font-medium">
@@ -106,8 +108,8 @@ export function BookmarkletPanel({ skills }: { skills: readonly Skill[] }) {
           onChange={(event) => setAuto(event.target.checked)}
           className="size-3.5"
         />
-        One-click launch (auto-submit){' '}
-        <span className="font-normal text-soft-foreground">— re-drag the buttons after changing this</span>
+        {t('prefs.bookmarklets.autoLabel')}{' '}
+        <span className="font-normal text-soft-foreground">{t('prefs.bookmarklets.autoNote')}</span>
       </label>
 
       <div data-slot="bm-generic" className="mt-4">
@@ -115,14 +117,14 @@ export function BookmarkletPanel({ skills }: { skills: readonly Skill[] }) {
         <BookmarkletRow
           label={repoName ? `cezar (${repoName}): this PR/issue` : 'cezar: this PR/issue'}
           url={bookmarkletUrl('', false, key, origin, projectId)}
-          hint="prefills the form — nothing starts by itself"
+          hint={t('prefs.bookmarklets.genericHint')}
         />
       </div>
 
       <Input
         data-slot="bm-filter"
-        placeholder="Filter skills…"
-        aria-label="Filter bookmarklet skills"
+        placeholder={t('prefs.bookmarklets.filterPlaceholder')}
+        aria-label={t('prefs.bookmarklets.filterAria')}
         value={filter}
         onChange={(event) => setFilter(event.target.value)}
         className="mt-5 h-8 text-[13px]"
@@ -140,8 +142,8 @@ export function BookmarkletPanel({ skills }: { skills: readonly Skill[] }) {
         ) : (
           <p className="text-xs text-soft-foreground">
             {skills.length > 0
-              ? '(no skills match)'
-              : '(no skills yet — the generic launcher above still works)'}
+              ? t('prefs.bookmarklets.noMatch')
+              : t('prefs.bookmarklets.noSkills')}
           </p>
         )}
       </div>
@@ -150,6 +152,7 @@ export function BookmarkletPanel({ skills }: { skills: readonly Skill[] }) {
 }
 
 function BookmarkletRow({ label, url, hint }: { label: string; url: string; hint?: string }) {
+  const { t } = useLocale()
   // React (rightly) refuses `javascript:` hrefs at render time — but a bookmarklet IS one by
   // definition, and dragging to the bookmarks bar needs the real href on the DOM node. The
   // link is a drag source only (the click handler below never lets it execute), so setting
@@ -161,9 +164,9 @@ function BookmarkletRow({ label, url, hint }: { label: string; url: string; hint
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(url)
-      toast('Bookmarklet URL copied.')
+      toast(t('prefs.bookmarklets.copiedUrl'))
     } catch {
-      toast('Copy failed — drag the button instead.', { tone: 'danger' })
+      toast(t('prefs.bookmarklets.copyFailed'), { tone: 'danger' })
     }
   }
   return (
@@ -174,10 +177,10 @@ function BookmarkletRow({ label, url, hint }: { label: string; url: string; hint
         ref={anchor}
         draggable
         data-slot="bm-link"
-        title="Drag me to your bookmarks bar"
+        title={t('prefs.bookmarklets.dragTitle')}
         onClick={(event) => {
           event.preventDefault()
-          toast('Drag me to your bookmarks bar')
+          toast(t('prefs.bookmarklets.dragTitle'))
         }}
         className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 font-mono text-xs font-medium text-foreground shadow-xs transition-colors hover:bg-muted"
       >
@@ -187,11 +190,11 @@ function BookmarkletRow({ label, url, hint }: { label: string; url: string; hint
       <button
         type="button"
         data-slot="bm-copy"
-        title="Copy the bookmarklet URL"
+        title={t('prefs.bookmarklets.copyTitle')}
         onClick={() => void copy()}
         className="shrink-0 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
-        Copy
+        {t('prefs.bookmarklets.copy')}
       </button>
       {hint ? <span className="min-w-0 truncate text-[11px] text-soft-foreground">{hint}</span> : null}
     </div>

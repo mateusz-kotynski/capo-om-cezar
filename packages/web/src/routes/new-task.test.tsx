@@ -15,6 +15,8 @@ import type {
   WorkspaceConfigResponse,
   WorkflowsResponse,
 } from '@open-mercato/cezar-api-client'
+import { LocaleProvider } from '@/components/locale-provider'
+import { LOCALE_STORAGE_KEY } from '@/lib/locale'
 import { resetToasts, Toaster } from '@/components/ui/toaster'
 
 import { readDraft, resetDraft, writeDraft } from './new-task-draft'
@@ -323,15 +325,17 @@ function renderNewTask(entry = '/new') {
   const client = createQueryClient()
   const rendered = render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[entry]}>
-        <Routes>
-          <Route path="/new" element={<NewTaskRoute />} />
-          <Route path="/p/:projectId/new" element={<NewTaskRoute />} />
-          <Route path="*" element={<div data-testid="elsewhere" />} />
-        </Routes>
-        <LocationProbe />
-        <Toaster />
-      </MemoryRouter>
+      <LocaleProvider>
+        <MemoryRouter initialEntries={[entry]}>
+          <Routes>
+            <Route path="/new" element={<NewTaskRoute />} />
+            <Route path="/p/:projectId/new" element={<NewTaskRoute />} />
+            <Route path="*" element={<div data-testid="elsewhere" />} />
+          </Routes>
+          <LocationProbe />
+          <Toaster />
+        </MemoryRouter>
+      </LocaleProvider>
     </QueryClientProvider>,
   )
   return { ...rendered, client }
@@ -1638,6 +1642,23 @@ describe('bookmarklet auto-start', () => {
     await waitFor(() =>
       expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Start task' })),
     )
+  })
+
+  it('focuses Start by slot, not by its label — the label is translated (Polish)', async () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'pl')
+    try {
+      serve()
+      renderNewTask('/new?skill=deploy&ref=hello&auto=1&key=wrong')
+      await waitFor(() => {
+        const button = document.querySelector('[data-slot="composer"] button[data-slot="composer-send"]')
+        expect(button).not.toBeNull()
+        expect(document.activeElement).toBe(button)
+      })
+      // The Polish label really is not the English one the old selector looked for.
+      expect(screen.queryByRole('button', { name: 'Start task' })).toBeNull()
+    } finally {
+      localStorage.removeItem(LOCALE_STORAGE_KEY)
+    }
   })
 
   it('missing key + auto=1 → the same blocked path', async () => {

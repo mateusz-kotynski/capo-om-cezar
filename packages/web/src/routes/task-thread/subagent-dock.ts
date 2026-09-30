@@ -220,8 +220,12 @@ export function subagentCounts(agents: SubagentSummary[]): { done: number; total
  * the two can never tell different stories about the same agent. A stalled agent is not
  * starting — the run ended under it, and the transcript will never move again.
  */
-export function subagentActivityText(agent: SubagentSummary): string {
-  return agent.activity ?? (agent.stalled === true ? 'never finished' : 'starting…')
+export function subagentActivityText(
+  agent: SubagentSummary,
+  t: (key: 'transcript.neverFinished' | 'transcript.starting') => string = (key) =>
+    key === 'transcript.neverFinished' ? 'never finished' : 'starting…',
+): string {
+  return agent.activity ?? (agent.stalled === true ? t('transcript.neverFinished') : t('transcript.starting'))
 }
 
 /**

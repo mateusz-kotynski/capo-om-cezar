@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import {
   BotIcon,
   BoxesIcon,
@@ -112,7 +113,7 @@ export interface OpenInChoice {
 export function OpenInMenu({
   choices,
   onPick,
-  label = 'Open in…',
+  label: labelProp,
   title,
   triggerVariant = 'ghost',
   disabled = false,
@@ -132,6 +133,8 @@ export function OpenInMenu({
   trailing?: ReactNode
   slot?: string
 }) {
+  const { t } = useLocale()
+  const label = labelProp ?? t('dialogs.common.openIn')
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

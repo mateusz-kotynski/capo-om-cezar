@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { XIcon } from 'lucide-react'
 
 import type { ProviderStatusResponse } from '@open-mercato/cezar-api-client'
@@ -26,6 +27,7 @@ export function ProviderBanner({
   dismissals,
   onDismissAuthFailures,
 }: ProviderBannerProps) {
+  const { t } = useLocale()
   if (pending || !status) return null
   let normalized: ProviderStatusResponse
   try {
@@ -44,18 +46,17 @@ export function ProviderBanner({
       >
         <StatusDot tone="danger" />
         <span>
-          Provider authentication failed during a task:{' '}
-          {incidents.map(({ label }) => label).join(', ')}.
+          {t('dialogs.common.authFailed', { providers: incidents.map(({ label }) => label).join(', ') })}
         </span>
         <Link
           to="/settings/agents#providers"
           className="ml-auto shrink-0 font-medium underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          Open agent settings
+          {t('dialogs.common.openAgentSettings')}
         </Link>
         <button
           type="button"
-          aria-label="Dismiss provider authentication alert"
+          aria-label={t('dialogs.common.dismissAuth')}
           onClick={() => onDismissAuthFailures(incidents)}
           className="shrink-0 rounded-sm p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
@@ -75,10 +76,10 @@ export function ProviderBanner({
   )
   const uncertain = normalized.providers.some((row) => row.status === 'unknown')
   const message = credentialsExist
-    ? 'No agent provider is enabled.'
+    ? t('dialogs.common.noneEnabled')
     : uncertain
-      ? 'No connected provider could be verified.'
-      : 'No agent provider credentials were found.'
+      ? t('dialogs.common.noneVerified')
+      : t('dialogs.common.noCredentials')
 
   return (
     <div
@@ -92,7 +93,7 @@ export function ProviderBanner({
         to="/settings/agents#providers"
         className="ml-auto shrink-0 font-medium text-foreground underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        Configure providers
+        {t('dialogs.common.configureProviders')}
       </Link>
     </div>
   )

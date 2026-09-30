@@ -10,6 +10,7 @@ import { queryKeys, useImportableSkills, useProjects, useSkills, useWorkflows } 
 import { useProjectScope } from '@/api/project-scope-context'
 import type { Skill } from '@open-mercato/cezar-api-client'
 import { CenteredState } from '@/components/centered-state'
+import { useLocale } from '@/components/locale-provider'
 import { ImportSkillsPanel } from '@/components/skills-import-panel'
 import { SkillDetailBody, SkillSourceTag } from '@/components/skill-detail'
 import { SkillEmptyHint } from '@/components/skill-empty-hint'
@@ -42,12 +43,13 @@ const BOOKMARKLETS = '__bm'
 const IMPORT = '__import'
 
 export function SkillsRoute() {
+  const { t } = useLocale()
   return (
     <div data-route="skills" className="flex min-h-full flex-col">
       {/* Desktop header — below `md` the shell's top bar already says "Skills". */}
       <header className="sticky top-0 z-10 hidden h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-5 md:flex">
-        <h1 className="text-base font-semibold">Skills</h1>
-        <p className="text-[13px] text-muted-foreground">Markdown playbooks agents can follow.</p>
+        <h1 className="text-base font-semibold">{t('nav.skills')}</h1>
+        <p className="text-[13px] text-muted-foreground">{t('skills.subtitle')}</p>
       </header>
       <SkillsCatalog />
     </div>
@@ -55,6 +57,7 @@ export function SkillsRoute() {
 }
 
 function SkillsCatalog() {
+  const { t } = useLocale()
   const skillsQuery = useSkills()
   const workflowsQuery = useWorkflows()
   const importableQuery = useImportableSkills()
@@ -70,7 +73,7 @@ function SkillsCatalog() {
     onSuccess: (catalog) => {
       // The POST answers the merged catalog — seed the shared query instead of refetching.
       queryClient.setQueryData(queryKeys.skills, catalog)
-      toast('Team skills refreshed.')
+      toast(t('skills.refreshed'))
     },
     onError: (error) => toast(error.message, { tone: 'danger' }),
   })
@@ -81,7 +84,7 @@ function SkillsCatalog() {
         icon={<TriangleAlertIcon />}
         tone="danger"
         heading="h2"
-        title="Could not load skills"
+        title={t('skills.loadFailed')}
         subtitle={skillsQuery.error.message}
       />
     )
@@ -121,8 +124,8 @@ function SkillsCatalog() {
         <div className="flex shrink-0 items-center gap-2 p-3 pb-2">
           <Input
             data-slot="skills-filter"
-            placeholder="Filter skills…"
-            aria-label="Filter skills"
+            placeholder={t('skills.filterPlaceholder')}
+            aria-label={t('skills.filterAria')}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             className="h-8 text-[13px]"
@@ -130,7 +133,7 @@ function SkillsCatalog() {
           <button
             type="button"
             data-slot="skills-refresh"
-            title="git fetch the team skills repos"
+            title={t('skills.refreshTitle')}
             disabled={refresh.isPending}
             onClick={() => refresh.mutate()}
             className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-55"
@@ -139,18 +142,18 @@ function SkillsCatalog() {
               aria-hidden="true"
               className={cn('size-3', refresh.isPending && 'motion-safe:animate-spin')}
             />
-            Refresh
+            {t('skills.refresh')}
           </button>
         </div>
 
         <ul data-slot="skill-rows" className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
           {skillsQuery.isPending ? (
-            <li className="px-2.5 py-2 text-[13px] text-soft-foreground">Loading…</li>
+            <li className="px-2.5 py-2 text-[13px] text-soft-foreground">{t('skills.loading')}</li>
           ) : shown.length > 0 ? (
             shown.map((skill) => <SkillRow key={skill.path} skill={skill} active={selection === skill.name} />)
           ) : (
             <li className="px-2.5 py-2 text-xs leading-relaxed text-soft-foreground">
-              {skills.length > 0 ? '(no skills match)' : <SkillEmptyHint />}
+              {skills.length > 0 ? t('skills.noMatch') : <SkillEmptyHint />}
             </li>
           )}
         </ul>
@@ -169,13 +172,13 @@ function SkillsCatalog() {
             >
               <span className="flex min-w-0 items-center gap-2">
                 <DownloadIcon aria-hidden="true" className="size-3.5 shrink-0 text-primary" />
-                <span className="min-w-0 truncate text-[13px] font-medium">Manage skills</span>
+                <span className="min-w-0 truncate text-[13px] font-medium">{t('skills.manage')}</span>
                 <span className="ml-auto shrink-0 rounded-full border border-border px-2 py-px font-mono text-[10.5px] text-soft-foreground">
                   open-mercato
                 </span>
               </span>
               <span className="pl-[22px] text-xs text-soft-foreground">
-                Choose which open-mercato skills appear in your catalog.
+                {t('skills.manageHint')}
               </span>
             </Link>
           ) : null}
@@ -190,13 +193,13 @@ function SkillsCatalog() {
           >
             <span className="flex min-w-0 items-center gap-2">
               <ZapIcon aria-hidden="true" className="size-3.5 shrink-0 text-primary" />
-              <span className="min-w-0 truncate text-[13px] font-medium">Run from GitHub</span>
+              <span className="min-w-0 truncate text-[13px] font-medium">{t('skills.runFromGithub')}</span>
               <span className="ml-auto shrink-0 rounded-full border border-border px-2 py-px font-mono text-[10.5px] text-soft-foreground">
                 bookmarklets
               </span>
             </span>
             <span className="pl-[22px] text-xs text-soft-foreground">
-              One-click skill launch from any GitHub PR or issue.
+              {t('skills.runFromGithubHint')}
             </span>
           </Link>
         </div>
@@ -214,7 +217,7 @@ function SkillsCatalog() {
             className="mb-3 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground md:hidden"
           >
             <ArrowLeftIcon aria-hidden="true" className="size-3.5" />
-            Back to the list
+            {t('skills.backToList')}
           </Link>
 
           {selection === IMPORT ? (
@@ -231,8 +234,8 @@ function SkillsCatalog() {
               icon={<SparklesIcon />}
               tone="neutral"
               heading="h2"
-              title="No skill selected"
-              subtitle="Pick a skill from the catalog."
+              title={t('skills.noneSelected')}
+              subtitle={t('skills.pickOne')}
             />
           )}
         </div>

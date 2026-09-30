@@ -3,6 +3,7 @@ import type { SyntheticEvent } from 'react'
 import { nextOccurrence, type AutomationListEntry, type AutomationsResponse } from '@open-mercato/cezar-api-client'
 
 import { GithubIcon } from '@/components/icons'
+import { useLocale, type TFn } from '@/components/locale-provider'
 import { Pill } from '@/components/pill'
 import { StatusDot } from '@/components/status-dot'
 import { Card } from '@/components/ui/card'
@@ -35,20 +36,21 @@ export function AutomationsTable({
   actions: AutomationActions
   now?: number
 }) {
+  const { t } = useLocale()
   const showCost = AUTOMATION_COST_VISIBLE && (data.stats.costUsd !== undefined || data.automations.some((automation) => automation.costUsd7d !== undefined))
   return (
     <Card flush data-slot="automations-table" className="min-w-0 overflow-x-auto">
       <table className="w-full border-collapse [&_tbody_tr:last-child>td]:border-b-0">
         <thead>
           <tr>
-            <th className={cn(TH, 'pl-4')}>State</th>
-            <th className={TH}>Automation</th>
-            <th className={TH}>Trigger</th>
-            <th className={cn(TH, WIDE)}>Runs as</th>
-            <th className={TH}>Next run</th>
-            <th className={TH}>Last run</th>
-            <th className={cn(TH, WIDE, 'text-right')}>Runs 7d</th>
-            {showCost ? <th className={cn(TH, WIDE, 'text-right')}>Cost 7d</th> : null}
+            <th className={cn(TH, 'pl-4')}>{t('automations.colState')}</th>
+            <th className={TH}>{t('automations.colAutomation')}</th>
+            <th className={TH}>{t('automations.colTrigger')}</th>
+            <th className={cn(TH, WIDE)}>{t('automations.colRunsAs')}</th>
+            <th className={TH}>{t('automations.colNextRun')}</th>
+            <th className={TH}>{t('automations.colLastRun')}</th>
+            <th className={cn(TH, WIDE, 'text-right')}>{t('automations.colRuns7d')}</th>
+            {showCost ? <th className={cn(TH, WIDE, 'text-right')}>{t('automations.colCost7d')}</th> : null}
             <th className={cn(TH, 'pr-4')} />
           </tr>
         </thead>
@@ -86,11 +88,12 @@ function AutomationRow({
   showCost: boolean
   now: number
 }) {
+  const { t, tn } = useLocale()
   const navigate = useNavigate()
   const github = automation.kind === 'github'
   const capabilityPaused = github && !available
   const dispatch = automation.task.dispatch
-  const trigger = triggerLabel(automation)
+  const trigger = triggerLabel(automation, t)
   const runAs = [automation.task.workflow, automation.task.runner].filter(Boolean)
   const stop = (event: SyntheticEvent) => event.stopPropagation()
 
@@ -104,10 +107,10 @@ function AutomationRow({
     >
       <td className={cn(TD, 'pl-4')}>
         {capabilityPaused ? (
-          <Pill dot="neutral">paused by capability</Pill>
+          <Pill dot="neutral">{t('automations.pausedByCapability')}</Pill>
         ) : (
           <Pill dot={automation.enabled ? 'success' : 'neutral'} pulse={automation.enabled && github}>
-            {automation.enabled ? 'enabled' : 'paused'}
+            {automation.enabled ? t('automations.enabled') : t('automations.paused')}
           </Pill>
         )}
       </td>
@@ -118,7 +121,7 @@ function AutomationRow({
           {dispatch ? (
             <span
               data-slot="dispatch-badge"
-              title={`dispatch · up to ${dispatch.maxSubtasks ?? 1} subtasks`}
+              title={tn('automations.dispatchBadge', dispatch.maxSubtasks ?? 1)}
               className="inline-flex shrink-0 items-center gap-[3px] rounded-full bg-muted px-1.5 py-px text-[10.5px] font-medium text-muted-foreground"
             >
               <GitForkIcon className="size-2.5" />×{dispatch.maxSubtasks ?? 1}
@@ -141,7 +144,7 @@ function AutomationRow({
             {automation.task.autonomous ? (
               <>
                 <span className="text-soft-foreground">·</span>
-                <span title="autonomous" data-slot="autonomous-mark" className="inline-flex">
+                <span title={t('automations.autonomousMark')} data-slot="autonomous-mark" className="inline-flex">
                   <ZapIcon aria-hidden="true" className="size-[11px] text-soft-foreground" />
                 </span>
               </>
@@ -155,13 +158,13 @@ function AutomationRow({
         data-slot="next-run"
         className={cn(TD, 'font-mono text-xs tabular-nums', automation.enabled ? 'text-foreground' : 'text-soft-foreground')}
       >
-        {nextRunText(automation, timeZone, now)}
+        {nextRunText(automation, timeZone, now, t)}
       </td>
       <td className={TD}>
         {automation.lastRun ? (
           <span className="inline-flex items-center gap-2">
             <StatusDot tone={statusTone(automation.lastRun.status)} />
-            <span className="text-[12.5px] text-muted-foreground">{statusLabel(automation.lastRun.status)}</span>
+            <span className="text-[12.5px] text-muted-foreground">{statusLabel(automation.lastRun.status, t)}</span>
             <span className="text-[11.5px] text-soft-foreground">{shortAge(automation.lastRun.ts, now)}</span>
             <Link
               to={`/tasks/${encodeURIComponent(automation.lastRun.runId)}`}
@@ -169,7 +172,7 @@ function AutomationRow({
               onClick={stop}
               className="inline-flex items-center gap-0.5 rounded-full border border-violet/40 px-1.5 py-px font-mono text-[10.5px] font-semibold text-violet"
             >
-              task
+              {t('automations.taskLink')}
               <ArrowUpRightIcon className="size-[9px]" />
             </Link>
           </span>
@@ -191,10 +194,10 @@ function AutomationRow({
 }
 
 /** `continuous` for a poll; the next instant (server-reported, else computed) for a schedule; `—` paused. */
-function nextRunText(automation: AutomationListEntry, timeZone: string, now: number): string {
+function nextRunText(automation: AutomationListEntry, timeZone: string, now: number, t: TFn): string {
   if (!automation.enabled) return '—'
-  if (automation.kind !== 'schedule') return 'continuous'
-  if (automation.nextRunAt) return dayTime(automation.nextRunAt, timeZone) || '—'
+  if (automation.kind !== 'schedule') return t('automations.continuous')
+  if (automation.nextRunAt) return dayTime(automation.nextRunAt, timeZone, t) || '—'
   const next = automation.schedule ? nextOccurrence(automation.schedule, now, timeZone) : null
-  return next === null ? '—' : dayTime(next, timeZone) || '—'
+  return next === null ? '—' : dayTime(next, timeZone, t) || '—'
 }

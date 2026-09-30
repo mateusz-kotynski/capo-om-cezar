@@ -1,6 +1,24 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { compactTokens, shortAge } from '@/lib/format'
+import { LOCALE_STORAGE_KEY, setActiveLocale } from '@/lib/locale'
+
+describe('shortAge in Polish', () => {
+  const now = Date.parse('2026-07-14T12:00:00.000Z')
+  afterEach(() => {
+    setActiveLocale('en')
+    localStorage.removeItem(LOCALE_STORAGE_KEY)
+  })
+
+  it('uses the Polish abbreviations when the UI language is Polish', () => {
+    setActiveLocale('pl')
+    const ago = (ms: number) => new Date(now - ms).toISOString()
+    expect(shortAge(ago(4_000), now)).toBe('4 s')
+    expect(shortAge(ago(26 * 60_000), now)).toBe('26 min')
+    expect(shortAge(ago(2 * 3_600_000), now)).toBe('2 godz.')
+    expect(shortAge(ago(3 * 86_400_000), now)).toBe('3 d')
+  })
+})
 
 describe('shortAge', () => {
   const now = Date.parse('2026-07-14T12:00:00.000Z')

@@ -1,3 +1,6 @@
+import { useLocale } from '@/components/locale-provider'
+import { RichText } from '@/components/rich-text'
+import { formatLocale } from '@/lib/locale'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link as GlobalLink } from 'react-router'
 
@@ -33,6 +36,7 @@ import { toast } from '@/components/ui/toaster'
  * other reason — so this component never has to reason about any of those cases.
  */
 export function AutoResumeHint({ run }: { run: ApiRun }) {
+  const { t } = useLocale()
   const queryClient = useQueryClient()
   const cancel = useMutation({
     mutationFn: () => cancelAutoResume(run.id),
@@ -41,7 +45,7 @@ export function AutoResumeHint({ run }: { run: ApiRun }) {
       // and an invalidate is the honest barrier for a mutation the user just clicked.
       void queryClient.invalidateQueries({ queryKey: queryKeys.runs.detail(run.id) })
       void queryClient.invalidateQueries({ queryKey: queryKeys.runs.list() })
-      toast('This task will not resume itself')
+      toast(t('thread.autoResume.cancelled'))
     },
     onError: (error: Error) => toast(error.message, { tone: 'danger' }),
   })
@@ -49,7 +53,7 @@ export function AutoResumeHint({ run }: { run: ApiRun }) {
   if (run.status !== 'failed' || !run.autoResumeAt) return null
   const at = new Date(run.autoResumeAt)
   if (!Number.isFinite(at.getTime())) return null
-  const label = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'long' }).format(at)
+  const label = new Intl.DateTimeFormat(formatLocale(), { dateStyle: 'medium', timeStyle: 'long' }).format(at)
   return (
     <div
       data-slot="auto-resume-hint"
@@ -58,10 +62,16 @@ export function AutoResumeHint({ run }: { run: ApiRun }) {
     >
       <StatusDot tone="pending" pulse />
       <span>
-        Usage limit reached — this task resumes automatically at{' '}
-        <time dateTime={run.autoResumeAt} className="font-medium text-foreground">
-          {label}
-        </time>
+        <RichText
+          text={t('thread.autoResume.hint', { when: label })}
+          tags={{
+            time: (when) => (
+              <time dateTime={run.autoResumeAt} className="font-medium text-foreground">
+                {when}
+              </time>
+            ),
+          }}
+        />
       </span>
       <button
         type="button"
@@ -70,7 +80,7 @@ export function AutoResumeHint({ run }: { run: ApiRun }) {
         onClick={() => cancel.mutate()}
         className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground disabled:opacity-50"
       >
-        Don’t resume
+        {t('thread.autoResume.dontResume')}
       </button>
       {/* Global settings live OUTSIDE every project scope, so this is react-router's own Link:
           the scope-aware one would prefix it into `/p/<id>/settings/global/…`, which is not a
@@ -80,7 +90,7 @@ export function AutoResumeHint({ run }: { run: ApiRun }) {
         data-slot="auto-resume-settings-link"
         className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
       >
-        Auto-resume settings
+        {t('thread.autoResume.settings')}
       </GlobalLink>
     </div>
   )

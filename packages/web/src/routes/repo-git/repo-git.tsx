@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { GitBranchIcon, TriangleAlertIcon } from 'lucide-react'
 
 import { useRepo } from '@/api/queries'
@@ -26,6 +27,7 @@ import { RepoGitLoading } from './repo-git-loading'
 export type RepoTab = 'changes' | 'commits' | 'branches'
 
 export function RepoGitRoute({ tab }: { tab: RepoTab }) {
+  const { t } = useLocale()
   const repo = useRepo()
 
   if (repo.isPending) return <RepoGitLoading />
@@ -35,7 +37,7 @@ export function RepoGitRoute({ tab }: { tab: RepoTab }) {
         <CenteredState
           icon={<TriangleAlertIcon />}
           tone="danger"
-          title="Could not load the repository"
+          title={t('git.page.loadFailed')}
           subtitle={repo.error.message}
         />
       </div>
@@ -48,8 +50,8 @@ export function RepoGitRoute({ tab }: { tab: RepoTab }) {
         <CenteredState
           icon={<GitBranchIcon />}
           tone="neutral"
-          title="Not a git repository"
-          subtitle="cezar is running outside a git repository — start it inside one to browse changes, commits and branches."
+          title={t('git.page.notGitTitle')}
+          subtitle={t('git.page.notGitSubtitle')}
         />
       </div>
     )
@@ -58,6 +60,7 @@ export function RepoGitRoute({ tab }: { tab: RepoTab }) {
 }
 
 function RepoView({ repo, info, tab }: { repo: RepoResponse; info: RepoInfo; tab: RepoTab }) {
+  const { t } = useLocale()
   return (
     <div data-route="repo-git" className="flex min-h-full flex-col">
       <header
@@ -65,7 +68,7 @@ function RepoView({ repo, info, tab }: { repo: RepoResponse; info: RepoInfo; tab
         className="sticky top-0 z-20 border-b border-border bg-background/95 px-4 pt-3 backdrop-blur md:px-6"
       >
         <div className="flex min-w-0 items-center gap-2.5">
-          <h1 className="text-lg font-semibold">Git</h1>
+          <h1 className="text-lg font-semibold">{t('nav.git')}</h1>
           <BranchChip branch={info.branch} />
           {info.remote ? (
             <span data-slot="repo-remote" className="hidden min-w-0 truncate text-[11px] text-soft-foreground md:inline">
@@ -76,13 +79,13 @@ function RepoView({ repo, info, tab }: { repo: RepoResponse; info: RepoInfo; tab
 
         <div data-slot="repo-tabs" className="mt-2.5 flex items-end gap-1">
           <TabLink to="/git" active={tab === 'changes'}>
-            Changes
+            {t('git.tabs.changes')}
           </TabLink>
           <TabLink to="/git/commits" active={tab === 'commits'}>
-            Commits
+            {t('git.tabs.commits')}
           </TabLink>
           <TabLink to="/git/branches" active={tab === 'branches'}>
-            Branches
+            {t('git.tabs.branches')}
           </TabLink>
         </div>
       </header>

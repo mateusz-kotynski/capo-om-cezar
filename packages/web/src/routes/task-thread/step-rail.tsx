@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { ChevronDownIcon, CircleCheckIcon, CircleIcon, CircleXIcon, LoaderCircleIcon } from 'lucide-react'
 import { useState } from 'react'
 
@@ -80,6 +81,7 @@ export function StepRail({ steps }: { steps: StepState[] }) {
 }
 
 function RailIcon({ visual }: { visual: RailVisual }) {
+  const { t } = useLocale()
   const base = 'size-[13px] shrink-0'
   switch (visual) {
     case 'done':
@@ -88,7 +90,7 @@ function RailIcon({ visual }: { visual: RailVisual }) {
       return (
         <LoaderCircleIcon
           role="status"
-          aria-label="Step running"
+          aria-label={t('thread.steps.running')}
           // stroke-pending, not text-*: amber is a dot & spinner color only (guardian rule).
           className={cn(base, 'animate-spin stroke-pending motion-reduce:animate-none')}
         />
@@ -148,6 +150,7 @@ const openByRun = new Map<string, boolean>()
  * an explicit expand is remembered for that run across tab switches.
  */
 export function WorkflowSteps({ runId, steps }: { runId: string; steps: StepState[] }) {
+  const { t } = useLocale()
   const [open, setOpen] = useState(() => openByRun.get(runId) ?? false)
   if (steps.length === 0) return null
   const toggle = (next: boolean) => {
@@ -160,7 +163,7 @@ export function WorkflowSteps({ runId, steps }: { runId: string; steps: StepStat
   return (
     <Collapsible data-slot="workflow-steps" open={open} onOpenChange={toggle} className="min-w-0">
       <CollapsibleTrigger
-        aria-label={`Workflow: ${current.name}, step ${index + 1} of ${steps.length}`}
+        aria-label={t('thread.steps.workflow', { name: current.name, index: index + 1, total: steps.length })}
         className="group flex min-h-7 w-full items-center gap-2 text-left text-xs text-muted-foreground hover:text-foreground md:min-h-[30px] md:gap-2.5"
       >
         <span data-slot="step-dots" className="flex shrink-0 items-center gap-1">

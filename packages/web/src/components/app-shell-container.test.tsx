@@ -13,6 +13,7 @@ import type {
   SkillsUpdateState,
 } from '@open-mercato/cezar-api-client'
 import { AppShellContainer, repoChipOf, skillsUpdateMarkerOf } from '@/components/app-shell-container'
+import { LocaleProvider } from '@/components/locale-provider'
 import { ThemeProvider } from '@/components/theme-provider'
 
 const fetchMock = vi.fn<typeof fetch>()
@@ -98,13 +99,15 @@ function renderShell(entry = '/', client: QueryClient = createQueryClient()) {
     client,
     ...render(
     <QueryClientProvider client={client}>
-      <ThemeProvider>
-        <MemoryRouter initialEntries={[entry]}>
-          <AppShellContainer>
-            <p>route content</p>
-          </AppShellContainer>
-        </MemoryRouter>
-      </ThemeProvider>
+      <LocaleProvider>
+        <ThemeProvider>
+          <MemoryRouter initialEntries={[entry]}>
+            <AppShellContainer>
+              <p>route content</p>
+            </AppShellContainer>
+          </MemoryRouter>
+        </ThemeProvider>
+      </LocaleProvider>
     </QueryClientProvider>,
     ),
   }
@@ -119,15 +122,17 @@ function renderScopedShell(
     client,
     ...render(
     <QueryClientProvider client={client}>
-      <ThemeProvider>
-        <MemoryRouter initialEntries={[entry]}>
-          <AppShellContainer>
-            <ProjectScopeProvider projectId={projectId}>
-              <p>route content</p>
-            </ProjectScopeProvider>
-          </AppShellContainer>
-        </MemoryRouter>
-      </ThemeProvider>
+      <LocaleProvider>
+        <ThemeProvider>
+          <MemoryRouter initialEntries={[entry]}>
+            <AppShellContainer>
+              <ProjectScopeProvider projectId={projectId}>
+                <p>route content</p>
+              </ProjectScopeProvider>
+            </AppShellContainer>
+          </MemoryRouter>
+        </ThemeProvider>
+      </LocaleProvider>
     </QueryClientProvider>,
     ),
   }

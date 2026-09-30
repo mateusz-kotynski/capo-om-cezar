@@ -1,0 +1,35 @@
+/** The sidebar Tools menu (health text) and the browser notification body. Tool names, versions,
+ *  server hints and forge reasons are data. */
+export const en = {
+  noAgentCli: 'no agent CLI found — install one to run tasks',
+  defaultRunnerMissing: 'default runner ({runner}) not found',
+  version: 'cezar v{version}',
+  withBlocker: '{base} · {blocker}',
+  optionalMissing: '{base} · optional: {names} not installed',
+  noForgeRemote: 'No GitHub remote detected — the GitHub tab is hidden. Every plain-git feature still works.',
+  forgeUnreachable: '{name} is unreachable — {reason}. The {name} tab is hidden until it comes back.',
+  unknownReason: 'unknown reason',
+  trigger: 'Tools',
+  installed: 'Installed tools',
+  toolSettings: 'Tool settings',
+  notFound: 'not found',
+  setUp: 'Set up →',
+  notificationBody: 'Task {label}',
+}
+
+export const pl: typeof en = {
+  noAgentCli: 'nie znaleziono CLI agenta — zainstaluj jedno, aby uruchamiać zadania',
+  defaultRunnerMissing: 'nie znaleziono domyślnego runnera ({runner})',
+  version: 'cezar v{version}',
+  withBlocker: '{base} · {blocker}',
+  optionalMissing: '{base} · opcjonalne: nie zainstalowano {names}',
+  noForgeRemote: 'Nie wykryto remote’a na GitHubie — karta GitHub jest ukryta. Wszystkie zwykłe funkcje gita nadal działają.',
+  forgeUnreachable: '{name} jest nieosiągalny — {reason}. Karta {name} jest ukryta, dopóki nie wróci.',
+  unknownReason: 'nieznany powód',
+  trigger: 'Narzędzia',
+  installed: 'Zainstalowane narzędzia',
+  toolSettings: 'Ustawienia narzędzi',
+  notFound: 'nie znaleziono',
+  setUp: 'Skonfiguruj →',
+  notificationBody: 'Zadanie: {label}',
+}

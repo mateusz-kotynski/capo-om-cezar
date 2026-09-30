@@ -7,12 +7,14 @@ import { removeTodo, startTodo } from '@/api/client'
 import { queryKeys, useHealth, useRuns, useTodos, useUiState } from '@/api/queries'
 import type { TodoItem } from '@open-mercato/cezar-api-client'
 import { CenteredState } from '@/components/centered-state'
+import { useLocale } from '@/components/locale-provider'
 import { EnginePills, engineBody, useResolvedEngine, type EnginePick } from '@/components/engine-pills'
 import { PromptTemplateMenu } from '@/components/prompt-template-menu'
 import { StatusDot } from '@/components/status-dot'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/components/ui/toaster'
+import { attentionLabel } from '@/i18n/ui-labels'
 import { deriveAttention } from '@/lib/attention'
 import { shortAge } from '@/lib/format'
 import { availablePromptTemplates, insertTemplate, normalizePromptTemplates } from '@/lib/prompt-templates'
@@ -61,6 +63,7 @@ export function isTodoRunnable(todo: TodoItem): boolean {
 }
 
 export function InboxRoute() {
+  const { t } = useLocale()
   // The nav item is inbox-gated in the shell, but the route stays reachable so an old
   // bookmark still resolves (the forge routes' rule). "Inbox empty" would be a lie here —
   // the inbox is switched off, not empty — so say that instead, and park the query.
@@ -82,11 +85,9 @@ export function InboxRoute() {
     <div data-route="inbox" className="flex min-h-full flex-col">
       {/* Desktop header — below `md` the shell's top bar already says "Inbox". */}
       <header className="sticky top-0 z-10 hidden h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-5 md:flex">
-        <h1 className="text-base font-semibold">Inbox</h1>
+        <h1 className="text-base font-semibold">{t('nav.inbox')}</h1>
         <p className="text-[13px] text-soft-foreground">
-          {inboxOff
-            ? 'Disabled for this server; per-task Notes still run.'
-            : 'Follow-ups agents suggested when they finished a task.'}
+          {inboxOff ? t('inbox.subtitleOff') : t('inbox.subtitle')}
         </p>
       </header>
 
@@ -95,8 +96,8 @@ export function InboxRoute() {
           <CenteredState
             icon={<InboxIcon />}
             tone="neutral"
-            title="The follow-up inbox is off"
-            subtitle="Agents are not asked to leave follow-ups. Set CEZ_FOLLOWUPS=1 and restart cezar to turn the inbox on."
+            title={t('inbox.offTitle')}
+            subtitle={t('inbox.offSubtitle')}
             heading="h2"
           />
         ) : todos === undefined ? (
@@ -104,7 +105,7 @@ export function InboxRoute() {
             <CenteredState
               icon={<TriangleAlertIcon />}
               tone="danger"
-              title="Could not load the inbox"
+              title={t('inbox.loadFailed')}
               subtitle={todosQuery.error.message}
               heading="h2"
             />
@@ -119,8 +120,8 @@ export function InboxRoute() {
             <CenteredState
               icon={<InboxIcon />}
               tone="neutral"
-              title="Inbox empty"
-              subtitle="Agents drop follow-up suggestions here when they finish a task."
+              title={t('inbox.emptyTitle')}
+              subtitle={t('inbox.emptySubtitle')}
               heading="h2"
             />
           )
@@ -152,6 +153,7 @@ function TodoCard({
   todo: TodoItem
   sourceTaskExists: boolean | null
 }) {
+  const { t } = useLocale()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const uiState = useUiState()
@@ -234,7 +236,7 @@ function TodoCard({
         <StatusDot
           tone={CARD_ATTENTION.tone}
           pulse={CARD_ATTENTION.pulse}
-          title={CARD_ATTENTION.label}
+          title={attentionLabel(t, CARD_ATTENTION.label)}
           className="mt-[5px]"
         />
         <div className="min-w-0 flex-1">
@@ -245,7 +247,7 @@ function TodoCard({
             data-slot="todo-meta"
             className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-soft-foreground"
           >
-            {todo.ts ? <span>{shortAge(todo.ts)} ago</span> : null}
+            {todo.ts ? <span>{t('inbox.ago', { age: shortAge(todo.ts) })}</span> : null}
             {todo.action ? <span>{todo.action}</span> : null}
             {todo.taskId !== undefined ? (
               sourceTaskExists ? (
@@ -254,10 +256,10 @@ function TodoCard({
                   data-slot="todo-source"
                   className="text-muted-foreground underline decoration-border underline-offset-2 hover:text-foreground"
                 >
-                  source task
+                  {t('inbox.sourceTask')}
                 </Link>
               ) : (
-                <span data-slot="todo-source-gone">source task deleted</span>
+                <span data-slot="todo-source-gone">{t('inbox.sourceTaskDeleted')}</span>
               )
             ) : null}
             {/* href protocol guard (#431): link only for http(s) URLs. */}
@@ -269,12 +271,12 @@ function TodoCard({
                 data-slot="todo-pr"
                 className="text-muted-foreground underline decoration-border underline-offset-2 hover:text-foreground"
               >
-                PR
+                {t('inbox.pr')}
               </a>
             ) : null}
             {todo.suggestedSkill ? (
               <span data-slot="todo-skill" className="font-mono">
-                skill: {todo.suggestedSkill}
+                {t('inbox.skill', { skill: todo.suggestedSkill })}
               </span>
             ) : null}
           </div>
@@ -287,23 +289,23 @@ function TodoCard({
                 variant="contrast"
                 size="sm"
                 data-action="todo-run"
-                title="Start a task from this follow-up"
+                title={t('inbox.runTitle')}
                 disabled={busy || !resolved.canRun}
                 onClick={() => start.mutate()}
               >
                 <PlayIcon aria-hidden="true" className="size-3" />
-                Run
+                {t('inbox.run')}
               </Button>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 data-action="todo-dismiss"
-                title="Check off (remove)"
+                title={t('inbox.dismissTitle')}
                 disabled={busy}
                 onClick={() => dismiss.mutate()}
               >
-                Dismiss
+                {t('inbox.dismiss')}
               </Button>
             </>
           ) : (
@@ -312,12 +314,12 @@ function TodoCard({
               variant="contrast"
               size="sm"
               data-action="todo-acknowledge"
-              title="Acknowledge and remove this note"
+              title={t('inbox.acknowledgeTitle')}
               disabled={busy}
               onClick={() => dismiss.mutate()}
             >
               <CheckIcon aria-hidden="true" className="size-3" />
-              Acknowledge
+              {t('inbox.acknowledge')}
             </Button>
           )}
         </div>
@@ -334,14 +336,12 @@ function TodoCard({
               data-slot="todo-provider-gate"
               className="inline-flex flex-wrap items-center gap-1 text-xs text-muted-foreground"
             >
-              {resolved.providerError
-                ? 'Provider authentication could not be verified.'
-                : 'Connect an agent provider to run this follow-up.'}
+              {resolved.providerError ? t('inbox.providerUnverified') : t('inbox.providerConnect')}
               <Link
                 to="/settings/agents#providers"
                 className="font-medium text-foreground underline underline-offset-4"
               >
-                Configure providers
+                {t('inbox.configureProviders')}
               </Link>
             </span>
           ) : null}
@@ -357,10 +357,10 @@ function TodoCard({
             <Textarea
               ref={notesRef}
               data-slot="todo-instructions-input"
-              aria-label="Extra instructions for this follow-up"
+              aria-label={t('inbox.instructionsAria')}
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
-              placeholder="Add instructions for the agent… (appended to the suggestion above)"
+              placeholder={t('inbox.instructionsPlaceholder')}
               // Same cap the server enforces on the `prompt` body field, so an over-long note is
               // stopped at the keystroke rather than by a 400 on Run (the Settings inputs cap the
               // same way).
@@ -375,7 +375,7 @@ function TodoCard({
                 onClick={() => setNotesOpen(false)}
                 className="text-xs font-medium text-muted-foreground underline decoration-border underline-offset-2 hover:text-foreground"
               >
-                Hide
+                {t('inbox.hide')}
               </button>
             </div>
           </div>
@@ -388,7 +388,7 @@ function TodoCard({
           >
             {/* A collapsed composer keeps its draft, and Run still carries it — so say so
                 rather than hiding instructions the next Run would silently send. */}
-            {notes.trim() ? 'Edit instructions (added)' : '+ Add instructions'}
+            {notes.trim() ? t('inbox.editInstructions') : t('inbox.addInstructions')}
           </button>
         )
       ) : null}

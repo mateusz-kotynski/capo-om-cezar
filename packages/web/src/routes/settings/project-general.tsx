@@ -1,3 +1,5 @@
+import { useLocale } from '@/components/locale-provider'
+import { formatLocale } from '@/lib/locale'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 
@@ -6,7 +8,7 @@ import type { Capabilities, ProjectListEntry } from '@open-mercato/cezar-api-cli
 import { Button } from '@/components/ui/button'
 import { useActiveProjectId } from '@/lib/project-router'
 import { ProjectFolderField } from './project-location'
-import { AddBootProjectButton, MaxParallelStepper, STATUS_LABEL } from './projects-section'
+import { AddBootProjectButton, MaxParallelStepper, STATUS_LABEL_KEYS } from './projects-section'
 import { RemoveProjectDialog, useProjectRemoval } from './remove-project'
 import { SettingsField } from './settings-field'
 
@@ -44,10 +46,11 @@ import { SettingsField } from './settings-field'
 function fullDate(iso: string): string {
   const at = new Date(iso)
   if (Number.isNaN(at.getTime())) return '—'
-  return at.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+  return at.toLocaleDateString(formatLocale(), { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 export function ProjectGeneral({ capabilities }: { capabilities?: Partial<Pick<Capabilities, 'singleProject'>> }) {
+  const { t } = useLocale()
   const projectId = useActiveProjectId()
   const projects = useProjects()
   const config = useWorkspaceConfig()
@@ -55,7 +58,7 @@ export function ProjectGeneral({ capabilities }: { capabilities?: Partial<Pick<C
   if (projects.isPending) {
     return (
       <p data-slot="project-general-loading" className="text-[13px] text-soft-foreground">
-        Loading project…
+        {t('prefs.general.loading')}
       </p>
     )
   }
@@ -67,7 +70,7 @@ export function ProjectGeneral({ capabilities }: { capabilities?: Partial<Pick<C
   if (projects.isError) {
     return (
       <p data-slot="project-general-error" className="text-[13px] text-danger">
-        Could not read the project registry — {projects.error.message}
+        {t('prefs.general.registryError', { message: projects.error.message })}
       </p>
     )
   }
@@ -88,8 +91,8 @@ export function ProjectGeneral({ capabilities }: { capabilities?: Partial<Pick<C
       <ProjectFacts project={project} canRemove={managesRegistry} />
       {project.unregistered ? (
         <SettingsField
-          title="Add to your projects"
-          hint="cezar is serving this folder because you started it here — starting cezar somewhere new never adds it to your project list for you. Adding it keeps it in the sidebar between runs and gives it a registry entry to hold settings like the task cap. Nothing on disk changes either way."
+          title={t('prefs.general.addTitle')}
+          hint={t('prefs.general.addHint')}
         >
           <AddBootProjectButton root={project.root} name={project.name} />
         </SettingsField>
@@ -97,11 +100,11 @@ export function ProjectGeneral({ capabilities }: { capabilities?: Partial<Pick<C
       {managesRegistry ? (
         <>
           <SettingsField
-            title="Max parallel tasks"
+            title={t('prefs.general.maxTitle')}
             hint={
               config.data
-                ? `How many of this project's tasks may run at once — leave it empty to inherit the workspace limit. The workspace limit (${config.data.resources.maxParallel}) still applies as an overall ceiling, so a higher value here has no extra effect until that one is raised.`
-                : "How many of this project's tasks may run at once — leave it empty to inherit the workspace limit. The workspace limit still applies as an overall ceiling."
+                ? t('prefs.general.maxHintWith', { max: config.data.resources.maxParallel })
+                : t('prefs.general.maxHint')
             }
           >
             {config.data ? (
@@ -109,7 +112,7 @@ export function ProjectGeneral({ capabilities }: { capabilities?: Partial<Pick<C
             ) : (
               // The stepper's "Inherit (N)" placeholder has to name N, and guessing it would be
               // the one thing this control must not do.
-              <p className="text-[13px] text-soft-foreground">Loading the workspace limit…</p>
+              <p className="text-[13px] text-soft-foreground">{t('prefs.general.loadingLimit')}</p>
             )}
           </SettingsField>
           <RemoveProject project={project} bootProject={registry.bootProject} />
@@ -123,27 +126,28 @@ export function ProjectGeneral({ capabilities }: { capabilities?: Partial<Pick<C
  *  `canRemove` is whether the Remove field is rendered below — the missing-folder hint points at
  *  it, and must not point at a field single-project mode took away. */
 function ProjectFacts({ project, canRemove }: { project: ProjectListEntry; canRemove: boolean }) {
+  const { t } = useLocale()
   return (
     <SettingsField
-      title="Project"
-      hint="The registry entry for this checkout — re-probed every time the project list is read."
+      title={t('prefs.general.factsTitle')}
+      hint={t('prefs.general.factsHint')}
     >
       <dl
         data-slot="project-facts"
         className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-3 gap-y-1.5 rounded-md border border-border bg-card p-3 text-[13px]"
       >
-        <dt className="text-muted-foreground">Name</dt>
+        <dt className="text-muted-foreground">{t('prefs.general.name')}</dt>
         <dd className="min-w-0 truncate text-foreground">{project.name}</dd>
 
-        <dt className="text-muted-foreground">Status</dt>
+        <dt className="text-muted-foreground">{t('prefs.general.status')}</dt>
         <dd data-slot="project-general-status" className={project.status === 'missing' ? 'text-danger' : 'text-foreground'}>
-          {STATUS_LABEL[project.status]}
+          {t(STATUS_LABEL_KEYS[project.status])}
           {/* A registered folder that has been deleted or moved is the one status worth acting
               on, and "folder not found" alone does not say what to do about it. */}
           {project.status === 'missing'
             ? canRemove
-              ? ' — remove it below, or restore the folder'
-              : ' — restore the folder at the path above'
+              ? t('prefs.general.removeOrRestore')
+              : t('prefs.general.restoreFolder')
             : null}
         </dd>
 
@@ -151,7 +155,7 @@ function ProjectFacts({ project, canRemove }: { project: ProjectListEntry; canRe
             invites the reader to wonder which branch is checked out, a missing row does not. */}
         {project.branch !== undefined ? (
           <>
-            <dt className="text-muted-foreground">Branch</dt>
+            <dt className="text-muted-foreground">{t('prefs.general.branch')}</dt>
             <dd className="min-w-0 truncate font-mono text-xs text-foreground">{project.branch}</dd>
           </>
         ) : null}
@@ -160,22 +164,22 @@ function ProjectFacts({ project, canRemove }: { project: ProjectListEntry; canRe
             — inventing them (or dashing two rows) would say less than naming the state once. */}
         {project.unregistered ? (
           <>
-            <dt className="text-muted-foreground">In your projects</dt>
+            <dt className="text-muted-foreground">{t('prefs.general.inProjects')}</dt>
             <dd data-slot="project-general-unregistered" className="text-foreground">
-              No — served because cezar was started here
+              {t('prefs.general.notRegistered')}
             </dd>
           </>
         ) : (
           <>
-            <dt className="text-muted-foreground">Added</dt>
+            <dt className="text-muted-foreground">{t('prefs.general.added')}</dt>
             <dd className="text-foreground">
               {fullDate(project.addedAt)}
               <span className="text-soft-foreground">
-                {project.source === 'checkout' ? ' · cloned from GitHub' : ' · opened locally'}
+                {project.source === 'checkout' ? t('prefs.general.cloned') : t('prefs.general.opened')}
               </span>
             </dd>
 
-            <dt className="text-muted-foreground">Last opened</dt>
+            <dt className="text-muted-foreground">{t('prefs.general.lastOpened')}</dt>
             <dd className="text-foreground">{fullDate(project.lastOpenedAt)}</dd>
           </>
         )}
@@ -201,6 +205,7 @@ function ProjectFacts({ project, canRemove }: { project: ProjectListEntry; canRe
  * is always registered.
  */
 function RemoveProject({ project, bootProject }: { project: ProjectListEntry; bootProject: string }) {
+  const { t } = useLocale()
   const [confirming, setConfirming] = useState<ProjectListEntry | null>(null)
   const remove = useProjectRemoval()
   const navigate = useNavigate()
@@ -208,8 +213,8 @@ function RemoveProject({ project, bootProject }: { project: ProjectListEntry; bo
 
   return (
     <SettingsField
-      title="Remove from workspace"
-      hint="Unregisters this project so it leaves the sidebar and the project list. Nothing on disk is deleted — the folder, its git history and its task history all stay, and adding it back later finds everything intact."
+      title={t('prefs.general.removeFieldTitle')}
+      hint={t('prefs.general.removeFieldHint')}
     >
       <div className="flex items-center gap-3">
         <Button
@@ -220,17 +225,17 @@ function RemoveProject({ project, bootProject }: { project: ProjectListEntry; bo
           // Leads with the words on the button (WCAG 2.5.3 Label in Name) so speech input can
           // reach it, then says what "Remove" actually does — the row context that makes a bare
           // "Remove" safe-sounding isn't read out with it.
-          aria-label={`Remove ${project.name} from the workspace — unregisters it, no files are deleted`}
-          title={isBoot ? 'cezar is serving this project — stop it and use `cezar projects remove`' : undefined}
+          aria-label={t('prefs.general.removeAria', { name: project.name })}
+          title={isBoot ? t('prefs.general.removeBootTitle') : undefined}
           disabled={isBoot || remove.isPending}
           onClick={() => setConfirming(project)}
           className="text-danger"
         >
-          Remove {project.name}
+          {t('prefs.general.removeButton', { name: project.name })}
         </Button>
         {isBoot ? (
           <span data-slot="project-general-remove-boot" className="text-[11px] text-soft-foreground">
-            cezar is serving this project — stop cezar and run `cezar projects remove` to drop it.
+            {t('prefs.general.removeBootNote')}
           </span>
         ) : null}
       </div>

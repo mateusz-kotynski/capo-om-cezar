@@ -18,12 +18,14 @@ import { AddProjectDialog } from '@/components/add-project-dialog'
 import { CloneProjectDialog } from '@/components/clone-project-dialog'
 import { openCommandPalette } from '@/components/command-palette'
 import { GithubIcon } from '@/components/icons'
+import { useLocale } from '@/components/locale-provider'
 import { commandShortcutHint } from '@/lib/use-command-shortcut'
 import { Link, stripProjectPrefix } from '@/lib/project-router'
 import { BrandLockup } from '@/components/brand-mark'
 import { SelfUpdateDialog } from '@/components/self-update-dialog'
 import { StatusDot } from '@/components/status-dot'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { navItemLabel } from '@/i18n/ui-labels'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -185,6 +187,7 @@ export const AppShell = React.memo(function AppShell({
   banner,
   projectGroups,
 }: AppShellProps) {
+  const { t } = useLocale()
   const { pathname } = useLocation()
   // The nav's area rules reason about the flat route map — strip any `/p/:projectId` prefix
   // (multi-project spec, step 3.2) so `/p/cezar/git/commits` still lights Git.
@@ -300,7 +303,7 @@ export const AppShell = React.memo(function AppShell({
         {/* The Sheet root renders no DOM of its own. Keep only the mobile controls inside its
             context so a sidebar update cannot propagate through the routed view. */}
         <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-          <MobileTopBar title={current?.label ?? 'cezar'} />
+          <MobileTopBar title={current ? navItemLabel(t, current) : 'cezar'} />
           {/* The drawer keeps its fixed 264px: it is a full-height overlay on a phone, where
               there is no second column to trade width with and no pointer to drag a border. */}
           <MobileNavDrawer {...nav} onNavigate={closeMenu} />
@@ -333,6 +336,7 @@ export const AppShell = React.memo(function AppShell({
  * warning instead and waits for "Update & restart": a restart interrupts them.
  */
 function TitlebarUpdateButton({ latestVersion }: { latestVersion: string }) {
+  const { t } = useLocale()
   const [open, setOpen] = React.useState(false)
   return (
     <>
@@ -340,11 +344,11 @@ function TitlebarUpdateButton({ latestVersion }: { latestVersion: string }) {
         type="button"
         data-slot="titlebar-update"
         onClick={() => setOpen(true)}
-        title={`Update cezar to v${latestVersion} and restart`}
+        title={t('shell.misc.updateTo', { version: latestVersion })}
         className="inline-flex h-[18px] items-center gap-1 rounded-full border border-primary/40 bg-primary/15 px-2 text-[11px] font-semibold text-foreground transition-colors hover:bg-primary/30"
       >
         <StatusDot tone="pending" pulse className="size-[5px] shrink-0" />
-        Update cezar
+        {t('nav.updateCezar')}
         <span className="font-mono font-medium text-muted-foreground">v{latestVersion}</span>
       </button>
       {open ? <SelfUpdateDialog open={open} onOpenChange={setOpen} autoApply={latestVersion} /> : null}
@@ -435,6 +439,7 @@ type SidebarResize = {
  * column's height without a second element having to track it.
  */
 function SidebarResizeHandle({ width, onWidthChange }: SidebarResize) {
+  const { t } = useLocale()
   // The width the drag started from, plus the pointer x it started at. Refs, not state: they
   // change on every pointermove and nothing renders from them.
   const origin = React.useRef<{ x: number; width: number } | null>(null)
@@ -488,7 +493,7 @@ function SidebarResizeHandle({ width, onWidthChange }: SidebarResize) {
       data-slot="sidebar-resize-handle"
       role="separator"
       aria-orientation="vertical"
-      aria-label="Resize the sidebar"
+      aria-label={t('nav.resizeSidebar')}
       aria-valuenow={width}
       aria-valuemin={MIN_SIDEBAR_WIDTH}
       aria-valuemax={MAX_SIDEBAR_WIDTH}
@@ -499,7 +504,7 @@ function SidebarResizeHandle({ width, onWidthChange }: SidebarResize) {
       onPointerCancel={endDrag}
       onKeyDown={onKeyDown}
       onDoubleClick={() => onWidthChange(DEFAULT_SIDEBAR_WIDTH)}
-      title="Drag to resize the sidebar — double-click to reset"
+      title={t('shell.misc.resizeTitle')}
       // A 5px grab strip straddling the border, invisible until you reach for it. `touch-none`
       // is load-bearing rather than decorative: without it a touch drag is claimed by the
       // browser's own panning and scrolls the page instead of resizing the column.
@@ -518,6 +523,7 @@ function SidebarResizeHandle({ width, onWidthChange }: SidebarResize) {
  * modality (it does not set `aria-modal`; `hideOthers` is the stronger guarantee).
  */
 const MobileNavDrawer = React.memo(function MobileNavDrawer({ onNavigate, ...props }: NavProps & { onNavigate: () => void }) {
+  const { t } = useLocale()
   return (
     <SheetContent
       side="left"
@@ -530,14 +536,14 @@ const MobileNavDrawer = React.memo(function MobileNavDrawer({ onNavigate, ...pro
       aria-describedby={undefined}
     >
       {/* The dialog's accessible name. Visually redundant with the brand lockup below. */}
-      <SheetTitle className="sr-only">Navigation</SheetTitle>
+      <SheetTitle className="sr-only">{t('nav.navigation')}</SheetTitle>
       <SidebarContent
         {...props}
         onNavigate={onNavigate}
         headerAction={
           <SheetClose asChild>
             {/* size-11: the ≥44px touch target the spec's mobile rules require. */}
-            <Button variant="ghost" size="icon" aria-label="Close menu" className="-mr-2 size-11">
+            <Button variant="ghost" size="icon" aria-label={t('nav.closeMenu')} className="-mr-2 size-11">
               <XIcon className="size-[17px]" aria-hidden="true" />
             </Button>
           </SheetClose>
@@ -584,6 +590,7 @@ function SidebarContent({
    *  below the traffic lights. */
   compactHeader?: boolean
 }) {
+  const { t, tn } = useLocale()
   return (
     <div
       data-slot="sidebar-content"
@@ -618,7 +625,7 @@ function SidebarContent({
               React composer has owned auto-start parity since R4 Step 1.3. */}
           <Link to="/new" onClick={onNavigate}>
             <PlusIcon className="size-[15px]" aria-hidden="true" />
-            New task
+            {t('nav.newTask')}
             {/* Decorative: the `c`-to-create accelerator is registered in the command palette.
                 (⌘N is also bound there, but only the desktop shell receives it — the browser
                 reserves ⌘N for a new window — so the chip advertises the one that always works.) */}
@@ -662,7 +669,7 @@ function SidebarContent({
         </>
       ) : (
         <>
-          <nav aria-label="Main" className="px-2.5 py-1.5">
+          <nav aria-label={t('nav.mainAria')} data-slot="main-nav" className="px-2.5 py-1.5">
             {items.map((item) => {
               const isActive = item.to === activeTo
               const Icon = item.icon
@@ -684,7 +691,7 @@ function SidebarContent({
                   )}
                 >
                   <Icon className="size-4 shrink-0" aria-hidden="true" />
-                  {item.label}
+                  {navItemLabel(t, item)}
                   {item.badge === 'inbox-count' && inboxCount ? (
                     <span
                       data-slot="nav-badge"
@@ -698,7 +705,7 @@ function SidebarContent({
                   {item.badge === 'tasks-unread' && unreadCount ? (
                     <span
                       data-slot="nav-unread-badge"
-                      title={`${unreadCount} unread finished ${unreadCount === 1 ? 'task' : 'tasks'}`}
+                      title={tn('nav.unreadTasksTitle', unreadCount)}
                       className="ml-auto rounded-full bg-violet px-1.5 py-px text-[10.5px] font-semibold text-violet-foreground"
                     >
                       {unreadCount}
@@ -710,7 +717,7 @@ function SidebarContent({
                       className="ml-auto flex items-center"
                     >
                       <span className="size-1.5 rounded-full bg-violet" aria-hidden="true" />
-                      <span className="sr-only">Skills update available</span>
+                      <span className="sr-only">{t('nav.skillsUpdateAvailable')}</span>
                     </span>
                   ) : null}
                 </Link>
@@ -787,6 +794,7 @@ function sidebarSectionIconClass(isActive: boolean) {
  * lit across all of them where a `pathname ===` check on a full location would not.
  */
 function DashboardLink({ onNavigate }: { onNavigate?: () => void }) {
+  const { t } = useLocale()
   return (
     <NavLink
       to="/dashboard"
@@ -797,7 +805,7 @@ function DashboardLink({ onNavigate }: { onNavigate?: () => void }) {
       {({ isActive }) => (
         <>
           <LayoutDashboardIcon className={sidebarSectionIconClass(isActive)} aria-hidden="true" />
-          Dashboard
+          {t('nav.dashboard')}
         </>
       )}
     </NavLink>
@@ -814,6 +822,7 @@ function DashboardLink({ onNavigate }: { onNavigate?: () => void }) {
  * checklist) so the two Tasks surfaces never read as the same button.
  */
 function AllTasksLink({ onNavigate }: { onNavigate?: () => void }) {
+  const { t } = useLocale()
   const { pathname } = useLocation()
   const isActive = pathname === '/tasks'
   return (
@@ -828,7 +837,7 @@ function AllTasksLink({ onNavigate }: { onNavigate?: () => void }) {
       className={cn(SIDEBAR_SECTION_LINK_CLASS, isActive && 'bg-muted')}
     >
       <LayersIcon className={sidebarSectionIconClass(isActive)} aria-hidden="true" />
-      All tasks
+      {t('nav.allTasks')}
     </RouterLink>
   )
 }
@@ -848,13 +857,14 @@ function GlobalSettingsLink({
   className?: string
   onNavigate?: () => void
 }) {
+  const { t } = useLocale()
   return (
     <Button asChild variant="ghost" size="icon" className={cn('size-7', className)}>
       <RouterLink
         to="/settings/global"
         data-slot="global-settings-link"
-        aria-label="Global settings"
-        title="Global settings"
+        aria-label={t('nav.globalSettings')}
+        title={t('nav.globalSettings')}
         onClick={onNavigate}
       >
         <SettingsIcon className="size-4" aria-hidden="true" />
@@ -882,6 +892,7 @@ function GlobalSettingsLink({
  * cheaper half of the trade.
  */
 function AddProjectMenu() {
+  const { t } = useLocale()
   const [browsing, setBrowsing] = React.useState(false)
   const [cloning, setCloning] = React.useState(false)
   return (
@@ -891,22 +902,22 @@ function AddProjectMenu() {
         <Button
           variant="outline"
           size="icon"
-          aria-label="Add project"
-          title="Add project"
+          aria-label={t('nav.addProject')}
+          title={t('nav.addProject')}
           className="size-11 shrink-0 md:size-9"
         >
           <FolderOpenIcon className="size-4" aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
-        <DropdownMenuLabel className="text-xs text-soft-foreground">Add project</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-xs text-soft-foreground">{t('nav.addProject')}</DropdownMenuLabel>
         <DropdownMenuItem data-slot="add-project-local" onSelect={() => setBrowsing(true)}>
           <FolderIcon aria-hidden="true" />
-          Open local folder…
+          {t('nav.openLocalFolder')}
         </DropdownMenuItem>
         <DropdownMenuItem data-slot="add-project-clone" onSelect={() => setCloning(true)}>
           <GithubIcon aria-hidden="true" />
-          Clone from GitHub…
+          {t('nav.cloneFromGithub')}
         </DropdownMenuItem>
       </DropdownMenuContent>
       {browsing ? <AddProjectDialog open onOpenChange={setBrowsing} /> : null}
@@ -931,16 +942,17 @@ function AddProjectMenu() {
  * hardware, per the spec's platform-symbol rule.
  */
 function CommandPaletteHint() {
+  const { t } = useLocale()
   return (
     <button
       type="button"
       data-slot="command-palette-hint"
-      title="Search — command palette (⌘K / Ctrl+K)"
+      title={t('shell.misc.searchTitle')}
       onClick={() => openCommandPalette()}
       className="flex w-full items-center gap-1.5 rounded-md border border-border bg-muted/30 px-2 py-1 text-left text-xs font-medium text-soft-foreground transition-colors hover:bg-muted hover:text-foreground"
     >
       <SearchIcon className="size-3.5 shrink-0" aria-hidden="true" />
-      <span className="truncate">Search…</span>
+      <span className="truncate">{t('nav.searchEllipsis')}</span>
       <kbd
         aria-hidden="true"
         className="ml-auto shrink-0 rounded-[5px] border border-b-2 border-border bg-card px-[5px] py-px font-mono text-[10.5px] font-medium text-muted-foreground"
@@ -966,6 +978,7 @@ function CommandPaletteHint() {
  * even with no update to announce.
  */
 function VersionChip({ version, latestVersion }: { version: string; latestVersion: string | null }) {
+  const { t } = useLocale()
   const updateAvailable = Boolean(latestVersion && latestVersion !== version)
   // The chip opens the self-update dialog (PoC): channel, latest, and a version picker.
   const [open, setOpen] = React.useState(false)
@@ -975,8 +988,8 @@ function VersionChip({ version, latestVersion }: { version: string; latestVersio
         type="button"
         data-slot="version-chip"
         data-update-available={updateAvailable ? 'true' : undefined}
-        title={updateAvailable ? `v${version} — update available: v${latestVersion}` : `v${version}`}
-        aria-label={updateAvailable ? `cezar v${version}, update to v${latestVersion} available — open updater` : `cezar v${version} — open updater`}
+        title={updateAvailable ? t('shell.misc.versionUpdateTitle', { version, latest: latestVersion ?? '' }) : `v${version}`}
+        aria-label={updateAvailable ? t('shell.misc.versionAriaUpdate', { version, latest: latestVersion ?? '' }) : t('shell.misc.versionAria', { version })}
         onClick={() => setOpen(true)}
         className="flex min-w-0 cursor-pointer items-center gap-1 rounded-full border border-border px-1.5 py-px font-mono text-[10px] font-medium text-soft-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
       >
@@ -990,6 +1003,7 @@ function VersionChip({ version, latestVersion }: { version: string; latestVersio
 
 /** Mobile chrome (<md): the sidebar's replacement. Its menu button opens `MobileNavDrawer`. */
 function MobileTopBar({ title }: { title: string }) {
+  const { t } = useLocale()
   return (
     <header
       data-slot="mobile-top-bar"
@@ -1004,7 +1018,7 @@ function MobileTopBar({ title }: { title: string }) {
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Open menu"
+            aria-label={t('nav.openMenu')}
             // 44px: the minimum touch target, overriding the 36px desktop icon-button size.
             className="-ml-1.5 size-11"
           >

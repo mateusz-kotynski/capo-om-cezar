@@ -5,7 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createQueryClient } from '@/api/query-client'
 import type { ProviderStatusResponse, RunRecord, TodoItem } from '@open-mercato/cezar-api-client'
+import { LocaleProvider } from '@/components/locale-provider'
 import { Toaster, resetToasts } from '@/components/ui/toaster'
+import { LOCALE_STORAGE_KEY } from '@/lib/locale'
 
 import { InboxRoute, isTodoRunnable, visibleTodos } from './inbox'
 
@@ -180,6 +182,7 @@ async function pick(card: HTMLElement, slot: string, label: string) {
 function renderInbox(entry = '/inbox') {
   render(
     <QueryClientProvider client={createQueryClient()}>
+      <LocaleProvider>
       <MemoryRouter initialEntries={[entry]}>
         <Routes>
           <Route path="/inbox" element={<InboxRoute />} />
@@ -190,6 +193,7 @@ function renderInbox(entry = '/inbox') {
         </Routes>
         <Toaster />
       </MemoryRouter>
+      </LocaleProvider>
     </QueryClientProvider>,
   )
 }
@@ -914,5 +918,41 @@ describe('the inbox gate (#471)', () => {
     renderInbox()
     await waitFor(() => expect(cards()).toHaveLength(2))
     expect(screen.queryByText('The follow-up inbox is off')).toBeNull()
+  })
+})
+
+describe('the inbox in Polish', () => {
+  beforeEach(() => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'pl')
+  })
+  afterEach(() => {
+    localStorage.removeItem(LOCALE_STORAGE_KEY)
+    document.documentElement.removeAttribute('lang')
+  })
+
+  it('words the card chrome in Polish and leaves the follow-up text alone', async () => {
+    stubFetch()
+    renderInbox()
+
+    await waitFor(() => expect(cards()).toHaveLength(2))
+    const [full, orphan] = cards() as [HTMLElement, HTMLElement]
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Skrzynka')
+    expect(full.querySelector('[data-slot="todo-summary"]')?.textContent).toBe(
+      'Open a follow-up PR for the flaky retry test',
+    )
+    expect(full.querySelector('[data-slot="todo-source"]')?.textContent).toBe('zadanie źródłowe')
+    expect(full.querySelector('[data-slot="todo-meta"]')?.textContent).toMatch(/temu/)
+    expect(full.querySelector('[data-action="todo-run"]')?.textContent).toBe('Uruchom')
+    expect(full.querySelector('[data-action="todo-dismiss"]')?.textContent).toBe('Odrzuć')
+    expect(full.querySelector('[data-slot="todo-instructions-toggle"]')?.textContent).toBe('+ Dodaj instrukcje')
+    expect(orphan.querySelector('[data-slot="todo-source-gone"]')?.textContent).toBe('zadanie źródłowe usunięto')
+    expect(orphan.querySelector('[data-action="todo-acknowledge"]')?.textContent).toBe('Przyjmij do wiadomości')
+  })
+
+  it('says the inbox is empty in Polish', async () => {
+    stubFetch({}, [])
+    renderInbox()
+
+    expect(await screen.findByText('Skrzynka pusta')).toBeTruthy()
   })
 })

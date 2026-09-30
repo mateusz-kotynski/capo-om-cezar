@@ -1,6 +1,9 @@
+import { scheduleLabel, type AutomationSchedule } from '@open-mercato/cezar-api-client'
 import { describe, expect, it } from 'vitest'
 
-import { agentTime, dayName, dayTime, logTime, relativeIn, resultTone, statusLabel, statusTone, timeOnly, triggerLabel, usd } from './automation-format'
+import { resolveMessage } from '@/i18n/format'
+
+import { agentTime, dayName, dayTime, logTime, relativeIn, resultTone, scheduleText, statusLabel, statusTone, timeOnly, triggerLabel, usd } from './automation-format'
 
 const WARSAW = 'Europe/Warsaw'
 const NOW = Date.parse('2026-09-16T08:24:00Z') // Wed 10:24 Warsaw
@@ -50,5 +53,41 @@ describe('automation-format', () => {
   it('labels a trigger per kind', () => {
     expect(triggerLabel({ kind: 'github', events: ['issue.opened'], intervalSeconds: 300 })).toBe('on issue.opened · every 5 min')
     expect(triggerLabel({ kind: 'schedule', schedule: { type: 'weekdays', hour: 7, minute: 30 } })).toBe('weekdays at 07:30')
+  })
+})
+
+describe('automation-format in Polish', () => {
+  const tPl = (key: Parameters<typeof resolveMessage>[1], params?: Record<string, string | number>) => resolveMessage('pl', key, params)
+
+  it('names the weekdays, months and relative times in Polish', () => {
+    expect(dayName(1, tPl)).toBe('Pn')
+    expect(dayTime('2026-09-17T02:00:00Z', WARSAW, tPl)).toBe('Cz 04:00')
+    expect(logTime('2026-09-08T02:00:00Z', WARSAW, NOW, tPl)).toBe('8 wrz 04:00')
+    expect(relativeIn(NOW + 12 * 60_000, NOW, tPl)).toBe('za 12 min')
+    expect(relativeIn(NOW + 3 * 3_600_000, NOW, tPl)).toBe('za 3 godz.')
+    expect(agentTime(4 * 3600 + 12 * 60, tPl)).toBe('4 godz. 12 min')
+    expect(statusLabel('waiting', tPl)).toBe('czeka na Ciebie')
+  })
+
+  it('words every schedule shape', () => {
+    expect(scheduleText({ type: 'daily', hour: 4 }, tPl)).toBe('codziennie o 04:00')
+    expect(scheduleText({ type: 'weekly', day: 2, hour: 2 }, tPl)).toBe('we wtorki o 02:00')
+    expect(scheduleText({ type: 'hours', every: 1 }, tPl)).toBe('co godzinę')
+    expect(triggerLabel({ kind: 'github', events: ['issue.opened'], intervalSeconds: 300 }, tPl)).toBe('przy issue.opened · co 5 min')
+  })
+})
+
+describe('scheduleText', () => {
+  const shapes: AutomationSchedule[] = [
+    { type: 'daily', hour: 4, minute: 0 },
+    { type: 'daily' },
+    { type: 'weekdays', hour: 7, minute: 30 },
+    { type: 'hours', every: 1 },
+    { type: 'hours', every: 6 },
+    ...([1, 2, 3, 4, 5, 6, 7] as const).map((day) => ({ type: 'weekly' as const, day, hour: 16, minute: 5 })),
+  ]
+
+  it('is English-identical to the contract’s scheduleLabel for every shape', () => {
+    for (const shape of shapes) expect(scheduleText(shape), JSON.stringify(shape)).toBe(scheduleLabel(shape))
   })
 })

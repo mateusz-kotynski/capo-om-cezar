@@ -5,16 +5,18 @@ import { useDashboardFeed } from '@/api/dashboard'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { SegmentedControl } from '@/components/facet-filter'
+import { useLocale, type TFn } from '@/components/locale-provider'
 import { shortAge } from '@/lib/format'
+import { formatLocale } from '@/lib/locale'
 import { TaskRow, Coverage } from './rows'
 import { DashboardEntryContext, readPanel, savePanel, useStagedRows } from './state'
-function sourceLabel(key: string) {
-  if (!key.startsWith('github:')) return key === 'tasks' ? 'Task results' : key
+function sourceLabel(key: string, t: TFn) {
+  if (!key.startsWith('github:')) return key === 'tasks' ? t('dashboard.sourceTasks') : key
   const parts = key.slice(7).split(':')
-  const kind = parts.pop() === 'pr' ? 'Pull requests' : 'Issues'
+  const kind = parts.pop() === 'pr' ? t('dashboard.sourcePullRequests') : t('dashboard.sourceIssues')
   const name = parts
     .join(':')
-    .replace(/^project:/, 'Project ')
+    .replace(/^project:/, t('dashboard.sourceProject'))
     .replace(/^github.com\//, '')
   return `${name} · ${kind}`
 }
@@ -30,6 +32,7 @@ export function Feed({
   count: number
   more: () => void
 }) {
+  const { t, tn } = useLocale()
   const query = useDashboardFeed(filter, true)
   const staged = useStagedRows(
     query.data?.rows, feedKey, `feed:${filter}`, 0,
@@ -74,26 +77,26 @@ export function Feed({
       <div className="space-y-2 border-b px-4 py-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 ref={heading} tabIndex={-1} className="text-sm font-semibold">
-            {tasksOnly ? 'Recent results' : 'Recent results & GitHub'}
+            {tasksOnly ? t('dashboard.recentResults') : t('dashboard.recentResultsGithub')}
           </h2>
-          <span className="text-xs text-muted-foreground">Last 7 days</span>
+          <span className="text-xs text-muted-foreground">{t('dashboard.last7Days')}</span>
         </div>
         {!tasksOnly && (
           <SegmentedControl
             slot="dashboard-feed"
-            label="Results source"
+            label={t('dashboard.resultsSource')}
             value={filter}
             options={[
-              { value: 'all', label: 'All' },
-              { value: 'tasks', label: 'Tasks' },
-              { value: 'github', label: 'GitHub' },
+              { value: 'all', label: t('dashboard.filterAll') },
+              { value: 'tasks', label: t('dashboard.filterTasks') },
+              { value: 'github', label: t('dashboard.filterGithub') },
             ]}
             onChange={setFilter}
           />
         )}
         {tasksOnly && (
           <p className="text-xs text-muted-foreground">
-            Task results · No GitHub repositories configured
+            {t('dashboard.taskResultsNoGithub')}
           </p>
         )}
         {filter !== 'tasks' && !tasksOnly && (
@@ -103,28 +106,30 @@ export function Feed({
           >
             <summary className="cursor-pointer py-2">
               {errors.length || githubFailed
-                ? 'GitHub needs attention'
+                ? t('dashboard.githubNeedsAttention')
                 : loading
-                  ? 'Checking GitHub…'
+                  ? t('dashboard.githubChecking')
                   : noGithub
-                    ? 'GitHub not configured'
+                    ? t('dashboard.githubNotConfigured')
                     : fetched
-                      ? `GitHub checked ${shortAge(fetched)} ago`
-                      : 'GitHub source'}
+                      ? t('dashboard.githubCheckedAgo', { age: shortAge(fetched) })
+                      : t('dashboard.githubSource')}
             </summary>
             <div className="flex flex-wrap items-center justify-between gap-x-3">
               <p>
                 {errors.length || githubFailed
                   ? fetched
-                    ? `Could not refresh GitHub. Showing results from ${new Date(fetched).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`
-                    : 'Could not load one or more GitHub sources.'
+                    ? t('dashboard.githubRefreshFailedAt', {
+                        time: new Date(fetched).toLocaleTimeString(formatLocale() ?? [], { hour: '2-digit', minute: '2-digit' }),
+                      })
+                    : t('dashboard.githubLoadFailed')
                   : loading
-                    ? 'Checking repository sources. Available results remain visible.'
+                    ? t('dashboard.githubCheckingSources')
                     : noGithub
-                      ? 'No GitHub repositories configured. Select Tasks to see task results.'
+                      ? t('dashboard.githubNoReposSelectTasks')
                       : fetched
-                        ? `GitHub checked ${shortAge(fetched)} ago`
-                        : 'GitHub snapshot'}
+                        ? t('dashboard.githubCheckedAgo', { age: shortAge(fetched) })
+                        : t('dashboard.githubSnapshot')}
               </p>
               {!noGithub && (
                 <Button
@@ -136,10 +141,10 @@ export function Feed({
                   }}
                 >
                   {query.githubFetching
-                    ? 'Refreshing…'
+                    ? t('dashboard.refreshing')
                     : errors.length || githubFailed
-                      ? 'Retry GitHub'
-                      : 'Refresh GitHub'}
+                      ? t('dashboard.retryGithub')
+                      : t('dashboard.refreshGithub')}
                 </Button>
               )}
             </div>
@@ -148,7 +153,7 @@ export function Feed({
       </div>
       <div
         role="region"
-        aria-label="Recent results list"
+        aria-label={t('dashboard.resultsListAria')}
         ref={list}
         onWheel={() => { restore.done = true }}
         onTouchStart={() => { restore.done = true }}
@@ -162,18 +167,18 @@ export function Feed({
       >
         {query.isError && (
           <p role="alert" className="p-4 text-sm">
-            Could not load results.{' '}
+            {t('dashboard.loadResultsFailed')}{' '}
             <Button
               className="min-h-11"
               onClick={() => {
                 void query.retryFailed()
               }}
             >
-              Retry
+              {t('dashboard.retry')}
             </Button>
           </p>
         )}
-        {query.isPending && <p className="p-4 text-sm">Loading results…</p>}
+        {query.isPending && <p className="p-4 text-sm">{t('dashboard.loadingResults')}</p>}
         {updates > 0 && (
           <Button
             variant="ghost"
@@ -183,7 +188,7 @@ export function Feed({
               heading.current?.focus()
             }}
           >
-            {updates} updates — Show
+            {tn('dashboard.updatesShow', updates)}
           </Button>
         )}
         {rows.slice(0, count).map(({ row, removed }) =>
@@ -191,8 +196,10 @@ export function Feed({
             <div key={row.key}>
               <p className="px-4 pt-3 text-xs text-muted-foreground">
                 {removed
-                  ? 'Outside current results'
-                  : `Latest result: ${row.run.status === 'failed' ? 'Failed' : 'Completed'}`}
+                  ? t('dashboard.outsideCurrent')
+                  : t('dashboard.latestResult', {
+                      status: row.run.status === 'failed' ? t('dashboard.statusFailed') : t('dashboard.statusCompleted'),
+                    })}
               </p>
               <TaskRow row={row.run} />
             </div>
@@ -219,8 +226,12 @@ export function Feed({
                 {row.title}
               </a>
               <p className="text-xs text-muted-foreground">
-                {row.repo} · {row.itemKind === 'pr' ? 'PR' : 'Issue'} #{row.number} created ·{' '}
-                {shortAge(row.at)}
+                {t('dashboard.createdItem', {
+                  repo: row.repo,
+                  kind: row.itemKind === 'pr' ? t('dashboard.pullRequestShort') : t('dashboard.issueShort'),
+                  number: row.number,
+                  age: shortAge(row.at),
+                })}
               </p>
             </div>
           ),
@@ -233,14 +244,14 @@ export function Feed({
           !errors.length &&
           !loading &&
           query.data.coverage.projects.every((p) => p.state === 'complete') && (
-            <p className="p-6 text-sm">No results in the last 7 days</p>
+            <p className="p-6 text-sm">{t('dashboard.noResults')}</p>
           )}
         {count < rows.length && (
           <Button variant="ghost" className="m-2 min-h-11" onClick={more}>
-            Show {Math.min(20, rows.length - count)} more results
+            {tn('dashboard.showMoreResults', Math.min(20, rows.length - count))}
           </Button>
         )}
-        {query.data?.truncated && <p className="p-4 text-xs">Showing the latest 60 results</p>}
+        {query.data?.truncated && <p className="p-4 text-xs">{t('dashboard.latest60')}</p>}
         {query.data && (
           <Coverage
             coverage={query.data.coverage}
@@ -251,17 +262,17 @@ export function Feed({
         )}
         {!tasksOnly && query.data?.sources.some((s) => s.state !== 'ready' || s.truncated) && (
           <details className="p-4 text-xs">
-            <summary className="min-h-11 cursor-pointer py-2">Source details</summary>
+            <summary className="min-h-11 cursor-pointer py-2">{t('dashboard.sourceDetails')}</summary>
             {query.data.sources.map((s) => (
               <p className="break-words py-1" key={s.key}>
-                {sourceLabel(s.key)}:{' '}
+                {sourceLabel(s.key, t)}:{' '}
                 {s.reason === 'No GitHub remote'
-                  ? 'Not configured'
+                  ? t('dashboard.notConfigured')
                   : s.reason === 'Still loading GitHub'
-                    ? 'Checking…'
-                    : (s.reason ?? (s.state === 'ready' ? 'Up to date' : s.state))}
-                {s.truncated ? ' · capped' : ''}
-                {s.fetchedAt ? ` · checked ${shortAge(s.fetchedAt)}` : ''}
+                    ? t('dashboard.checkingShort')
+                    : (s.reason ?? (s.state === 'ready' ? t('dashboard.upToDate') : s.state))}
+                {s.truncated ? t('dashboard.capped') : ''}
+                {s.fetchedAt ? t('dashboard.checkedAgo', { age: shortAge(s.fetchedAt) }) : ''}
               </p>
             ))}
           </details>

@@ -120,11 +120,15 @@ export interface RunNotificationContent {
 
 /** What the notification says: the run's display title (#389: `titleSummary ?? title`) and the
  *  attention label — the same phrase the dot's tooltip uses, from the same one function. */
-export function describeRunNotification(run: RunRecord): RunNotificationContent {
-  const label = deriveAttention(run).label
+export function describeRunNotification(
+  run: RunRecord,
+  t?: (key: 'tools.notificationBody', params: { label: string }) => string,
+  labelOf: (label: string) => string = (label) => label,
+): RunNotificationContent {
+  const label = labelOf(deriveAttention(run).label)
   return {
     title: run.titleSummary ?? run.title,
-    body: `Task ${label}`,
+    body: t ? t('tools.notificationBody', { label }) : `Task ${label}`,
     tag: `cezar-run-${run.id}`,
   }
 }

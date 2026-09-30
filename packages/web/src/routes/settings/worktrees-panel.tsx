@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 
@@ -32,6 +33,7 @@ type Confirming = { kind: 'reclaim' } | { kind: 'delete'; runId: string; title: 
  * Live-updates through the global event stream (queryKeys.worktrees).
  */
 export function WorktreesPanel() {
+  const { t, tn } = useLocale()
   const worktrees = useWorktrees()
   const queryClient = useQueryClient()
   const [confirming, setConfirming] = useState<Confirming>(null)
@@ -54,7 +56,7 @@ export function WorktreesPanel() {
     mutationFn: (runId: string) => removeRunWorktree(runId),
     onSuccess: () => {
       void refresh()
-      toast('Worktree removed')
+      toast(t('prefs.worktrees.removed'))
     },
     onError: (error: Error) => toast(error.message, { tone: 'danger' }),
   })
@@ -62,14 +64,14 @@ export function WorktreesPanel() {
   if (worktrees.isPending) {
     return (
       <p data-slot="worktrees-loading" className="text-[13px] text-soft-foreground">
-        Loading worktrees…
+        {t('prefs.worktrees.panelLoading')}
       </p>
     )
   }
   if (worktrees.isError) {
     return (
       <p data-slot="worktrees-error" className="text-[13px] text-danger">
-        Worktrees did not load: {worktrees.error.message}
+        {t('prefs.worktrees.panelFailed', { message: worktrees.error.message })}
       </p>
     )
   }
@@ -87,19 +89,19 @@ export function WorktreesPanel() {
     <div data-slot="worktrees-panel" className="flex flex-col gap-3">
       {rows.length === 0 ? (
         <p data-slot="worktrees-empty" className="text-[13px] text-soft-foreground">
-          No task worktrees on disk.
+          {t('prefs.worktrees.none')}
         </p>
       ) : (
         <div className="overflow-x-auto rounded-md border border-border">
           <table className="w-full border-collapse text-sm">
-            <caption className="sr-only">Task worktrees currently materialized on disk</caption>
+            <caption className="sr-only">{t('prefs.worktrees.caption')}</caption>
             <thead>
               <tr className="border-b border-border text-left text-[12px] text-soft-foreground">
-                <th scope="col" className="px-3 py-2 font-medium">Task</th>
-                <th scope="col" className="px-3 py-2 font-medium">Status</th>
-                <th scope="col" className="px-3 py-2 font-medium">Size</th>
-                <th scope="col" className="px-3 py-2 font-medium">Age</th>
-                <th scope="col" className="px-3 py-2 font-medium text-right">Actions</th>
+                <th scope="col" className="px-3 py-2 font-medium">{t('prefs.worktrees.colTask')}</th>
+                <th scope="col" className="px-3 py-2 font-medium">{t('prefs.worktrees.colStatus')}</th>
+                <th scope="col" className="px-3 py-2 font-medium">{t('prefs.worktrees.colSize')}</th>
+                <th scope="col" className="px-3 py-2 font-medium">{t('prefs.worktrees.colAge')}</th>
+                <th scope="col" className="px-3 py-2 font-medium text-right">{t('prefs.worktrees.colActions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -118,10 +120,12 @@ export function WorktreesPanel() {
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p data-slot="worktrees-footer" className="text-[12px] text-soft-foreground">
-          {rows.length} worktree{rows.length === 1 ? '' : 's'}
-          {totalBytes !== null ? ` · ${formatMem(totalBytes) || '0 kB'} on disk` : ' · size unavailable'}
+          {tn('prefs.worktrees.count', rows.length)}
+          {totalBytes !== null
+            ? t('prefs.worktrees.onDisk', { size: formatMem(totalBytes) || '0 kB' })
+            : t('prefs.worktrees.sizeUnavailable')}
           {' · '}
-          {keep === 0 ? 'keeping all (unlimited)' : `keeping the last ${keep}`}
+          {keep === 0 ? t('prefs.worktrees.footerKeepAll') : t('prefs.worktrees.footerKeepLast', { keep })}
         </p>
         <Button
           type="button"
@@ -131,7 +135,7 @@ export function WorktreesPanel() {
           disabled={busy}
           onClick={() => setConfirming({ kind: 'reclaim' })}
         >
-          Reclaim now
+          {t('prefs.worktrees.reclaimNow')}
         </Button>
       </div>
 
@@ -139,30 +143,29 @@ export function WorktreesPanel() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirming?.kind === 'delete' ? 'Delete this worktree?' : 'Reclaim old worktrees?'}
+              {confirming?.kind === 'delete' ? t('prefs.worktrees.deleteTitle') : t('prefs.worktrees.reclaimTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {confirming?.kind === 'delete' ? (
                 <>
-                  This removes the worktree directory and its branch — the local-only work is not
-                  recoverable afterwards.
+                  {t('prefs.worktrees.deleteBody')}
                   <span className="mt-1 block truncate font-medium text-foreground" title={confirming.title}>
                     {confirming.title}
                   </span>
                 </>
               ) : (
-                'Finished worktrees beyond the keep-limit are reclaimed now (directory only). Their branches are kept, so the work stays recoverable.'
+                t('prefs.worktrees.reclaimBody')
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep it</AlertDialogCancel>
+            <AlertDialogCancel>{t('thread.confirm.keep')}</AlertDialogCancel>
             <AlertDialogAction
               data-action="worktrees-confirm"
               className={confirming?.kind === 'delete' ? 'bg-danger text-danger-foreground hover:brightness-[0.96]' : undefined}
               onClick={runConfirmed}
             >
-              {confirming?.kind === 'delete' ? 'Delete' : 'Reclaim now'}
+              {confirming?.kind === 'delete' ? t('common.delete') : t('prefs.worktrees.reclaimNow')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -180,6 +183,7 @@ function WorktreeRow({
   disabled: boolean
   onDelete: () => void
 }) {
+  const { t } = useLocale()
   return (
     <tr data-slot="worktree-row" data-run={worktree.runId} className="border-b border-border last:border-0">
       <th scope="row" className="max-w-[220px] px-3 py-2 text-left font-normal">
@@ -192,7 +196,7 @@ function WorktreeRow({
         <span className="text-[12px] text-soft-foreground">{worktree.status}</span>
         {worktree.reclaimable ? (
           <span data-slot="worktree-reclaimable" className="ml-1 text-[11px] text-soft-foreground">
-            (reclaimable)
+            {t('prefs.worktrees.reclaimable')}
           </span>
         ) : null}
       </td>
@@ -206,11 +210,11 @@ function WorktreeRow({
           variant="ghost"
           size="sm"
           data-action="worktree-delete"
-          aria-label={`Delete the worktree for ${worktree.title}`}
+          aria-label={t('prefs.worktrees.deleteAria', { title: worktree.title })}
           disabled={disabled}
           onClick={onDelete}
         >
-          Delete
+          {t('common.delete')}
         </Button>
       </td>
     </tr>

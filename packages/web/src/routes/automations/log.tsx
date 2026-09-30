@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { getAutomationLog, retryAutomationReceipt } from '@/api/client'
 import { onWorkspaceEvent } from '@/api/global-events'
+import { useLocale } from '@/components/locale-provider'
 import { Pill } from '@/components/pill'
 import { StatusDot } from '@/components/status-dot'
 import { Button } from '@/components/ui/button'
@@ -39,6 +40,7 @@ export function AutomationLog({ automationId, automation, timeZone, onBack }: {
   timeZone?: string
   onBack: () => void
 }) {
+  const { t } = useLocale()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const scope = queryScope()
@@ -71,34 +73,34 @@ export function AutomationLog({ automationId, automation, timeZone, onBack }: {
   return (
     <div data-route="automations" data-slot="automation-log" className="flex min-h-full flex-col">
       <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-5">
-        <Button variant="ghost" size="icon-sm" aria-label="Back" onClick={onBack}>
+        <Button variant="ghost" size="icon-sm" aria-label={t('automations.back')} onClick={onBack}>
           <ArrowLeftIcon className="size-[15px]" />
         </Button>
-        <h1 className="m-0 text-base font-semibold">{automation ? automation.name : 'Automation'}</h1>
-        <span className="text-[13px] text-muted-foreground">· execution log</span>
+        <h1 className="m-0 text-base font-semibold">{automation ? automation.name : t('automations.automationFallback')}</h1>
+        <span className="text-[13px] text-muted-foreground">{t('automations.executionLog')}</span>
         <div className="flex flex-1 items-center justify-end gap-2">
           <Select value={result} onValueChange={(next) => setResult(next as AutomationLogResult | 'all')}>
-            <SelectTrigger size="sm" aria-label="Filter by result" className="text-[12.5px]">
-              <SelectValue placeholder="All results" />
+            <SelectTrigger size="sm" aria-label={t('automations.filterResultAria')} className="text-[12.5px]">
+              <SelectValue placeholder={t('automations.allResults')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All results</SelectItem>
+              <SelectItem value="all">{t('automations.allResults')}</SelectItem>
               {RESULTS.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={event} onValueChange={(next) => setEvent(next as AutomationEvent | 'all')}>
-            <SelectTrigger size="sm" aria-label="Filter by event" className="text-[12.5px]">
-              <SelectValue placeholder="All events" />
+            <SelectTrigger size="sm" aria-label={t('automations.filterEventAria')} className="text-[12.5px]">
+              <SelectValue placeholder={t('automations.allEvents')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All events</SelectItem>
+              <SelectItem value="all">{t('automations.allEvents')}</SelectItem>
               {EVENTS.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <Button variant="outline" size="sm" onClick={() => navigate(`/automations/${encodeURIComponent(automationId)}`)}>
           <PencilIcon className="size-[13px]" />
-          Edit
+          {t('automations.edit')}
         </Button>
       </header>
 
@@ -106,9 +108,9 @@ export function AutomationLog({ automationId, automation, timeZone, onBack }: {
         {query.isError ? (
           <div className="w-full max-w-[820px]"><PageState text={query.error instanceof Error ? query.error.message : String(query.error)} /></div>
         ) : records === undefined ? (
-          <div className="w-full max-w-[820px]"><PageState text="Loading execution log…" /></div>
+          <div className="w-full max-w-[820px]"><PageState text={t('automations.loadingLog')} /></div>
         ) : records.length === 0 ? (
-          <div className="w-full max-w-[820px]"><PageState text="No checks have run yet." /></div>
+          <div className="w-full max-w-[820px]"><PageState text={t('automations.noChecks')} /></div>
         ) : (
           <Card flush className="w-full max-w-[820px]">
             {records.map((record, index) => (
@@ -156,6 +158,7 @@ function LogRow({ record, run, last, timeZone, retrying, onRetry }: {
   retrying: boolean
   onRetry: (receiptId: string) => void
 }) {
+  const { t } = useLocale()
   const tone = resultTone(record.result)
   const children = run?.children ?? []
   const retryable = launchErrorReceipt(record)
@@ -165,7 +168,7 @@ function LogRow({ record, run, last, timeZone, retrying, onRetry }: {
       data-result={record.result}
       className={`grid ${AUTOMATION_COST_VISIBLE ? 'grid-cols-[90px_110px_1fr_auto_auto]' : 'grid-cols-[90px_110px_1fr_auto]'} items-center gap-x-3 gap-y-2 px-4 py-3 text-[13px] ${last ? '' : 'border-b border-border'}`}
     >
-      <span className="font-mono text-xs font-medium text-muted-foreground tabular-nums">{logTime(record.ts, timeZone)}</span>
+      <span className="font-mono text-xs font-medium text-muted-foreground tabular-nums">{logTime(record.ts, timeZone, undefined, t)}</span>
       <Pill dot={tone} className="w-fit">{record.result}</Pill>
       <span className={`overflow-hidden text-ellipsis whitespace-nowrap ${tone === 'danger' ? 'text-danger' : 'text-muted-foreground'}`} title={record.reason}>
         {record.reason ?? ''}
@@ -174,14 +177,14 @@ function LogRow({ record, run, last, timeZone, retrying, onRetry }: {
       {record.runId !== undefined ? (
         <Button variant="ghost" size="sm" asChild>
           <Link to={`/tasks/${encodeURIComponent(record.runId)}`}>
-            Open task
+            {t('automations.openTask')}
             <ArrowUpRightIcon className="size-3" />
           </Link>
         </Button>
       ) : retryable !== undefined ? (
         <Button variant="ghost" size="sm" disabled={retrying} onClick={() => onRetry(retryable)}>
           <RotateCcwIcon className="size-3" />
-          Retry task
+          {t('automations.retryTask')}
         </Button>
       ) : (
         <span />
@@ -191,7 +194,7 @@ function LogRow({ record, run, last, timeZone, retrying, onRetry }: {
           {children.map((child) => (
             <div key={child.runId} data-slot="log-child" className={`grid ${AUTOMATION_COST_VISIBLE ? 'grid-cols-[14px_70px_1fr_auto_auto]' : 'grid-cols-[14px_70px_1fr_auto]'} items-center gap-2.5 text-[12.5px]`}>
               <span className="font-mono text-[11px] text-soft-foreground">└</span>
-              <span className="w-fit rounded-full bg-muted px-1.5 py-px text-[10.5px] font-medium text-muted-foreground">{child.kind ?? 'implement'}</span>
+              <span className="w-fit rounded-full bg-muted px-1.5 py-px text-[10.5px] font-medium text-muted-foreground">{child.kind ?? t('automations.implement')}</span>
               <span className="flex min-w-0 items-center gap-2">
                 <StatusDot tone={statusTone(child.status)} />
                 <span className="overflow-hidden text-ellipsis whitespace-nowrap">{child.title}</span>
@@ -199,7 +202,7 @@ function LogRow({ record, run, last, timeZone, retrying, onRetry }: {
               {AUTOMATION_COST_VISIBLE ? <span className="font-mono text-[11.5px] text-soft-foreground">{child.costUsd === undefined ? '—' : usd(child.costUsd)}</span> : null}
               <Button variant="ghost" size="sm" className="h-6" asChild>
                 <Link to={`/tasks/${encodeURIComponent(child.runId)}`}>
-                  Open
+                  {t('automations.open')}
                   <ArrowUpRightIcon className="size-[11px]" />
                 </Link>
               </Button>

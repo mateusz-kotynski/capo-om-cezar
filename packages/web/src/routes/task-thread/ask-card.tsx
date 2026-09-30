@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { useState } from 'react'
 
 import type { ApiRun } from '@open-mercato/cezar-api-client'
@@ -29,6 +30,7 @@ function formatAnswer(question: UiAskQuestion, labels: string[]): string {
  * "Other". Once resolved, the card collapses to a compact summary.
  */
 export function AskCard({ ask, run }: { ask: ThreadAsk; run: ApiRun }) {
+  const { t } = useLocale()
   // An answered card is a static summary — split so the delivery hook (two mutations and a
   // provider-status subscription) only mounts for a question that can still be answered.
   // Threads accumulate asks; every resolved one would otherwise carry live machinery for a
@@ -40,7 +42,7 @@ export function AskCard({ ask, run }: { ask: ThreadAsk; run: ApiRun }) {
         data-resolved="true"
         className="rounded-lg border border-border bg-card px-3.5 py-2.5 text-xs text-muted-foreground"
       >
-        <span className="text-soft-foreground">Answered</span>
+        <span className="text-soft-foreground">{t('thread.ask.answered')}</span>
         {ask.answer ? (
           <span className="ml-1.5 break-words whitespace-pre-line text-foreground">{ask.answer}</span>
         ) : null}
@@ -52,6 +54,7 @@ export function AskCard({ ask, run }: { ask: ThreadAsk; run: ApiRun }) {
 
 /** The unanswered card: option chips wired to whichever delivery seam the run's state allows. */
 function PendingAsk({ ask, run }: { ask: ThreadAsk; run: ApiRun }) {
+  const { t } = useLocale()
   const delivery = useAskAnswer(run)
   const blocked = delivery.blockedBy !== undefined
   const questions = ask.questions
@@ -82,7 +85,7 @@ function PendingAsk({ ask, run }: { ask: ThreadAsk; run: ApiRun }) {
       className="rounded-lg border border-primary/25 bg-primary/[0.04] px-4 pt-3.5 pb-3.5"
     >
       <div className="mb-2.5 flex items-center gap-2">
-        <span className="text-xs font-medium text-primary">The agent is asking</span>
+        <span className="text-xs font-medium text-primary">{t('thread.ask.title')}</span>
       </div>
       <div className="flex flex-col gap-4">
         {questions.map((question, index) => (
@@ -102,13 +105,13 @@ function PendingAsk({ ask, run }: { ask: ThreadAsk; run: ApiRun }) {
       {oneTap ? (
         resuming ? (
           <p data-slot="ask-resume-hint" className="mt-3 text-[11.5px] text-soft-foreground">
-            The session has ended — your answer reopens it and goes to the agent.
+            {t('thread.ask.resumeHint')}
           </p>
         ) : null
       ) : (
         <div className="mt-3 flex items-center gap-2.5">
           <Button size="sm" disabled={delivery.isPending || blocked || !allAnswered} onClick={sendAll}>
-            {resuming ? 'Send answer & reopen' : 'Send answer'}
+            {resuming ? t('thread.ask.sendAndReopen') : t('thread.ask.send')}
           </Button>
           {/* The slot names the resume state, so a selector for it can never match the ordinary
               "pick one or more" hint a live run shows. */}
@@ -117,8 +120,10 @@ function PendingAsk({ ask, run }: { ask: ThreadAsk; run: ApiRun }) {
             className="text-[11.5px] text-soft-foreground"
           >
             {resuming
-              ? 'the session has ended — sending reopens it'
-              : `${questions.length > 1 ? 'answer each question' : 'pick one or more'} — or type a reply below`}
+              ? t('thread.ask.resumeShort')
+              : questions.length > 1
+                ? t('thread.ask.answerEach')
+                : t('thread.ask.pickOne')}
           </span>
         </div>
       )}
@@ -126,7 +131,7 @@ function PendingAsk({ ask, run }: { ask: ThreadAsk; run: ApiRun }) {
         <div data-slot="ask-provider-gate" className="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
           <span>{delivery.reason}</span>
           <Link to="/settings/agents#providers" className="font-medium text-foreground underline underline-offset-4">
-            Configure providers
+            {t('thread.page.configureProviders')}
           </Link>
         </div>
       ) : null}

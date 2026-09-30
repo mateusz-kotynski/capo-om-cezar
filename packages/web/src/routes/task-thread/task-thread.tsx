@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { MessageSquareTextIcon, SearchXIcon } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useParams } from 'react-router'
@@ -71,6 +72,7 @@ import {
  * below ~300 rows; virtua above).
  */
 export function TaskThreadRoute() {
+  const { t } = useLocale()
   const { id } = useParams<{ id: string }>()
   const run = useRun(id)
   const history = useRunHistory(id)
@@ -130,15 +132,15 @@ export function TaskThreadRoute() {
         <CenteredState
           icon={notFound ? <SearchXIcon /> : <MessageSquareTextIcon />}
           tone={notFound ? 'neutral' : 'danger'}
-          title={notFound ? 'Task not found' : 'Could not load this task'}
+          title={notFound ? t('thread.page.notFoundTitle') : t('thread.page.loadFailedTitle')}
           subtitle={
             notFound
-              ? 'No run has this id. It may have been deleted, or the link is from another machine.'
+              ? t('thread.page.notFoundBody')
               : run.error.message
           }
           actions={
             <Button asChild variant="outline">
-              <Link to="/">Back to tasks</Link>
+              <Link to="/">{t('thread.page.backToTasks')}</Link>
             </Button>
           }
         />
@@ -177,6 +179,7 @@ export function ThreadView({
    *  header's other three tabs, have no such effect to suppress. */
   onMarkedUnread?: (runId: string) => void
 }) {
+  const { t } = useLocale()
   const footer = threadFooter(run.status, run.error)
   const markedUnread = useCallback(() => onMarkedUnread?.(run.id), [onMarkedUnread, run.id])
   // The dock's data: the latest plan snapshot across turns (full replacement — an emptied
@@ -285,7 +288,7 @@ export function ThreadView({
     const actions: Record<string, TranscriptMessageActions> = {
       // `draftSurface` (#939) is what makes an unsaved edit survive leaving the task: the bubble
       // writes it to the run's draft store and re-opens holding it on return.
-      task: { onEdit: edit.onEditTask, editLabel: 'Edit the prompt', draftSurface: 'task-prompt' },
+      task: { onEdit: edit.onEditTask, editLabel: t('transcript.editPrompt'), draftSurface: 'task-prompt' },
     }
     for (const message of run.queuedMessages ?? []) {
       actions[`queued:${message.id}`] = {
@@ -354,7 +357,7 @@ export function ThreadView({
             <QueuedPlaceholder run={run} />
           ) : (
             <p data-slot="thread-empty" className="py-6 text-center text-xs text-soft-foreground">
-              No session events yet.
+              {t('thread.page.noEvents')}
             </p>
           )
         ) : null}
@@ -389,7 +392,7 @@ export function ThreadView({
                 rel="noopener noreferrer"
                 className="font-medium text-foreground underline-offset-2 hover:underline"
               >
-                PR ↗
+                {t('transcript.pr')}
               </a>
             ) : null}
             {/* #526: an issue-subject run (om-prepare-issue) links the issue it created — it
@@ -402,7 +405,7 @@ export function ThreadView({
                 rel="noopener noreferrer"
                 className="font-medium text-foreground underline-offset-2 hover:underline"
               >
-                Issue ↗
+                {t('transcript.issue')}
               </a>
             ) : null}
           </div>
@@ -460,7 +463,7 @@ export function ThreadView({
               className="flex items-center gap-2 px-1 text-xs text-muted-foreground"
             >
               <StatusDot tone="pending" pulse />
-              The agent is paused, waiting for your reply
+              {t('transcript.paused')}
             </div>
           ) : null}
 
@@ -470,7 +473,7 @@ export function ThreadView({
               className="flex items-center gap-2 px-1 text-xs text-muted-foreground"
             >
               <StatusDot tone="pending" />
-              Messages you add now are folded into the prompt before the run starts.
+              {t('thread.page.queuedHint')}
             </div>
           ) : null}
 
@@ -493,7 +496,7 @@ export function ThreadView({
             // Only reachable now by a closed run with NO session to resume — which is exactly
             // the one case where Continue is not on offer either. Left honest rather than
             // rewritten: "closed" is all such a run can be told.
-            disabledReason={providerBlocked ? providerReason : 'Session closed — no session to resume.'}
+            disabledReason={providerBlocked ? providerReason : t('thread.page.sessionClosed')}
             // The engine pills ride the enabled footer, so the picked runner/model and the
             // typed prompt reach `POST /continue` in one request.
             footerEnd={
@@ -502,18 +505,18 @@ export function ThreadView({
                   to="/settings/agents#providers"
                   className="text-xs font-medium text-foreground underline underline-offset-4"
                 >
-                  Configure providers
+                  {t('thread.page.configureProviders')}
                 </Link>
               ) : continuable ? continueAction.pills : undefined
             }
             // Continuing with nothing typed is the legacy one-click Continue.
             allowEmptySubmit={continuable}
-            sendAriaLabel={continuable ? 'Continue' : 'Send'}
+            sendAriaLabel={continuable ? t('thread.actions.continue') : t('thread.page.send')}
             placeholder={
-              queued ? 'Add to the prompt — sent when the run starts…'
-              : continuable ? 'Continue — add a prompt, or send to just reopen the session…'
-              : run.status === 'waiting' ? 'Reply — / for skills, @ for files…'
-              : 'Message the agent — / for skills, @ for files…'
+              queued ? t('thread.page.phQueued')
+              : continuable ? t('thread.page.phContinue')
+              : run.status === 'waiting' ? t('thread.page.phReply')
+              : t('thread.page.phMessage')
             }
             autocompleteSkills
             quickReplies
@@ -540,10 +543,11 @@ function HistoryBoundary({
   retainedPages: number
   onLoad: () => void
 }) {
+  const { t } = useLocale()
   if (fallback) {
     return (
       <p data-slot="history-fallback" className="text-center text-xs text-soft-foreground" role="status">
-        Progressive history is unavailable; showing the complete session.
+        {t('thread.page.historyFallback')}
       </p>
     )
   }
@@ -551,7 +555,7 @@ function HistoryBoundary({
     return (
       <div data-slot="history-start" className="flex items-center gap-3 text-[11px] text-soft-foreground">
         <span aria-hidden className="h-px flex-1 bg-border" />
-        Start of session
+        {t('thread.page.sessionStart')}
         <span aria-hidden className="h-px flex-1 bg-border" />
       </div>
     )
@@ -570,13 +574,13 @@ function HistoryBoundary({
         className="rounded-md px-3 py-1.5 font-medium hover:bg-muted disabled:cursor-wait"
       >
         {loading ?
-          'Loading 100 earlier items…'
+          t('thread.page.loadingEarlier')
         : error ?
-          'Couldn’t load earlier items · Retry'
-        : 'Load 100 earlier items'}
+          t('thread.page.loadEarlierFailed')
+        : t('thread.page.loadEarlier')}
       </button>
       <span className="sr-only" aria-live="polite">
-        {loading ? 'Loading earlier session history' : error ? error : ''}
+        {loading ? t('thread.page.loadingHistory') : error ? error : ''}
       </span>
     </div>
   )
@@ -596,16 +600,19 @@ export function liveTurnStart(run: ApiRun, thread: ThreadState): string | undefi
  *  instead of a blank thread the placeholder names the parked state and its live position in
  *  the FIFO queue (from the runs list — the same feed the sidebar uses). */
 function QueuedPlaceholder({ run }: { run: ApiRun }) {
+  const { t } = useLocale()
   const runs = useRuns()
   const position = queuePosition(runs.data ?? [], run.id)
   return (
     <div data-slot="queued-state" className="flex flex-col items-center gap-1.5 py-10 text-center">
       <StatusDot tone="pending" pulse />
       <p className="text-[13px] font-medium">
-        Waiting for a free agent slot{position !== undefined ? ` — #${position} in queue` : ''}
+        {position !== undefined
+          ? t('thread.page.waitingSlotQueue', { position })
+          : t('thread.page.waitingSlot')}
       </p>
       <p className="text-xs text-soft-foreground">
-        {run.workflow} · starts automatically when a slot frees up
+        {t('thread.page.startsAutomatically', { workflow: run.workflow })}
       </p>
     </div>
   )

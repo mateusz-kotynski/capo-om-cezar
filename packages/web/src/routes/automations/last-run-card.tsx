@@ -1,6 +1,7 @@
 import { PlayIcon, ScrollTextIcon } from 'lucide-react'
 
 import type { AutomationLastRun } from '@open-mercato/cezar-api-client'
+import { useLocale } from '@/components/locale-provider'
 import { StatusDot } from '@/components/status-dot'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -24,12 +25,13 @@ export function LastRunCard({
   busy?: boolean
   now?: number
 }) {
+  const { t } = useLocale()
   return (
     <Card flush data-slot="last-run-card" className="px-3.5 py-3">
-      <div className="mb-2 text-[11px] font-semibold tracking-[.05em] uppercase text-soft-foreground">Last run</div>
+      <div className="mb-2 text-[11px] font-semibold tracking-[.05em] uppercase text-soft-foreground">{t('automations.lastRun')}</div>
       <div className="flex items-center gap-2 text-[13px]">
         <StatusDot tone={statusTone(lastRun.status)} />
-        {statusLabel(lastRun.status)}
+        {statusLabel(lastRun.status, t)}
         <span className="text-[11.5px] text-soft-foreground">{shortAge(lastRun.ts, now)}</span>
         {AUTOMATION_COST_VISIBLE && lastRun.costUsd !== undefined ? (
           <span className="ml-auto font-mono text-xs text-muted-foreground">{usd(lastRun.costUsd)}</span>
@@ -38,12 +40,12 @@ export function LastRunCard({
       <div className="mt-2.5 flex gap-1.5">
         <Button variant="outline" size="sm" disabled={busy} onClick={onRunNow}>
           <PlayIcon aria-hidden="true" className="size-3" />
-          Run now
+          {t('automations.runNow')}
         </Button>
         {onLog ? (
           <Button variant="ghost" size="sm" onClick={onLog}>
             <ScrollTextIcon aria-hidden="true" className="size-3" />
-            View log
+            {t('automations.viewLog')}
           </Button>
         ) : null}
       </div>

@@ -5,7 +5,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { createQueryClient } from '@/api/query-client'
 import type { Skill, WorkflowDef, WorkflowsResponse } from '@open-mercato/cezar-api-client'
+import { LocaleProvider } from '@/components/locale-provider'
 import { Toaster, resetToasts } from '@/components/ui/toaster'
+import { LOCALE_STORAGE_KEY } from '@/lib/locale'
 
 import { WorkflowsRoute } from './workflows'
 
@@ -94,6 +96,7 @@ function stubFetch(
 function renderAt(entry: string) {
   render(
     <QueryClientProvider client={createQueryClient()}>
+      <LocaleProvider>
       <MemoryRouter initialEntries={[entry]}>
         <Routes>
           <Route path="/workflows" element={<WorkflowsRoute />} />
@@ -101,6 +104,7 @@ function renderAt(entry: string) {
         </Routes>
         <Toaster />
       </MemoryRouter>
+      </LocaleProvider>
     </QueryClientProvider>,
   )
 }
@@ -399,5 +403,25 @@ describe('delete and “+ new”', () => {
     expect(stepCards()).toHaveLength(0)
     expect(nameInput().value).toBe('my-workflow')
     await screen.findByText('Drop a skill here — or Import a workflow.yaml')
+  })
+})
+
+describe('the workflows builder in Polish', () => {
+  afterEach(() => {
+    localStorage.removeItem(LOCALE_STORAGE_KEY)
+    document.documentElement.removeAttribute('lang')
+  })
+
+  it('words the chrome and the skill/step counts in Polish; workflow and skill names stay', async () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'pl')
+    stubFetch()
+    renderAt('/workflows')
+
+    await waitFor(() => expect(stepIds()).toEqual(['om-fix', 'om-review']))
+    expect((document.querySelector('[data-slot="wb-name"]') as HTMLInputElement).value).toBe('ship-it')
+    expect(screen.getByText('2 skille')).toBeTruthy()
+    expect(document.querySelector('[data-slot="wb-save"]')?.textContent).toBe('Zapisz')
+    expect(document.querySelector('[data-slot="wb-filter"]')?.getAttribute('placeholder')).toBe('Filtruj skille…')
+    expect(document.querySelector('[data-slot="wb-skill-add"]')?.getAttribute('aria-label')).toMatch(/^Dodaj /)
   })
 })

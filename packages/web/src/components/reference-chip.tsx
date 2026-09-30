@@ -16,16 +16,13 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import type * as React from 'react'
 import type { ReferenceStatus } from '@open-mercato/cezar-api-client'
 
+import { useLocale, type TFn } from '@/components/locale-provider'
+import { referencePresentation } from '@/i18n/ui-labels'
 import { useReferenceStatus } from '@/components/reference-status'
 import type { ReferenceStatusEntry } from '@/api/queries'
 import { StatusDot } from '@/components/status-dot'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
-import {
-  REFERENCE_CONFLICT,
-  referenceStatusPresentation,
-  type ReferenceStatusPresentation,
-  type ReferenceStatusTone,
-} from '@/lib/reference-status'
+import type { ReferenceStatusPresentation, ReferenceStatusTone } from '@/lib/reference-status'
 import { cn, isHttpUrl } from '@/lib/utils'
 
 /** Border + text per status tone. `violet` IS the chip's own resting look, which is why a
@@ -125,6 +122,7 @@ export function ReferenceChip({
    */
   compact?: boolean
 }) {
+  const { t } = useLocale()
   const { kind, number, url } = reference
   // An explicit `status` wins — it is what a test or a one-off caller passes — and otherwise the
   // surface's provider answers. Outside a provider neither exists and this is the chip the cockpit
@@ -136,25 +134,27 @@ export function ReferenceChip({
   // That is what the vocabulary being ADDITIVE means in practice (BACKWARD_COMPATIBILITY.md):
   // a value added server-side after this bundle shipped, or restored from a `sessionStorage`
   // payload a newer bundle wrote, must not be able to take a table down.
-  const statusPresentation = referenceStatusPresentation(status)
+  const statusPresentation = referencePresentation(t, status)
   // The second axis, and it takes the chip over when it is true. A pull request that will not
   // merge is the thing to say about it first — `ready` next to a PR GitHub is refusing is the
   // exact reading this fixes — and it is only ever a PR: an issue has no base branch. `true`
   // alone paints; `undefined` (never asked, unreachable, a server from before the field) means
   // nothing is known, and nothing known must never colour a chip.
   const conflicting = kind === 'PR' && (explicitConflicting ?? entry.conflicting) === true
-  const presentation = conflicting ? REFERENCE_CONFLICT : statusPresentation
+  const presentation = conflicting ? referencePresentation(t, 'conflict') : statusPresentation
   const chipClass = cn(
     'inline-flex h-[22px] items-center gap-1 rounded-full border px-2 font-mono text-[11px] font-semibold',
     TONE_CLASS[presentation?.tone ?? 'violet'],
     className,
   )
   // The overridden status rides along into the tooltip whenever the conflict took the chip.
-  const tooltip = statusTooltip(entry, presentation, conflicting ? statusPresentation : undefined)
-  const label = number ? `${!compact && kind === 'Issue' ? 'Issue ' : ''}#${number}` : kind
-  const kindWord = kind === 'PR' ? 'pull request' : 'issue'
+  const tooltip = statusTooltip(t, entry, presentation, conflicting ? statusPresentation : undefined)
+  const label = number ? `${!compact && kind === 'Issue' ? t('reference.issuePrefix') : ''}#${number}` : kind
+  const kindWord = kind === 'PR' ? t('reference.pullRequestWord') : t('reference.issueWord')
   // The accessible name carries the status too — a screen reader gets what the color says.
-  const ariaLabel = `Open the ${kindWord} for ${taskTitle}${presentation ? ` — ${presentation.label}` : ''}`
+  const ariaLabel = presentation
+    ? t('reference.ariaOpenStatus', { kind: kindWord, title: taskTitle, status: presentation.label })
+    : t('reference.ariaOpen', { kind: kindWord, title: taskTitle })
 
   const body = (
     <>
@@ -181,7 +181,7 @@ export function ReferenceChip({
         // second axis turned true. What the conflict adds is its own attribute.
         data-status={status}
         {...(conflicting ? { 'data-conflicting': 'true' } : {})}
-        aria-label={presentation ? `${kindWord} ${label} — ${presentation.label}` : undefined}
+        aria-label={presentation ? t('reference.ariaPlain', { kind: kindWord, label, status: presentation.label }) : undefined}
         className={chipClass}
       >
         {body}
@@ -211,8 +211,11 @@ export function ReferenceChip({
   const panel = (
     <>
       <span className="block font-medium">
-        {kind === 'PR' ? 'Pull request' : 'Issue'}
-        {number ? ` #${number}` : ''} · {tooltip.headline}
+        {t('reference.headline', {
+          kind: kind === 'PR' ? t('reference.pullRequestTitle') : t('reference.issueTitle'),
+          number: number ? ` #${number}` : '',
+          headline: tooltip.headline,
+        })}
       </span>
       <span className="block">{tooltip.detail}</span>
       {/* The status the conflict painted over. It is still true — a conflicting PR can also be
@@ -419,19 +422,20 @@ function ReferenceChipCard({
  * still gets said.
  */
 function statusTooltip(
+  t: TFn,
   entry: ReferenceStatusEntry,
   presentation: ReferenceStatusPresentation | undefined,
   overridden?: ReferenceStatusPresentation,
 ): { headline: string; detail: string; also?: string } | null {
   if (presentation) {
     const { label, hint } = presentation
-    const also = overridden ? `also ${lowerFirst(overridden.label)} — ${overridden.hint}` : undefined
+    const also = overridden ? t('reference.also', { label: lowerFirst(overridden.label), hint: overridden.hint }) : undefined
     // A remembered status while the forge is down is still the best answer there is — but it is
     // dated, and saying so is the difference between trusted and merely confident.
     if (entry.state === 'unavailable') {
       return {
         headline: label,
-        detail: `last known — GitHub is unreachable${entry.reason ? ` (${entry.reason})` : ''}`,
+        detail: entry.reason ? t('reference.lastKnownReason', { reason: entry.reason }) : t('reference.lastKnown'),
         ...(also ? { also } : {}),
       }
     }
@@ -439,16 +443,16 @@ function statusTooltip(
   }
   switch (entry.state) {
     case 'loading':
-      return { headline: 'Checking GitHub…', detail: 'the status of this reference is on its way' }
+      return { headline: t('reference.checking'), detail: t('reference.checkingDetail') }
     case 'unavailable':
       return {
-        headline: 'Status unavailable',
-        detail: entry.reason ?? 'GitHub could not be reached — the chip says nothing rather than guessing',
+        headline: t('reference.unavailable'),
+        detail: entry.reason ?? t('reference.unavailableDetail'),
       }
     case 'unknown':
       return {
-        headline: 'Not found on this repository',
-        detail: 'GitHub has no such number here — the reference may point at another repo',
+        headline: t('reference.notFound'),
+        detail: t('reference.notFoundDetail'),
       }
     default:
       return null

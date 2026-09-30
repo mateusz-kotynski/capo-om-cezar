@@ -3,10 +3,12 @@ import type { ComponentType, ReactNode, SVGProps } from 'react'
 
 import { useProjects } from '@/api/queries'
 import { useAppearance } from '@/components/appearance-provider'
+import { useLocale } from '@/components/locale-provider'
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { Accent, Density, Width } from '@/lib/appearance'
+import type { Locale } from '@/lib/locale'
 import type { Theme } from '@/lib/theme'
 import { useProjectOrder } from '@/lib/use-project-order'
 
@@ -16,6 +18,9 @@ import { useProjectOrder } from '@/lib/use-project-order'
  * Each knob is honest about where it persists:
  *  - THEME rides the existing theme system (localStorage `cez-theme`, shared with the legacy
  *    cockpit and the pre-paint script) — per-browser by design, like every OS theme choice;
+ *  - LANGUAGE follows the exact same per-browser pattern (localStorage `cez-locale`, its own
+ *    pre-paint stamp — see `lib/locale.ts`/`components/locale-provider.tsx`), right beside
+ *    Theme, since both are "how this browser renders the cockpit" rather than repo state;
  *  - ACCENT + DENSITY persist in `ui-state.json` through the AppearanceProvider (additive
  *    `appearance` key), mirrored to localStorage for pre-paint;
  *  - PROJECT ORDER (#952) lives in the same workspace file under `sidebar.projectOrder`, so this
@@ -25,29 +30,48 @@ import { useProjectOrder } from '@/lib/use-project-order'
  * the Tailwind spacing token (see index.css). No dead knobs.
  */
 
-const THEME_OPTIONS: Array<{ value: Theme; label: string; icon: ComponentType<SVGProps<SVGSVGElement>> }> = [
-  { value: 'system', label: 'System', icon: MonitorIcon },
-  { value: 'light', label: 'Light', icon: SunIcon },
-  { value: 'dark', label: 'Dark', icon: MoonIcon },
-]
+type T = ReturnType<typeof useLocale>['t']
+
+function themeOptions(t: T): Array<{ value: Theme; label: string; icon: ComponentType<SVGProps<SVGSVGElement>> }> {
+  return [
+    { value: 'system', label: t('appearance.themeSystem'), icon: MonitorIcon },
+    { value: 'light', label: t('appearance.themeLight'), icon: SunIcon },
+    { value: 'dark', label: t('appearance.themeDark'), icon: MoonIcon },
+  ]
+}
+
+/** English / Polski — the requirement's own two options. Adding a locale means adding it to
+ *  `Locale` (`lib/locale.ts`), both message dictionaries, and one more row here. */
+function languageOptions(t: T): Array<{ value: Locale; label: string }> {
+  return [
+    { value: 'en', label: t('appearance.languageEnglish') },
+    { value: 'pl', label: t('appearance.languagePolish') },
+  ]
+}
 
 /** Swatches point at the STABLE family tokens (`--accent-lime`, `--violet`), not `--primary` —
  *  the whole point of the control is that `--primary` changes under it. */
-const ACCENT_OPTIONS: Array<{ value: Accent; label: string; swatch: string }> = [
-  { value: 'lime', label: 'Lime', swatch: 'var(--accent-lime)' },
-  { value: 'violet', label: 'Violet', swatch: 'var(--violet)' },
-]
+function accentOptions(t: T): Array<{ value: Accent; label: string; swatch: string }> {
+  return [
+    { value: 'lime', label: t('appearance.accentLime'), swatch: 'var(--accent-lime)' },
+    { value: 'violet', label: t('appearance.accentViolet'), swatch: 'var(--violet)' },
+  ]
+}
 
-const DENSITY_OPTIONS: Array<{ value: Density; label: string }> = [
-  { value: 'comfortable', label: 'Comfortable' },
-  { value: 'compact', label: 'Compact' },
-  { value: 'ultra', label: 'Compact for real' },
-]
+function densityOptions(t: T): Array<{ value: Density; label: string }> {
+  return [
+    { value: 'comfortable', label: t('appearance.densityComfortable') },
+    { value: 'compact', label: t('appearance.densityCompact') },
+    { value: 'ultra', label: t('appearance.densityUltra') },
+  ]
+}
 
-const WIDTH_OPTIONS: Array<{ value: Width; label: string }> = [
-  { value: 'narrow', label: 'Narrow' },
-  { value: 'wide', label: 'Wide' },
-]
+function widthOptions(t: T): Array<{ value: Width; label: string }> {
+  return [
+    { value: 'narrow', label: t('appearance.widthNarrow') },
+    { value: 'wide', label: t('appearance.widthWide') },
+  ]
+}
 
 /** One segmented radio group — the shared chassis of all three controls. */
 function Segmented<V extends string>({
@@ -123,16 +147,14 @@ function Field({ title, hint, children }: { title: string; hint: string; childre
  * button for state the user has never created is a control that can only do nothing.
  */
 function ProjectOrderField() {
+  const { t } = useLocale()
   const projects = useProjects()
   const { order, canReorder, reset } = useProjectOrder()
   const multiProject = (projects.data?.projects.length ?? 0) > 1
   if (!multiProject || order.length === 0) return null
 
   return (
-    <Field
-      title="Project order"
-      hint="The sidebar is in the order you dragged it into. Reset puts it back to most-recently-opened first. Shared with every browser signed in to this cezar."
-    >
+    <Field title={t('appearance.projectOrderTitle')} hint={t('appearance.projectOrderHint')}>
       <Button
         type="button"
         variant="outline"
@@ -142,13 +164,14 @@ function ProjectOrderField() {
         onClick={reset}
         className="w-fit"
       >
-        Reset order
+        {t('appearance.resetOrder')}
       </Button>
     </Field>
   )
 }
 
 export function AppearanceSection() {
+  const { t, locale, setLocale } = useLocale()
   const { theme, setTheme } = useTheme()
   const { accent, density, width, setAccent, setDensity, setWidth } = useAppearance()
 
@@ -157,26 +180,56 @@ export function AppearanceSection() {
       data-slot="appearance-section"
       className="mx-auto flex w-full max-w-2xl flex-col gap-7 p-4 pb-[calc(90px+env(safe-area-inset-bottom))] md:p-6 md:pb-6"
     >
-      <Field title="Theme" hint="System follows your OS preference. Applies to this browser.">
-        <Segmented slot="appearance-theme" label="Theme" value={theme} options={THEME_OPTIONS} onChange={setTheme} />
+      <Field title={t('appearance.themeTitle')} hint={t('appearance.themeHint')}>
+        <Segmented
+          slot="appearance-theme"
+          label={t('appearance.themeTitle')}
+          value={theme}
+          options={themeOptions(t)}
+          onChange={setTheme}
+        />
       </Field>
 
-      <Field title="Accent" hint="The primary action color. Saved with this repo's cockpit state.">
-        <Segmented slot="appearance-accent" label="Accent" value={accent} options={ACCENT_OPTIONS} onChange={setAccent} />
+      {/* Right beside Theme — same per-browser footing, same "how this browser renders it"
+          question (see the header comment). */}
+      <Field title={t('appearance.languageTitle')} hint={t('appearance.languageHint')}>
+        <Segmented
+          slot="appearance-language"
+          label={t('appearance.languageTitle')}
+          value={locale}
+          options={languageOptions(t)}
+          onChange={setLocale}
+        />
       </Field>
 
-      <Field
-        title="Density"
-        hint="Compact tightens spacing across the cockpit — text stays the same size."
-      >
-        <Segmented slot="appearance-density" label="Density" value={density} options={DENSITY_OPTIONS} onChange={setDensity} />
+      <Field title={t('appearance.accentTitle')} hint={t('appearance.accentHint')}>
+        <Segmented
+          slot="appearance-accent"
+          label={t('appearance.accentTitle')}
+          value={accent}
+          options={accentOptions(t)}
+          onChange={setAccent}
+        />
       </Field>
 
-      <Field
-        title="Reading width"
-        hint="Wide lets a task's session and commits use more of the screen. Narrow keeps a comfortable reading column. The Changes tab is always full-width."
-      >
-        <Segmented slot="appearance-width" label="Reading width" value={width} options={WIDTH_OPTIONS} onChange={setWidth} />
+      <Field title={t('appearance.densityTitle')} hint={t('appearance.densityHint')}>
+        <Segmented
+          slot="appearance-density"
+          label={t('appearance.densityTitle')}
+          value={density}
+          options={densityOptions(t)}
+          onChange={setDensity}
+        />
+      </Field>
+
+      <Field title={t('appearance.widthTitle')} hint={t('appearance.widthHint')}>
+        <Segmented
+          slot="appearance-width"
+          label={t('appearance.widthTitle')}
+          value={width}
+          options={widthOptions(t)}
+          onChange={setWidth}
+        />
       </Field>
 
       <ProjectOrderField />

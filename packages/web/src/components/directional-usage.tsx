@@ -1,3 +1,4 @@
+import { formatLocale } from '@/lib/locale'
 import { compactTokens } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -12,7 +13,7 @@ interface DirectionalUsageProps {
 }
 
 function exactTokens(value: number | undefined): string {
-  return value === undefined ? 'unknown' : new Intl.NumberFormat().format(value)
+  return value === undefined ? 'unknown' : new Intl.NumberFormat(formatLocale()).format(value)
 }
 
 export function directionalUsageLabel(inputTokens?: number, outputTokens?: number): string {

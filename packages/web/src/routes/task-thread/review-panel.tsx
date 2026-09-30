@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   CheckIcon,
@@ -21,7 +22,6 @@ import { Link } from '@/lib/project-router'
 import { isSubmitShortcut } from '@/lib/use-submit-shortcut'
 import { isHttpUrl } from '@/lib/utils'
 
-import { finishTitle } from './run-actions'
 import { useContinuationProvider } from './continuation-provider'
 import { useDraft } from './thread-draft'
 import { useFinishRun } from './use-finish-run'
@@ -36,17 +36,18 @@ import { useFinishRun } from './use-finish-run'
  * fallback), and ✓ Accept (the shared finish action from use-finish-run.ts).
  */
 export function ReviewPanel({ run }: { run: ApiRun }) {
+  const { t } = useLocale()
   return (
-    <section data-slot="review-panel" aria-label="Review the changes" className="flex flex-col gap-3">
+    <section data-slot="review-panel" aria-label={t('thread.review.regionAria')} className="flex flex-col gap-3">
       <div
         data-slot="review-banner"
         className="flex items-center gap-2.5 rounded-md border border-violet/30 bg-violet/10 px-3.5 py-2.5"
       >
         <EyeIcon className="size-4 shrink-0 text-violet" aria-hidden="true" />
         <p className="min-w-0 text-[13px]">
-          <span className="font-semibold">Review the changes before anything lands.</span>{' '}
+          <span className="font-semibold">{t('thread.review.bannerTitle')}</span>{' '}
           <span className="text-muted-foreground">
-            Read the diff, send notes back, draft a PR — or accept. Nothing merges on its own.
+            {t('thread.review.bannerBody')}
           </span>
         </p>
       </div>
@@ -60,6 +61,7 @@ export function ReviewPanel({ run }: { run: ApiRun }) {
 // ---- notes + exits --------------------------------------------------------------------------
 
 function ReviewActions({ run }: { run: ApiRun }) {
+  const { t } = useLocale()
   const queryClient = useQueryClient()
   const notesRef = useRef<HTMLTextAreaElement>(null)
   // Review notes are the second-longest thing anyone types into a task, and they are typed while
@@ -98,7 +100,7 @@ function ReviewActions({ run }: { run: ApiRun }) {
   const draftPr = useMutation({
     mutationFn: () => createRunPr(run.id),
     onSuccess: (result) => {
-      toast(`Draft PR created — ${result.url}`)
+      toast(t('thread.review.draftPrCreated', { url: result.url }))
       invalidate() // the run completed as done with `pullRequestUrl` — refetch shows PR ↗
     },
     onError: (error: Error) => {
@@ -111,7 +113,7 @@ function ReviewActions({ run }: { run: ApiRun }) {
     const text = notes.trim()
     if (text.length === 0) {
       // Legacy `alertBar('Write what to change first.')` + focus.
-      toast('Write what to change first.')
+      toast(t('thread.review.writeFirst'))
       notesRef.current?.focus()
       return
     }
@@ -123,8 +125,8 @@ function ReviewActions({ run }: { run: ApiRun }) {
       <Textarea
         ref={notesRef}
         data-slot="review-notes"
-        aria-label="Notes for the agent"
-        placeholder="Notes for the agent — what should change?"
+        aria-label={t('thread.review.notesAria')}
+        placeholder={t('thread.review.notesPlaceholder')}
         rows={2}
         value={notes}
         onChange={(event) => setNotes(event.target.value)}
@@ -159,7 +161,7 @@ function ReviewActions({ run }: { run: ApiRun }) {
               to="/settings/agents#providers"
               className="font-medium text-foreground underline underline-offset-4"
             >
-              Configure providers
+              {t('thread.page.configureProviders')}
             </Link>
           ) : null}
         </p>
@@ -169,13 +171,13 @@ function ReviewActions({ run }: { run: ApiRun }) {
           data-slot="review-send-back"
           variant="outline"
           size="sm"
-          title={continuation.reason ?? "Send the notes back into the agent's session"}
+          title={continuation.reason ?? t('thread.review.sendBackTitle')}
           aria-describedby={!continuation.canContinue ? 'review-provider-guidance' : undefined}
           disabled={sendBack.isPending || !continuation.canContinue}
           onClick={submitNotes}
         >
           <CornerUpLeftIcon aria-hidden="true" />
-          Send back
+          {t('thread.review.sendBack')}
         </Button>
         {isHttpUrl(run.pullRequestUrl) ? (
           // A PR already exists (agent-opened, spotted in the transcript) — a second Draft PR
@@ -188,7 +190,7 @@ function ReviewActions({ run }: { run: ApiRun }) {
               href={run.pullRequestUrl}
               target="_blank"
               rel="noopener noreferrer"
-              title="The PR for this task is already open"
+              title={t('thread.review.prTitle')}
             >
               <ExternalLinkIcon aria-hidden="true" />
               PR ↗
@@ -199,12 +201,12 @@ function ReviewActions({ run }: { run: ApiRun }) {
             data-slot="review-draft-pr"
             variant="outline"
             size="sm"
-            title="Push the branch and open a draft PR"
+            title={t('thread.review.draftPrTitle')}
             disabled={draftPr.isPending}
             onClick={() => draftPr.mutate()}
           >
             <GitPullRequestIcon aria-hidden="true" />
-            Draft PR
+            {t('thread.review.draftPr')}
           </Button>
         )}
         <Button
@@ -212,12 +214,12 @@ function ReviewActions({ run }: { run: ApiRun }) {
           variant="contrast"
           size="sm"
           className="ml-auto"
-          title={finishTitle('review')}
+          title={t('thread.actions.finishReview')}
           disabled={finish.isPending}
           onClick={() => finish.mutate()}
         >
           <CheckIcon aria-hidden="true" />
-          Accept
+          {t('thread.review.accept')}
         </Button>
       </div>
       {manual !== null ? <ManualMergeLine command={manual} /> : null}
@@ -228,16 +230,17 @@ function ReviewActions({ run }: { run: ApiRun }) {
 /** The 409 fallback: the PR could not be opened, but the branch is real — show the merge
  *  command copyable, like the header's resume hint. */
 function ManualMergeLine({ command }: { command: string }) {
+  const { t } = useLocale()
   return (
     <button
       type="button"
       data-slot="review-manual"
-      title="Copy the command"
+      title={t('thread.meta.copyCommand')}
       onClick={() => {
         void navigator.clipboard
           .writeText(command)
-          .then(() => toast('Command copied to clipboard.'))
-          .catch(() => toast(`Run manually: ${command}`))
+          .then(() => toast(t('thread.toast.commandCopied')))
+          .catch(() => toast(t('thread.toast.runManually', { text: command })))
       }}
       className="flex w-full min-w-0 items-center gap-1.5 rounded-sm px-1 py-0.5 text-left font-mono text-[11px] text-soft-foreground hover:bg-muted hover:text-foreground"
     >

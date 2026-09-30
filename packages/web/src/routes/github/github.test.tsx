@@ -15,7 +15,9 @@ import type {
   Skill,
   WorkflowsResponse,
 } from '@open-mercato/cezar-api-client'
+import { LocaleProvider } from '@/components/locale-provider'
 import { Toaster, resetToasts } from '@/components/ui/toaster'
+import { LOCALE_STORAGE_KEY } from '@/lib/locale'
 import { githubTaskRef } from '@/lib/github-task'
 
 import { GithubRoute, groupCommitRuns, type ThreadRow } from './github'
@@ -259,6 +261,7 @@ function stubFetch(
 function renderAt(entry: string) {
   render(
     <QueryClientProvider client={createQueryClient()}>
+      <LocaleProvider>
       <MemoryRouter initialEntries={[entry]}>
         <Routes>
           <Route path="/github" element={<GithubRoute view="issues" index />} />
@@ -274,6 +277,7 @@ function renderAt(entry: string) {
         </Routes>
         <Toaster />
       </MemoryRouter>
+      </LocaleProvider>
     </QueryClientProvider>,
   )
 }
@@ -2881,6 +2885,47 @@ describe('cross-state search fallback (#730)', () => {
         expect(verdict).not.toContain('open, closed or merged')
       },
       { timeout: 3000 },
+    )
+  })
+})
+
+describe('the GitHub tab in Polish', () => {
+  beforeEach(() => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'pl')
+  })
+  afterEach(() => {
+    localStorage.removeItem(LOCALE_STORAGE_KEY)
+    document.documentElement.removeAttribute('lang')
+  })
+
+  it('words the list chrome, count tabs and search in Polish, and leaves item text alone', async () => {
+    stubFetch()
+    renderAt('/github')
+
+    await waitFor(() => expect(rows()).toHaveLength(2))
+    const tabs = [...document.querySelectorAll('[data-slot="gh-tabs"] a')].map((a) => a.textContent)
+    expect(tabs).toEqual(['Issue · 2', 'Pull requesty · 1'])
+    expect(screen.getByLabelText('Szukaj: issue')).toBeTruthy()
+    expect(screen.getByPlaceholderText('Szukaj #id, tytułu, autora…')).toBeTruthy()
+    // Forge item titles are user content — never translated.
+    expect(rows()[0]?.textContent).toContain('Login form drops session on refresh')
+    // The hand-to-agent panel is Polish too.
+    expect(await screen.findByText('Przekaż to agentowi')).toBeTruthy()
+  })
+
+  it('words the empty-filter sentence in Polish singular', async () => {
+    stubFetch()
+    renderAt('/github')
+    await waitFor(() => expect(rows()).toHaveLength(2))
+
+    fireEvent.change(screen.getByLabelText('Szukaj: issue'), { target: { value: 'zzzz-no-such-thing' } })
+
+    await waitFor(
+      () =>
+        expect(document.querySelector('[data-slot="gh-empty"]')?.textContent).toContain(
+          'Żadne issue nie pasuje do filtra — ani otwarte, ani zamknięte, ani scalone.',
+        ),
+      { timeout: 4000 },
     )
   })
 })

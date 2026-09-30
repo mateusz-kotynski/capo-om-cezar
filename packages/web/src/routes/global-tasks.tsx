@@ -1,3 +1,6 @@
+import { useLocale } from '@/components/locale-provider'
+import { RichText } from '@/components/rich-text'
+import { attentionLabel, runStatusLabel } from '@/i18n/ui-labels'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArchiveIcon,
@@ -135,6 +138,13 @@ const HOVER_CLOSE_DELAY_MS = 220
 const ARCHIVABLE_STATUSES: ReadonlySet<string> = new Set(['done', 'failed', 'cancelled'])
 
 /** Archive (or restore) one indexed run, in its own project. */
+const GROUP_BY_KEYS = {
+  project: 'tasks.global.groupProject',
+  tag: 'tasks.global.groupTag',
+  status: 'tasks.global.groupStatus',
+  workflow: 'tasks.global.groupWorkflow',
+} as const
+
 function useArchiveIndexedRun() {
   return useIndexedRunMutation({
     request: ({ task, archived }: { task: GlobalTask; archived: boolean }) =>
@@ -223,6 +233,7 @@ function useIndexedRunMutation<V extends { task: GlobalTask }>({
 }
 
 export function GlobalTasksRoute() {
+  const { t } = useLocale()
   const projects = useProjects()
   // The same host gate the per-project table honours: `CEZ_HIDE_COST` and friends turn these
   // columns off everywhere, and a cross-project view is not an exception.
@@ -364,7 +375,7 @@ export function GlobalTasksRoute() {
         <CenteredState
           icon={<LayersIcon />}
           tone="danger"
-          title="Tasks across projects did not load"
+          title={t('tasks.global.loadFailed')}
           subtitle={(index.error ?? projects.error)?.message}
         />
       </div>
@@ -381,8 +392,8 @@ export function GlobalTasksRoute() {
         type="text"
         value={queryDraft}
         onChange={(event) => setQueryDraft(event.target.value)}
-        placeholder="Search every project…"
-        aria-label="Search tasks across projects"
+        placeholder={t('tasks.global.searchPlaceholder')}
+        aria-label={t('tasks.global.searchAria')}
         className="h-9 w-full rounded-md border border-input bg-card pr-3 pl-8 text-[13px] text-foreground outline-none placeholder:text-soft-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
       />
     </div>
@@ -391,18 +402,18 @@ export function GlobalTasksRoute() {
   return (
     <div data-route="global-tasks" className="flex min-h-full flex-col">
       <header className="sticky top-0 z-10 hidden h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-5 md:flex">
-        <h1 className="text-base font-semibold">All tasks</h1>
+        <h1 className="text-base font-semibold">{t('tasks.global.heading')}</h1>
         <div className="inline-flex gap-0.5 rounded-md bg-muted p-[3px]">
           <ViewTab view="active" current={view} onSelect={setView}>
-            Active
+            {t('tasksPage.active')}
           </ViewTab>
           <ViewTab view="archived" current={view} onSelect={setView}>
-            Archived
+            {t('tasksPage.archived')}
           </ViewTab>
         </div>
         <div className="flex-1" />
         <span data-slot="global-tasks-count" className="text-[12.5px] text-soft-foreground tabular-nums">
-          {visible.length} of {tasks.length}
+          {t('tasks.global.countOf', { shown: visible.length, total: tasks.length })}
         </span>
         {search}
       </header>
@@ -429,8 +440,7 @@ export function GlobalTasksRoute() {
 
         {truncated.length > 0 ? (
           <p data-slot="global-tasks-truncated" className="text-[11.5px] text-soft-foreground">
-            Showing the newest {index.data?.perProjectLimit} tasks per project — older ones in{' '}
-            {truncated.join(', ')} are only in that project&rsquo;s own Tasks page.
+            {t('tasks.global.truncated', { limit: index.data?.perProjectLimit ?? '', projects: truncated.join(', ') })}
           </p>
         ) : null}
 
@@ -455,6 +465,10 @@ export function GlobalTasksRoute() {
                       >
                         {group.label}
                       </Link>
+                    ) : groupBy === 'status' ? (
+                      runStatusLabel(t, group.key)
+                    ) : group.key === UNTAGGED ? (
+                      t('tasks.global.untagged')
                     ) : (
                       group.label
                     )}
@@ -553,6 +567,7 @@ function FilterBar({
   tasks: readonly GlobalTask[]
   view: ListView
 }) {
+  const { t } = useLocale()
   const tags = React.useMemo(() => allProjectTags(projects), [projects])
 
   // One `tasksExcludingFacet` per facet: the counts a facet shows must not already assume that
@@ -582,35 +597,35 @@ function FilterBar({
             one project is that project's own Tasks page, which every project name here links to. */}
         <FacetFilter
           slot="status"
-          label="Status"
+          label={t('tasks.global.statusFacet')}
           selected={filters.statuses}
           onToggle={(value) => onToggle('statuses', value)}
           onClear={() => onClearFacet('statuses')}
           options={allStatuses(tasks)
-            .map((status) => ({ value: status, label: status }))
+            .map((status) => ({ value: status, label: runStatusLabel(t, status) }))
             .map(withCount(counts.statuses))}
-          emptyLabel="No tasks to filter"
+          emptyLabel={t('tasks.global.nothingToFilter')}
         />
         <FacetFilter
           slot="workflow"
-          label="Workflow"
+          label={t('tasks.global.workflowFacet')}
           selected={filters.workflows}
           onToggle={(value) => onToggle('workflows', value)}
           onClear={() => onClearFacet('workflows')}
           options={allWorkflows(tasks)
             .map((workflow) => ({ value: workflow, label: workflow }))
             .map(withCount(counts.workflows))}
-          emptyLabel="No tasks to filter"
+          emptyLabel={t('tasks.global.nothingToFilter')}
         />
         <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
-        <span className="text-[11px] font-medium text-soft-foreground">Group by</span>
+        <span className="text-[11px] font-medium text-soft-foreground">{t('tasks.global.groupBy')}</span>
         {/* Pressing the pressed one releases it — see `toggleGroupBy`, which is why there is
             no "None" button to hunt for. */}
         <SegmentedControl
           slot="group-by"
-          label="Group tasks by"
+          label={t('tasks.global.groupTasksBy')}
           value={groupBy}
-          options={GROUP_BY_OPTIONS}
+          options={GROUP_BY_OPTIONS.map((option) => ({ ...option, label: t(GROUP_BY_KEYS[option.value]) }))}
           onChange={(picked) => onGroupByChange(toggleGroupBy(groupBy, picked))}
         />
         {canReset({ filters, groupBy }) ? (
@@ -621,7 +636,7 @@ function FilterBar({
             className="ml-auto inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <XIcon className="size-3" aria-hidden="true" />
-            Clear
+            {t('tasks.global.clear')}
             {` (${resetCount({ filters, groupBy })})`}
           </button>
         ) : null}
@@ -629,7 +644,7 @@ function FilterBar({
 
       {tags.length > 0 ? (
         <div data-slot="tag-filters" className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[11px] font-medium text-soft-foreground">Tags</span>
+          <span className="text-[11px] font-medium text-soft-foreground">{t('tasks.global.tags')}</span>
           {tags.map((tag) => (
             <ToggleChip
               key={tag}
@@ -645,7 +660,7 @@ function FilterBar({
               real question, and it is the one this chip answers. */}
           <ToggleChip
             slot="tag-filter"
-            label="Untagged"
+            label={t('tasks.global.untagged')}
             count={counts.tags.get(UNTAGGED) ?? 0}
             selected={filters.tags.includes(UNTAGGED)}
             onToggle={() => onToggle('tags', UNTAGGED)}
@@ -656,11 +671,16 @@ function FilterBar({
         // invisible, and the sentence that fixes it is one line long — with the door in it,
         // since the pane that fixes it is two clicks away and outside this page.
         <p data-slot="no-tags-hint" className="text-[11px] text-soft-foreground">
-          Tag connected repositories in{' '}
-          <Link to="/settings/global/projects" className="font-medium text-violet hover:underline">
-            Settings → Projects
-          </Link>{' '}
-          to group their tasks together here.
+          <RichText
+            text={t('tasks.global.tagHint')}
+            tags={{
+              link: (label) => (
+                <Link to="/settings/global/projects" className="font-medium text-violet hover:underline">
+                  {label}
+                </Link>
+              ),
+            }}
+          />
         </p>
       )}
     </div>
@@ -703,6 +723,7 @@ function TaskTable({
   busy: boolean
   showCost: boolean
 }) {
+  const { t } = useLocale()
   return (
     <div
       data-slot="global-tasks-table"
@@ -716,18 +737,18 @@ function TaskTable({
                 up. A cross-project list is scanned by title; everything else is the answer to a
                 question you ask about a row you already found. */}
             <tr>
-              <Th className="w-[104px]">Status</Th>
-              <Th>Task</Th>
-              {showProject ? <Th className="w-[124px]">Project</Th> : null}
-              <Th className="hidden w-[120px] xl:table-cell">Tags</Th>
-              <Th className="w-[84px]">Ref</Th>
-              <Th className="hidden w-[108px] xl:table-cell">Workflow</Th>
-              {showCost ? <Th className="hidden w-[64px] text-right lg:table-cell">Cost</Th> : null}
-              <Th className="hidden w-[56px] text-right xl:table-cell">CPU</Th>
-              <Th className="hidden w-[84px] text-right xl:table-cell">Mem</Th>
-              <Th className="w-[56px] text-right">Age</Th>
+              <Th className="w-[104px]">{t('tasks.columns.status')}</Th>
+              <Th>{t('tasks.columns.task')}</Th>
+              {showProject ? <Th className="w-[124px]">{t('tasks.columns.project')}</Th> : null}
+              <Th className="hidden w-[120px] xl:table-cell">{t('tasks.columns.tags')}</Th>
+              <Th className="w-[84px]">{t('tasks.columns.ref')}</Th>
+              <Th className="hidden w-[108px] xl:table-cell">{t('tasks.columns.workflow')}</Th>
+              {showCost ? <Th className="hidden w-[64px] text-right lg:table-cell">{t('tasks.columns.cost')}</Th> : null}
+              <Th className="hidden w-[56px] text-right xl:table-cell">{t('tasks.columns.cpu')}</Th>
+              <Th className="hidden w-[84px] text-right xl:table-cell">{t('tasks.columns.mem')}</Th>
+              <Th className="w-[56px] text-right">{t('tasks.columns.age')}</Th>
               <Th className="w-[64px] text-right">
-                <span className="sr-only">Actions</span>
+                <span className="sr-only">{t('tasks.columns.actions')}</span>
               </Th>
             </tr>
           </thead>
@@ -817,6 +838,7 @@ function TaskRow({
   busy: boolean
   showCost: boolean
 }) {
+  const { t } = useLocale()
   const { run } = task
   const attention = deriveAttention(run)
   const to = scopeTo(run.projectId, `/tasks/${run.id}`)
@@ -847,7 +869,7 @@ function TaskRow({
     >
       <td className={TD_BASE}>
         <Pill dot={attention.tone} pulse={attention.pulse}>
-          {attention.label}
+          {attentionLabel(t, attention.label)}
         </Pill>
       </td>
       {/* The one column with no fixed width, so every pixel the others give up lands here — and
@@ -904,8 +926,8 @@ function TaskRow({
             <StatusDot
               tone="violet"
               role="img"
-              aria-label="unread"
-              title="Unread — not opened since it finished"
+              aria-label={t('tasks.overview.unreadAria')}
+              title={t('tasks.overview.unreadTitle')}
               className="shrink-0"
             />
           ) : null}
@@ -985,10 +1007,11 @@ function ReadToggle({
   busy: boolean
   onSetRead: (task: GlobalTask, read: boolean) => void
 }) {
+  const { t } = useLocale()
   if (!canBeUnread(task.run)) return null
   const unread = isUnread(task.run)
   const title = runTitle(task.run)
-  const label = unread ? `Mark ${title} read` : `Mark ${title} unread`
+  const label = t(unread ? 'tasks.global.markTaskRead' : 'tasks.global.markTaskUnread', { title })
   const Icon = unread ? EyeIcon : EyeOffIcon
   return (
     <Tooltip>
@@ -1007,7 +1030,7 @@ function ReadToggle({
           <Icon className="size-3.5" aria-hidden="true" />
         </button>
       </TooltipTrigger>
-      <TooltipContent side="left">{unread ? 'Mark read' : 'Mark unread'}</TooltipContent>
+      <TooltipContent side="left">{unread ? t('tasks.global.markRead') : t('tasks.global.markUnread')}</TooltipContent>
     </Tooltip>
   )
 }
@@ -1032,11 +1055,12 @@ function ArchiveToggle({
   busy: boolean
   onArchive: (task: GlobalTask, archived: boolean) => void
 }) {
+  const { t } = useLocale()
   const archived = task.run.archived
   if (!archived && !ARCHIVABLE_STATUSES.has(task.run.status)) return null
   const label = archived
-    ? `Restore ${runTitle(task.run)} to the active list`
-    : `Archive ${runTitle(task.run)}`
+    ? t('tasks.global.restoreTask', { title: runTitle(task.run) })
+    : t('tasks.global.archiveTask', { title: runTitle(task.run) })
   const Icon = archived ? ArchiveRestoreIcon : ArchiveIcon
   return (
     <Tooltip>
@@ -1052,7 +1076,7 @@ function ArchiveToggle({
           <Icon className="size-3.5" aria-hidden="true" />
         </button>
       </TooltipTrigger>
-      <TooltipContent side="left">{archived ? 'Restore' : 'Archive'}</TooltipContent>
+      <TooltipContent side="left">{archived ? t('tasks.global.restore') : t('tasks.global.archive')}</TooltipContent>
     </Tooltip>
   )
 }
@@ -1142,6 +1166,7 @@ function ReferenceOverflow({
   hidden: number
   projectId: string
 }) {
+  const { t } = useLocale()
   const [open, setOpen] = React.useState(false)
   // How it was opened decides whether focus moves into the list. A CLICK should hand the keyboard
   // the links; a hover must not yank focus out of whatever the reader was doing.
@@ -1176,7 +1201,7 @@ function ReferenceOverflow({
         <button
           type="button"
           data-slot="reference-overflow"
-          aria-label={`Show all ${references.length} references for ${taskTitle}`}
+          aria-label={t('tasks.global.showAllReferences', { count: references.length, title: taskTitle })}
           onPointerEnter={onPointerEnter}
           onPointerLeave={onPointerLeave}
           // A real press — mouse, tap or keyboard — is not a hover, whatever happened before it.
@@ -1204,7 +1229,7 @@ function ReferenceOverflow({
           if (openedByHover.current) event.preventDefault()
         }}
       >
-        <p className="px-1 pb-1.5 text-[10.5px] text-soft-foreground">References</p>
+        <p className="px-1 pb-1.5 text-[10.5px] text-soft-foreground">{t('tasks.global.references')}</p>
         <span className="flex flex-col items-start gap-1">
           {references.map((reference) => (
             <ReferenceChip
@@ -1273,14 +1298,15 @@ function Dash() {
 
 /** What an empty global list honestly means, given how it got empty. */
 function GlobalTasksEmptyState({ view, filtered }: { view: ListView; filtered: boolean }) {
+  const { t } = useLocale()
   if (filtered) {
     return (
       <CenteredState
         heading="h2"
         icon={<SearchXIcon />}
         tone="neutral"
-        title="No matching tasks"
-        subtitle="No task in any project matches these filters."
+        title={t('tasks.global.emptyFilteredTitle')}
+        subtitle={t('tasks.global.emptyFilteredSubtitle')}
       />
     )
   }
@@ -1289,16 +1315,16 @@ function GlobalTasksEmptyState({ view, filtered }: { view: ListView; filtered: b
       heading="h2"
       icon={<ArchiveIcon />}
       tone="neutral"
-      title="Nothing archived yet"
-      subtitle="Finished tasks you archive land here, from every project."
+      title={t('tasks.global.emptyArchiveTitle')}
+      subtitle={t('tasks.global.emptyArchiveSubtitle')}
     />
   ) : (
     <CenteredState
       heading="h2"
       icon={<ListChecksIcon />}
       tone="neutral"
-      title="No tasks yet"
-      subtitle="Start a task in any project and it shows up here."
+      title={t('tasks.global.emptyTitle')}
+      subtitle={t('tasks.global.emptySubtitle')}
     />
   )
 }

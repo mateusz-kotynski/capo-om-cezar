@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { useEffect, useState } from 'react'
 
 import { useHostHistory, useHostLastFrameAt, useHostTransport, useHostUsage } from '@/api/host-usage'
@@ -67,6 +68,7 @@ export function HostUsageWidget() {
 }
 
 function HostUsageWidgetRow() {
+  const { t } = useLocale()
   const sample = useHostUsage()
   const history = useHostHistory()
   const lastFrameAt = useHostLastFrameAt()
@@ -121,7 +123,7 @@ function HostUsageWidgetRow() {
       data-state={stale ? 'stale' : 'live'}
       // How many frames the store holds - the e2e proof that the root writer keeps feeding it.
       data-frames={history.length}
-      aria-label={`Machine usage: ${summary}. Open Settings, Resources.`}
+      aria-label={t('shell.misc.machineUsage', { summary })}
       title={summary}
       className={cn(
         // Six columns on ONE 14px line: label · bar · value, twice. The two `minmax(0,1fr)`

@@ -16,19 +16,24 @@ import {
 } from '@dnd-kit/sortable'
 import { GripVertical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useLocale } from '@/components/locale-provider'
+import type { StringPath } from '@/i18n/format'
+import type { Messages } from '@/i18n/messages/types'
 import type { TileId } from './preferences'
 
-const names: Record<TileId, string> = {
-  overview: 'Workspace overview',
-  portfolio: 'Projects',
-  automations: 'Automations',
-  fleet: 'Queue & scheduling',
-  needsYou: 'Needs you',
-  recent: 'Recent results & GitHub',
-  usage: 'Usage & cost',
-  trends: 'Trends',
-}
+/** Module names, as dictionary keys — resolved at render so a language switch re-labels them. */
+export const TILE_NAME_KEYS = {
+  overview: 'dashboard.moduleOverview',
+  portfolio: 'dashboard.modulePortfolio',
+  automations: 'dashboard.moduleAutomations',
+  fleet: 'dashboard.moduleFleet',
+  needsYou: 'dashboard.moduleNeedsYou',
+  recent: 'dashboard.moduleRecent',
+  usage: 'dashboard.moduleUsage',
+  trends: 'dashboard.moduleTrends',
+} as const satisfies Record<TileId, StringPath<Messages>>
 function Module({ id, children, wide }: { id: TileId; children: ReactNode; wide: boolean }) {
+  const { t } = useLocale()
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, isDragging } =
     useSortable({ id })
   return (
@@ -47,7 +52,7 @@ function Module({ id, children, wide }: { id: TileId; children: ReactNode; wide:
           className="min-h-11 min-w-11 cursor-grab touch-none active:cursor-grabbing"
           {...attributes}
           {...listeners}
-          aria-label={`Move ${names[id]}`}
+          aria-label={t('dashboard.moveModule', { name: t(TILE_NAME_KEYS[id]) })}
         >
           <GripVertical className="size-4 text-muted-foreground" aria-hidden="true" />
         </Button>
@@ -65,6 +70,8 @@ export function DashboardLayout({
   modules: Partial<Record<TileId, ReactNode>>
   onOrder: (order: TileId[]) => void
 }) {
+  const { t } = useLocale()
+  const name = (id: string | number) => t(TILE_NAME_KEYS[id as TileId])
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -83,27 +90,34 @@ export function DashboardLayout({
   }
   if (unpaired) wide.add(unpaired)
   const describe = (id: string | number) =>
-    `${names[id as TileId]}, position ${visible.indexOf(id as TileId) + 1} of ${visible.length}`
+    t('dashboard.positionOf', { name: name(id), position: visible.indexOf(id as TileId) + 1, total: visible.length })
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
       accessibility={{
         announcements: {
-          onDragStart: ({ active }) => `Picked up ${describe(active.id)}.`,
+          onDragStart: ({ active }) => t('dashboard.pickedUp', { description: describe(active.id) }),
           onDragOver: ({ active, over }) =>
             over
-              ? `${names[active.id as TileId]} moved to position ${visible.indexOf(over.id as TileId) + 1} of ${visible.length}.`
+              ? t('dashboard.movedTo', {
+                  name: name(active.id),
+                  position: visible.indexOf(over.id as TileId) + 1,
+                  total: visible.length,
+                })
               : undefined,
           onDragEnd: ({ active, over }) =>
             over
-              ? `${names[active.id as TileId]} dropped at position ${visible.indexOf(over.id as TileId) + 1} of ${visible.length}.`
-              : `Order unchanged. ${describe(active.id)}.`,
-          onDragCancel: ({ active }) => `Reordering cancelled. ${describe(active.id)}.`,
+              ? t('dashboard.droppedAt', {
+                  name: name(active.id),
+                  position: visible.indexOf(over.id as TileId) + 1,
+                  total: visible.length,
+                })
+              : t('dashboard.orderUnchanged', { description: describe(active.id) }),
+          onDragCancel: ({ active }) => t('dashboard.reorderCancelled', { description: describe(active.id) }),
         },
         screenReaderInstructions: {
-          draggable:
-            'Press Space to pick up a module, use arrow keys to move, Space to drop, or Escape to cancel.',
+          draggable: t('dashboard.dragInstructions'),
         },
       }}
       onDragEnd={({ active, over }) => {

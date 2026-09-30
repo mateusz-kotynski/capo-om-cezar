@@ -1,4 +1,6 @@
+import { formatLocale } from '@/lib/locale'
 import type { ReactNode } from 'react'
+import { useLocale } from '@/components/locale-provider'
 import { shortAge } from '@/lib/format'
 
 export const widgetHeading = 'text-sm font-semibold'
@@ -31,9 +33,10 @@ export function MetricContent({
   )
 }
 export function Freshness({ at }: { at: string }) {
+  const { t } = useLocale()
   return (
-    <time dateTime={at} title={new Date(at).toLocaleString()}>
-      Updated {shortAge(at)} ago
+    <time dateTime={at} title={new Date(at).toLocaleString(formatLocale())}>
+      {t('dashboard.updatedAgo', { age: shortAge(at) })}
     </time>
   )
 }

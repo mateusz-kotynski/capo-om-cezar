@@ -1,4 +1,5 @@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { useLocale } from '@/components/locale-provider'
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
@@ -59,6 +60,7 @@ function SheetBody({
   agent: SubagentSummary
   entries: ThreadEntry[]
 }) {
+  const { t, tn } = useLocale()
   return (
     <>
       <SheetHeader className="gap-1.5 border-b border-border px-5 py-4">
@@ -76,7 +78,7 @@ function SheetBody({
         <SheetDescription data-slot="subagent-meta" className="flex items-center gap-2 text-xs">
           <StatusPill status={agent.status} />
           <span className="tabular-nums">
-            {agent.toolCalls} {agent.toolCalls === 1 ? 'tool call' : 'tool calls'}
+            {tn('transcript.toolCallCount', agent.toolCalls)}
           </span>
         </SheetDescription>
       </SheetHeader>
@@ -88,7 +90,7 @@ function SheetBody({
         renderAsk={renderAsk}
         empty={
           <div data-slot="subagent-empty" className="py-2 text-[13px] text-muted-foreground">
-            No attributed output — see the thread card for this agent&apos;s result.
+            {t('transcript.noAttributed')}
           </div>
         }
       />
@@ -98,16 +100,17 @@ function SheetBody({
 
 /** Status as a word, not only a hue — the dock's glyphs do not survive being read aloud. */
 function StatusPill({ status }: { status: SubagentSummary['status'] }) {
+  const { t } = useLocale()
   const label =
     status === 'completed'
-      ? 'Completed'
+      ? t('transcript.statusCompleted')
       : status === 'failed'
-        ? 'Failed'
+        ? t('transcript.statusFailed')
         : status === 'declined'
-          ? 'Declined'
+          ? t('transcript.statusDeclined')
           : status === 'pending'
-            ? 'Pending'
-            : 'Running'
+            ? t('transcript.statusPending')
+            : t('transcript.statusRunning')
   return (
     <span
       data-slot="subagent-status"

@@ -1,4 +1,6 @@
 import { hashKey, useQueryClient } from '@tanstack/react-query'
+import { useLocale, type TFn } from '@/components/locale-provider'
+import { attentionLabel } from '@/i18n/ui-labels'
 import { useEffect, useRef } from 'react'
 
 import { queryKeys, useWorkspaceUiState } from '@/api/queries'
@@ -30,6 +32,11 @@ import {
  * Renders nothing. Mounted once in app.tsx, beside the providers, for the app's whole life.
  */
 export function RunNotifications() {
+  const { t } = useLocale()
+  // A ref for the same reason as `enabledRef`: a language switch must not rebuild the cache
+  // subscription (and lose the status map) — the next notification just reads the new language.
+  const tRef = useRef(t)
+  tRef.current = t
   const queryClient = useQueryClient()
   // The toggle, straight from the GLOBAL ui-state (step 3.5 moved the section there — the
   // notifying browser is one browser whichever project is open). Read through the same query
@@ -57,7 +64,7 @@ export function RunNotifications() {
         permission: notificationSupport(),
       }
       if (!shouldNotify(gate)) return
-      for (const run of entering) fireRunNotification(run)
+      for (const run of entering) fireRunNotification(run, tRef.current)
     }
 
     // Seed from whatever the cache already holds: with an empty previous map nothing can
@@ -77,10 +84,10 @@ export function RunNotifications() {
  *  modes are real — no constructor at all (tests, old WebViews), and a constructor that THROWS
  *  on page-context construction (Chrome on Android insists on a ServiceWorker). A notification
  *  is a courtesy; it must never take the message loop down with it. */
-function fireRunNotification(run: ApiRun): void {
+function fireRunNotification(run: ApiRun, t: TFn): void {
   const N = globalThis.Notification
   if (typeof N !== 'function') return
-  const content = describeRunNotification(run)
+  const content = describeRunNotification(run, t, (label) => attentionLabel(t, label))
   try {
     new N(content.title, { body: content.body, tag: content.tag })
   } catch {

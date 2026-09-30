@@ -9,6 +9,8 @@ import { ApiError, pickVariant } from '@/api/client'
 import { queryKeys, useGroup, useHealth, useRuns } from '@/api/queries'
 import type { GroupVariant } from '@open-mercato/cezar-api-client'
 import { CenteredState } from '@/components/centered-state'
+import { useLocale } from '@/components/locale-provider'
+import { attentionLabel } from '@/i18n/ui-labels'
 import { DirectionalUsage } from '@/components/directional-usage'
 import { Pill } from '@/components/pill'
 import { RunDiff } from '@/components/run-diff'
@@ -52,6 +54,7 @@ export function CompareVariantsRoute() {
   const group = useGroup(groupId)
   const health = useHealth()
   const metricVisibility = usageMetricVisibility(health.data)
+  const { t } = useLocale()
   const queryClient = useQueryClient()
 
   // Freshness without polling (the sync doctrine): the group endpoint is not on the SSE stream,
@@ -78,15 +81,15 @@ export function CompareVariantsRoute() {
         <CenteredState
           icon={notFound ? <SearchXIcon /> : <ScaleIcon />}
           tone={notFound ? 'neutral' : 'danger'}
-          title={notFound ? 'No such variant group' : 'Could not load the variants'}
+          title={notFound ? t('compare.notFoundTitle') : t('compare.loadFailedTitle')}
           subtitle={
             notFound
-              ? 'No runs share this group id. The group may have been deleted, or a winner was already picked and the others removed.'
+              ? t('compare.notFoundBody')
               : group.error.message
           }
           actions={
             <Button asChild variant="outline">
-              <Link to="/">Back to tasks</Link>
+              <Link to="/">{t('compare.backToTasks')}</Link>
             </Button>
           }
         />
@@ -115,6 +118,7 @@ function CompareView({
   showTokens: boolean
   showCost: boolean
 }) {
+  const { t, tn } = useLocale()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [confirming, setConfirming] = useState<GroupVariant | null>(null)
@@ -146,8 +150,7 @@ function CompareView({
           </span>
         </h1>
         <p className="text-[13px] text-muted-foreground">
-          {variants.length} variants of the same task, each in its own worktree — pick the diff you
-          want to keep. The others are cancelled and archived, their worktrees and branches removed.
+          {tn('compare.intro', variants.length)}
         </p>
       </header>
 
@@ -171,7 +174,7 @@ function CompareView({
         ))}
       </div>
 
-      <section aria-label="Full diffs" className="flex flex-col gap-2">
+      <section aria-label={t('compare.fullDiffsAria')} className="flex flex-col gap-2">
         {variants.map((variant) => (
           <VariantDiff key={variant.id} variant={variant} />
         ))}
@@ -180,16 +183,13 @@ function CompareView({
       <AlertDialog open={confirming !== null} onOpenChange={(open) => !open && setConfirming(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Pick variant {confirming?.variant}?</AlertDialogTitle>
+            <AlertDialogTitle>{t('compare.pickTitle', { variant: confirming?.variant ?? '' })}</AlertDialogTitle>
             <AlertDialogDescription>
-              Variant {confirming?.variant}'s changes go to the review gate. The other{' '}
-              {variants.length - 1 === 1 ? 'variant is' : `${variants.length - 1} variants are`}{' '}
-              cancelled if still open, archived, and their worktrees and branches removed. There is
-              no undo.
+              {tn('compare.confirmBody', variants.length - 1, { variant: confirming?.variant ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep comparing</AlertDialogCancel>
+            <AlertDialogCancel>{t('compare.keepComparing')}</AlertDialogCancel>
             <AlertDialogAction
               data-slot="confirm-pick"
               onClick={() => {
@@ -198,7 +198,7 @@ function CompareView({
               }}
             >
               <CheckIcon aria-hidden="true" />
-              Pick variant {confirming?.variant}
+              {t('compare.pickVariant', { variant: confirming?.variant ?? '' })}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -224,6 +224,7 @@ function VariantColumn({
   showTokens: boolean
   showCost: boolean
 }) {
+  const { t } = useLocale()
   const attention = deriveAttention(variant)
   const cost = formatCost(variant.costUsd)
   const hasDirectionalUsage = variant.inputTokens !== undefined || variant.outputTokens !== undefined
@@ -236,13 +237,13 @@ function VariantColumn({
       <div className="flex items-center gap-2">
         <span
           data-slot="variant-letter"
-          aria-label={`Variant ${variant.variant}`}
+          aria-label={t('compare.variantAria', { variant: variant.variant })}
           className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-violet/15 font-mono text-xs font-semibold text-violet"
         >
           {variant.variant}
         </span>
         <Pill dot={attention.tone} pulse={attention.pulse}>
-          {attention.label}
+          {attentionLabel(t, attention.label)}
         </Pill>
         {(showTokens && hasDirectionalUsage) || (showCost && cost) ? (
           <span
@@ -273,13 +274,13 @@ function VariantColumn({
           data-slot="variant-diffstat"
           className="max-h-36 overflow-auto rounded-md bg-muted/60 px-2.5 py-2 font-mono text-[11px] leading-[1.6] whitespace-pre text-muted-foreground"
         >
-          {variant.diffStat.trimEnd() || '(no changes)'}
+          {variant.diffStat.trimEnd() || t('compare.noChanges')}
         </pre>
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="text-[10.5px] font-semibold tracking-[0.04em] text-soft-foreground uppercase">
-          Progress
+          {t('compare.progress')}
         </span>
         {variant.handoffExcerpt ? (
           <div
@@ -290,7 +291,7 @@ function VariantColumn({
           </div>
         ) : (
           <p data-slot="variant-progress" className="text-xs text-soft-foreground">
-            (no progress notes)
+            {t('compare.noProgress')}
           </p>
         )}
       </div>
@@ -299,14 +300,14 @@ function VariantColumn({
         data-slot="variant-pick"
         title={
           allTerminal
-            ? `Keep variant ${variant.variant}'s changes and archive the others`
-            : 'Every variant must finish before you can pick'
+            ? t('compare.pickTooltip', { variant: variant.variant })
+            : t('compare.pickBlocked')
         }
         disabled={!allTerminal || pickPending}
         onClick={onPick}
       >
         <CheckIcon aria-hidden="true" />
-        Pick this one
+        {t('compare.pickThis')}
       </Button>
     </article>
   )
@@ -315,6 +316,7 @@ function VariantColumn({
 /** A variant's full worktree diff, collapsed by default — `RunDiff` mounts (and fetches) only
  *  on first expand, so opening the compare view costs three stats, not three full diffs. */
 function VariantDiff({ variant }: { variant: GroupVariant }) {
+  const { t } = useLocale()
   const [open, setOpen] = useState(false)
   return (
     <Collapsible
@@ -329,7 +331,7 @@ function VariantDiff({ variant }: { variant: GroupVariant }) {
           className={cn('size-3.5 shrink-0 text-soft-foreground transition-transform', open && 'rotate-90')}
           aria-hidden="true"
         />
-        Variant {variant.variant} — full diff
+        {t('compare.fullDiff', { variant: variant.variant })}
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div className="border-t border-border/50 px-3 py-3">

@@ -21,6 +21,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet'
 import { CenteredState } from '@/components/centered-state'
+import { useLocale } from '@/components/locale-provider'
 import { shortAge } from '@/lib/format'
 import { DashboardUsageCosts } from './costs'
 import { DashboardTrends } from './trends'
@@ -29,7 +30,7 @@ import { Feed } from './feed'
 import { Coverage, TaskRow, taskKey } from './rows'
 import { DashboardExportMenu } from './export-menu'
 import { ExportRows } from './export-rows'
-import { DashboardLayout } from './layout'
+import { DashboardLayout, TILE_NAME_KEYS } from './layout'
 import { resetViewOrder, useDashboardPreferences } from './preferences'
 import {
   DashboardEntryContext,
@@ -50,6 +51,7 @@ export function DashboardRoute() {
 }
 
 function DashboardView({ entryKey }: { entryKey: string }) {
+  const { t } = useLocale()
   const location = useLocation()
   const [search, setSearch] = useSearchParams()
   const restored = useRef(readEntry(entryKey)).current
@@ -70,6 +72,7 @@ function DashboardView({ entryKey }: { entryKey: string }) {
     view === 'costs'
       ? [...viewTiles]
       : ['overview' as const, 'portfolio' as const, ...viewTiles]
+  const viewName = view === 'overview' ? t('dashboard.viewOverview') : t('dashboard.viewCosts')
   const resetOrder = resetViewOrder(preferences.order, scope)
   const showViewTiles = () =>
     preferences.setTiles({
@@ -208,9 +211,9 @@ function DashboardView({ entryKey }: { entryKey: string }) {
         >
           <header className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="text-xl font-semibold">Dashboard</h1>
+              <h1 className="text-xl font-semibold">{t('dashboard.title')}</h1>
               <p className="mt-1 text-xs text-muted-foreground">
-                Across your workspace · Includes subtasks
+                {t('dashboard.subtitle')}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -219,14 +222,14 @@ function DashboardView({ entryKey }: { entryKey: string }) {
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="min-h-11">
                     <SlidersHorizontalIcon className="size-4" />
-                    Customize
+                    {t('dashboard.customize')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent
                   align="end"
                   className="max-h-[min(32rem,80dvh)] max-w-[calc(100vw-2rem)] overflow-y-auto"
                 >
-                  <p className="mb-3 text-sm font-medium">Optional modules in this view</p>
+                  <p className="mb-3 text-sm font-medium">{t('dashboard.customizeModules')}</p>
                   {viewTiles.map((key) => (
                     <label key={key} className="flex min-h-11 items-center gap-3 text-sm">
                       <input
@@ -237,21 +240,11 @@ function DashboardView({ entryKey }: { entryKey: string }) {
                           preferences.setTiles({ ...savedTiles, [key]: e.target.checked })
                         }
                       />
-                      {
-                        {
-                          automations: 'Automations',
-                          fleet: 'Queue & scheduling',
-                          needsYou: 'Needs you',
-                          recent: 'Recent results & GitHub',
-                          usage: 'Usage & cost',
-                          trends: 'Trends',
-                        }[key]
-                      }
+                      {t(TILE_NAME_KEYS[key])}
                     </label>
                   ))}
                   <p className="mt-3 text-xs text-muted-foreground">
-                    Drag a module by its handle. With keyboard: Space, arrow keys, Space. Escape
-                    cancels.
+                    {t('dashboard.dragHint')}
                   </p>
                   {preferences.order.some((id, index) => id !== resetOrder[index]) && (
                     <Button
@@ -259,11 +252,11 @@ function DashboardView({ entryKey }: { entryKey: string }) {
                       className="min-h-11"
                       onClick={() => preferences.setOrder(resetOrder)}
                     >
-                      Reset {view === 'overview' ? 'Overview' : 'Usage & cost'} order
+                      {t('dashboard.resetOrder', { view: viewName })}
                     </Button>
                   )}
                   <p className="my-3 text-xs text-muted-foreground">
-                    Shared across browsers using this workspace
+                    {t('dashboard.sharedNote')}
                   </p>
                   {viewTiles.some((key) => !savedTiles[key]) && (
                     <Button
@@ -275,18 +268,18 @@ function DashboardView({ entryKey }: { entryKey: string }) {
                         setCustomizeOpen(false)
                       }}
                     >
-                      Show all in {view === 'overview' ? 'Overview' : 'Usage & cost'}
+                      {t('dashboard.showAllIn', { view: viewName })}
                     </Button>
                   )}
                 </PopoverContent>
               </Popover>
             </div>
           </header>
-          <nav aria-label="Dashboard views" className="flex flex-wrap gap-2 border-b pb-3">
+          <nav aria-label={t('dashboard.viewsAria')} className="flex flex-wrap gap-2 border-b pb-3">
             {(
               [
-                ['overview', 'Overview'],
-                ['costs', 'Usage & cost'],
+                ['overview', t('dashboard.viewOverview')],
+                ['costs', t('dashboard.viewCosts')],
               ] as const
             ).map(([id, label]) => {
               const next = new URLSearchParams(search)
@@ -313,44 +306,44 @@ function DashboardView({ entryKey }: { entryKey: string }) {
           </nav>
           {preferences.failed && (
             <p role="alert" className="text-sm">
-              Layout changed for this session, but could not be saved.{' '}
+              {t('dashboard.layoutNotSaved')}{' '}
               <Button variant="ghost" className="min-h-11" onClick={preferences.retry}>
-                Retry saving
+                {t('dashboard.retrySaving')}
               </Button>
             </p>
           )}
           {needsSnapshot && !live.connected && query.data && (
             <p role="status" className="text-xs text-muted-foreground">
-              Tasks disconnected · Last updated {shortAge(query.data.asOf)} ago
+              {t('dashboard.disconnected', { age: shortAge(query.data.asOf) })}
             </p>
           )}
           {needsSnapshot && query.isError && (
             <p role="alert" className="rounded-md border p-4 text-sm">
-              Could not refresh dashboard.{' '}
-              {query.data ? 'Showing the last available task state.' : ''}{' '}
+              {t('dashboard.refreshFailed')}{' '}
+              {query.data ? t('dashboard.showingLast') : ''}{' '}
               <Button
                 className="min-h-11"
                 onClick={() => {
                   void query.refetch()
                 }}
               >
-                Retry
+                {t('dashboard.retry')}
               </Button>
             </p>
           )}
           {view !== 'overview' && !Object.values(tiles).some(Boolean) ? (
             <CenteredState
               icon={<LayoutDashboardIcon />}
-              title="All modules in this view are hidden"
+              title={t('dashboard.allHidden')}
               actions={
                 <Button className="min-h-11" onClick={() => showViewTiles()}>
-                  Show all in Usage & cost
+                  {t('dashboard.showAllIn', { view: t('dashboard.viewCosts') })}
                 </Button>
               }
             />
           ) : null}
           {query.isPending && (tiles.fleet || tiles.needsYou) && (
-            <p className="text-sm">Loading dashboard…</p>
+            <p className="text-sm">{t('dashboard.loading')}</p>
           )}
           {needsSnapshot && query.data && (
             <Coverage
@@ -385,22 +378,22 @@ function DashboardView({ entryKey }: { entryKey: string }) {
                             }))}
                           />
                           <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
-                            <h2 className="text-sm font-semibold">Queue & scheduling</h2>
+                            <h2 className="text-sm font-semibold">{t('dashboard.fleetTitle')}</h2>
                             <span className="text-xs text-muted-foreground">
-                              {live.connected ? 'Tasks connected' : 'Tasks disconnected'}
+                              {live.connected ? t('dashboard.tasksConnected') : t('dashboard.tasksDisconnected')}
                             </span>
                           </div>
                           <div className="grid grid-cols-2 divide-x">
                             {(
                               [
-                                ['queued', 'Queued', query.data.counts.queued],
-                                ['scheduled', 'Scheduled', query.data.counts.scheduled],
+                                ['queued', t('dashboard.queued'), query.data.counts.queued],
+                                ['scheduled', t('dashboard.scheduled'), query.data.counts.scheduled],
                               ] as const
                             ).map(([group, label, total]) => (
                               <button
                                 key={group}
                                 data-export-keep
-                                aria-label={`${label}: ${total}`}
+                                aria-label={t('dashboard.countAria', { label, total })}
                                 className="min-h-24 p-4 text-left hover:bg-muted/50 focus-visible:outline-ring"
                                 onClick={(e) => open(group, e.currentTarget)}
                               >
@@ -416,12 +409,12 @@ function DashboardView({ entryKey }: { entryKey: string }) {
                             onToggle={(event) => setTechnicalOpen(event.currentTarget.open)}
                             className="border-t px-4 py-3 text-xs text-muted-foreground"
                           >
-                            <summary className="cursor-pointer py-2">Technical details</summary>
+                            <summary className="cursor-pointer py-2">{t('dashboard.technicalDetails')}</summary>
                             <div className="flex flex-wrap gap-x-5 gap-y-2">
                               <span>
-                                {query.data.counts.monitoring} monitoring (included in Running)
+                                {t('dashboard.monitoringIncluded', { count: query.data.counts.monitoring })}
                               </span>
-                              <span>Agent processes</span>
+                              <span>{t('dashboard.agentProcesses')}</span>
                               {technicalOpen && (
                                 <FleetTelemetry running={query.data.counts.running} />
                               )}
@@ -480,33 +473,37 @@ function DashboardView({ entryKey }: { entryKey: string }) {
               <SheetHeader>
                 <SheetTitle>
                   {panel === 'needs-you'
-                    ? 'Needs you'
-                    : panel
-                      ? panel[0]!.toUpperCase() + panel.slice(1)
-                      : 'Tasks'}
+                    ? t('dashboard.needsYou')
+                    : panel === 'running'
+                      ? t('dashboard.running')
+                      : panel === 'queued'
+                        ? t('dashboard.queued')
+                        : panel === 'scheduled'
+                          ? t('dashboard.scheduled')
+                          : t('dashboard.tasks')}
                   {query.data && panel
                     ? ` · ${panel === 'needs-you' ? count : query.data.counts[panel as 'running' | 'queued' | 'scheduled']}`
                     : ''}
                 </SheetTitle>
                 <SheetDescription>
-                  Includes subtasks. Open a task to continue in its project.
+                  {t('dashboard.panelDescription')}
                 </SheetDescription>
               </SheetHeader>
               {!query.data && query.isPending && (
                 <p className="p-4" role="status">
-                  Loading tasks…
+                  {t('dashboard.loadingTasks')}
                 </p>
               )}
               {!query.data && query.isError && (
                 <p className="p-4" role="alert">
-                  Could not load tasks.{' '}
+                  {t('dashboard.loadTasksFailed')}{' '}
                   <Button
                     className="min-h-11"
                     onClick={() => {
                       void query.refetch()
                     }}
                   >
-                    Retry
+                    {t('dashboard.retry')}
                   </Button>
                 </p>
               )}
@@ -521,6 +518,7 @@ function DashboardView({ entryKey }: { entryKey: string }) {
   )
 }
 function FleetTelemetry({ running }: { running: number }) {
+  const { t } = useLocale()
   const { connected, samples } = useDashboardLive()
   const fresh = connected ? samples : []
   const cpus = fresh.filter((s) => s.cpuPct !== null)
@@ -548,20 +546,20 @@ function FleetTelemetry({ running }: { running: number }) {
         ]}
       />
       <span>
-        CPU{' '}
+        {t('dashboard.cpu')}{' '}
         {cpus.length
           ? `${Math.round(cpus.reduce((n, s) => n + (s.cpuPct ?? 0), 0))}%`
-          : 'unavailable'}{' '}
-        · {cpus.length}/{running} measured
+          : t('dashboard.unavailable')}{' '}
+        · {t('dashboard.measured', { measured: cpus.length, running })}
       </span>
       <span>
-        RSS{' '}
+        {t('dashboard.rss')}{' '}
         {fresh.length
           ? `${(fresh.reduce((n, s) => n + s.rssBytes, 0) / 1024 ** 3).toFixed(1)} GiB`
-          : 'unavailable'}{' '}
-        · {fresh.length}/{running} measured
+          : t('dashboard.unavailable')}{' '}
+        · {t('dashboard.measured', { measured: fresh.length, running })}
       </span>
-      <span>RSS sums process resident memory; CPU may exceed 100%.</span>
+      <span>{t('dashboard.rssNote')}</span>
     </>
   )
 }
@@ -572,6 +570,7 @@ function TaskPanel({
   snapshot: DashboardSnapshot
   group: DashboardGroup
 }) {
+  const { t, tn } = useLocale()
   const entry = useContext(DashboardEntryContext)
   const restored = useRef(readPanel(entry, group)).current
   const [count, setCount] = useState(restored?.count ?? 20)
@@ -612,12 +611,12 @@ function TaskPanel({
   return (
     <div ref={container}>
       <h3 ref={heading} tabIndex={-1} className="sr-only">
-        Tasks
+        {t('dashboard.tasks')}
       </h3>
-      {query.isPending && <p className="p-4">Loading tasks…</p>}
+      {query.isPending && <p className="p-4">{t('dashboard.loadingTasks')}</p>}
       {(query.isError || displaced.isError) && (
         <p className="p-4" role="alert">
-          Could not check current task state.{' '}
+          {t('dashboard.checkStateFailed')}{' '}
           <Button
             className="min-h-11"
             onClick={() => {
@@ -625,7 +624,7 @@ function TaskPanel({
               void displaced.refetch()
             }}
           >
-            Retry
+            {t('dashboard.retry')}
           </Button>
         </p>
       )}
@@ -637,7 +636,7 @@ function TaskPanel({
             heading.current?.focus()
           }}
         >
-          {staged.updates} updates — Show
+          {tn('dashboard.updatesShow', staged.updates)}
         </Button>
       )}
       {staged.rows.map(({ row, removed }) => (
@@ -659,7 +658,7 @@ function TaskPanel({
           disabled={query.isFetching}
           onClick={() => setCount((n) => n + 20)}
         >
-          Show {Math.min(20, total - count)} more tasks
+          {tn('dashboard.showMoreTasks', Math.min(20, total - count))}
         </Button>
       )}
     </div>

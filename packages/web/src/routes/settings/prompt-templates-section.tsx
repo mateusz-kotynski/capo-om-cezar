@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { CheckIcon, ChevronDownIcon, NotebookPenIcon, PlusIcon, SparklesIcon, XIcon } from 'lucide-react'
 import { useRef, useState, type ReactNode } from 'react'
@@ -40,12 +41,13 @@ import { cn } from '@/lib/utils'
  * prompt, because a PUT on every keystroke would be a worse control, not a simpler one.
  */
 export function PromptTemplatesSection() {
+  const { t } = useLocale()
   const uiState = useUiState()
 
   if (uiState.isPending) {
     return (
       <p data-slot="prompt-templates-loading" className="p-4 text-[13px] text-soft-foreground md:p-6">
-        Loading prompt templates…
+        {t('prefs.promptTemplates.loading')}
       </p>
     )
   }
@@ -54,7 +56,7 @@ export function PromptTemplatesSection() {
       <CenteredState
         icon={<NotebookPenIcon />}
         tone="danger"
-        title="Prompt templates did not load"
+        title={t('prefs.promptTemplates.loadFailed')}
         subtitle={uiState.error.message}
         heading="h2"
       />
@@ -67,6 +69,7 @@ export function PromptTemplatesSection() {
 }
 
 function PromptTemplatesForm({ initial }: { initial: PromptTemplate[] }) {
+  const { t } = useLocale()
   const queryClient = useQueryClient()
   const skills = useSkills()
   // Already cached by the section gate above; read again here for the picker's #519 tiers.
@@ -79,7 +82,7 @@ function PromptTemplatesForm({ initial }: { initial: PromptTemplate[] }) {
     mutationFn: (next: PromptTemplate[]) => putUiState({ promptTemplates: next }),
     onSuccess: (merged) => {
       queryClient.setQueryData(queryKeys.uiState, merged)
-      toast('Prompt templates saved')
+      toast(t('prefs.promptTemplates.saved'))
     },
     onError: (error: Error) => toast(error.message, { tone: 'danger' }),
   })
@@ -126,13 +129,13 @@ function PromptTemplatesForm({ initial }: { initial: PromptTemplate[] }) {
       className="mx-auto flex w-full max-w-2xl flex-col gap-7 p-4 pb-[calc(90px+env(safe-area-inset-bottom))] md:p-6 md:pb-6"
     >
       <Field
-        title="Prompt templates"
-        hint="Reusable snippets you can insert into a prompt — the new-task composer, the GitHub hand-over, and the Inbox's “Add instructions” box all offer this list. Assign a template to a skill and it fills the prompt in for you when you pick that skill, as long as you have not typed anything yet."
+        title={t('prefs.promptTemplates.title')}
+        hint={t('prefs.promptTemplates.hint')}
       >
         <div data-slot="prompt-template-list" className="flex flex-col gap-3">
           {templates.length === 0 ? (
             <p data-slot="prompt-templates-empty" className="text-[13px] text-soft-foreground">
-              No templates. Add one below, or reset to the built-ins.
+              {t('prefs.promptTemplates.none')}
             </p>
           ) : (
             templates.map((template) => (
@@ -144,7 +147,7 @@ function PromptTemplatesForm({ initial }: { initial: PromptTemplate[] }) {
               >
                 <div className="flex items-center gap-2">
                   <Input
-                    aria-label={`Label for ${template.label || 'this template'}`}
+                    aria-label={t('prefs.promptTemplates.labelFor', { name: template.label || t('prefs.promptTemplates.thisTemplate') })}
                     data-slot="prompt-template-label-input"
                     value={template.label}
                     maxLength={80}
@@ -156,14 +159,14 @@ function PromptTemplatesForm({ initial }: { initial: PromptTemplate[] }) {
                     variant="ghost"
                     size="sm"
                     data-action="prompt-template-remove"
-                    title="Remove this template"
+                    title={t('prefs.promptTemplates.remove')}
                     onClick={() => removeTemplate(template.id)}
                   >
                     <XIcon aria-hidden="true" className="size-3.5" />
                   </Button>
                 </div>
                 <Textarea
-                  aria-label={`Text for ${template.label || 'this template'}`}
+                  aria-label={t('prefs.promptTemplates.textFor', { name: template.label || t('prefs.promptTemplates.thisTemplate') })}
                   data-slot="prompt-template-text-input"
                   value={template.text}
                   maxLength={2000}
@@ -186,7 +189,7 @@ function PromptTemplatesForm({ initial }: { initial: PromptTemplate[] }) {
                       type="button"
                       data-slot="prompt-template-skill-chip"
                       data-skill={name}
-                      title={`Stop applying “${template.label}” automatically with ${name}`}
+                      title={t('prefs.promptTemplates.stopApplying', { label: template.label, skill: name })}
                       onClick={() => toggleTemplateSkill(template.id, name)}
                       className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-px font-mono text-[11px] font-medium text-foreground transition-colors hover:bg-danger/10 hover:text-danger"
                     >
@@ -205,17 +208,17 @@ function PromptTemplatesForm({ initial }: { initial: PromptTemplate[] }) {
           className="flex flex-col gap-1.5 rounded-md border border-dashed border-border p-3"
         >
           <Input
-            aria-label="New template label"
+            aria-label={t('prefs.promptTemplates.newLabelAria')}
             data-slot="prompt-template-new-label"
-            placeholder='Label (e.g. "Add tests")'
+            placeholder={t('prefs.promptTemplates.newLabelPlaceholder')}
             value={newLabel}
             maxLength={80}
             onChange={(event) => setNewLabel(event.target.value)}
           />
           <Textarea
-            aria-label="New template text"
+            aria-label={t('prefs.promptTemplates.newTextAria')}
             data-slot="prompt-template-new-text"
-            placeholder="The instructions to insert…"
+            placeholder={t('prefs.promptTemplates.newTextPlaceholder')}
             value={newText}
             maxLength={2000}
             onChange={(event) => setNewText(event.target.value)}
@@ -231,7 +234,7 @@ function PromptTemplatesForm({ initial }: { initial: PromptTemplate[] }) {
             className="self-start"
           >
             <PlusIcon aria-hidden="true" className="size-3.5" />
-            Add template
+            {t('prefs.promptTemplates.add')}
           </Button>
         </div>
 
@@ -244,7 +247,7 @@ function PromptTemplatesForm({ initial }: { initial: PromptTemplate[] }) {
             disabled={!dirty || invalid || save.isPending}
             onClick={() => save.mutate(templates)}
           >
-            Save
+            {t('common.save')}
           </Button>
           <Button
             type="button"
@@ -254,11 +257,11 @@ function PromptTemplatesForm({ initial }: { initial: PromptTemplate[] }) {
             disabled={save.isPending}
             onClick={resetToDefaults}
           >
-            Reset to defaults
+            {t('prefs.promptTemplates.reset')}
           </Button>
           {invalid ? (
             <p data-slot="prompt-templates-invalid" className="text-[11px] text-danger">
-              Every template needs both a label and text.
+              {t('prefs.promptTemplates.invalid')}
             </p>
           ) : null}
         </div>
@@ -289,6 +292,7 @@ function TemplateSkillsPicker({
   selected: readonly string[]
   onToggle: (name: string) => void
 }) {
+  const { t } = useLocale()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
@@ -338,8 +342,8 @@ function TemplateSkillsPicker({
         <button
           type="button"
           data-slot="prompt-template-skills-trigger"
-          aria-label={`Apply ${label || 'this template'} automatically with a skill`}
-          title="Pick the skills this template applies itself to"
+          aria-label={t('prefs.promptTemplates.applyAria', { name: label || t('prefs.promptTemplates.thisTemplate') })}
+          title={t('prefs.promptTemplates.pickSkills')}
           disabled={skills.length === 0}
           className={cn(
             'inline-flex h-[26px] items-center gap-1.5 rounded-full border border-border bg-card px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50',
@@ -347,14 +351,14 @@ function TemplateSkillsPicker({
           )}
         >
           <SparklesIcon aria-hidden="true" className="size-3 shrink-0 text-violet" />
-          {skills.length === 0 ? 'no skills found' : 'apply with…'}
+          {skills.length === 0 ? t('prefs.promptTemplates.noSkillsFound') : t('prefs.promptTemplates.applyWith')}
           <ChevronDownIcon aria-hidden="true" className="size-2.5 shrink-0 text-soft-foreground" />
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" sideOffset={8} className="w-[336px] max-w-[calc(100vw-2rem)] p-0">
         <Command shouldFilter={false}>
           <CommandInput
-            placeholder="search skills…"
+            placeholder={t('prefs.promptTemplates.searchSkills')}
             value={search}
             onValueChange={setSearch}
             onInput={() => listRef.current?.scrollTo(0, 0)}
@@ -365,20 +369,20 @@ function TemplateSkillsPicker({
             className="max-h-[min(16rem,calc(var(--radix-popover-content-available-height)-3rem))]"
           >
             {mostUsed.length === 0 && project.length === 0 && global.length === 0 ? (
-              <CommandEmpty>Nothing matches.</CommandEmpty>
+              <CommandEmpty>{t('common.nothingMatches')}</CommandEmpty>
             ) : null}
             {mostUsed.length > 0 ? (
-              <CommandGroup heading="Most used">
+              <CommandGroup heading={t('prefs.promptTemplates.mostUsed')}>
                 {mostUsed.map((skill) => skillItem(skill, isProjectSkill(skill)))}
               </CommandGroup>
             ) : null}
             {project.length > 0 ? (
-              <CommandGroup heading="Project skills">
+              <CommandGroup heading={t('prefs.promptTemplates.projectSkills')}>
                 {project.map((skill) => skillItem(skill, true))}
               </CommandGroup>
             ) : null}
             {global.length > 0 ? (
-              <CommandGroup heading="Global">{global.map((skill) => skillItem(skill, false))}</CommandGroup>
+              <CommandGroup heading={t('prefs.promptTemplates.globalSkills')}>{global.map((skill) => skillItem(skill, false))}</CommandGroup>
             ) : null}
           </CommandList>
         </Command>
