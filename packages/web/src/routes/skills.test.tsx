@@ -6,7 +6,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { queryKeys, workspaceQueryKeys } from '@/api/queries'
 import { createQueryClient } from '@/api/query-client'
 import type { Skill, SkillsUpdateState, WorkflowsResponse } from '@open-mercato/cezar-api-client'
+import { LocaleProvider } from '@/components/locale-provider'
 import { Toaster, resetToasts } from '@/components/ui/toaster'
+import { LOCALE_STORAGE_KEY } from '@/lib/locale'
 import { AppRoutes } from '@/routes'
 
 /**
@@ -121,10 +123,12 @@ function renderAt(entry: string) {
   const client = gateSeededClient()
   render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[entry]}>
-        <AppRoutes />
-        <Toaster />
-      </MemoryRouter>
+      <LocaleProvider>
+        <MemoryRouter initialEntries={[entry]}>
+          <AppRoutes />
+          <Toaster />
+        </MemoryRouter>
+      </LocaleProvider>
     </QueryClientProvider>,
   )
   return client
@@ -665,6 +669,28 @@ describe('the bookmarklet panel (spec 011)', () => {
       expect(document.querySelector('[data-slot="toaster"]')?.textContent).toContain(
         'Drag me to your bookmarks bar',
       ),
+    )
+  })
+})
+
+describe('the skills page in Polish', () => {
+  afterEach(() => {
+    localStorage.removeItem(LOCALE_STORAGE_KEY)
+    document.documentElement.removeAttribute('lang')
+  })
+
+  it('words the header, filter, pinned panels and detail chrome in Polish; skill data stays', async () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'pl')
+    serve()
+    renderAt('/skills')
+
+    await waitFor(() => expect(rowNames()).toEqual(['om-fix', 'om-review', 'zebra-global']))
+    expect(document.querySelector('[data-slot="skills-filter"]')?.getAttribute('placeholder')).toBe('Filtruj skille…')
+    expect(document.querySelector('[data-slot="skills-refresh"]')?.textContent).toBe('Odśwież')
+    expect(document.querySelector('[data-slot="bookmarklets-row"]')?.textContent).toContain('Uruchom z GitHuba')
+    expect(document.querySelector('[data-slot="skills-detail"] [data-slot="skill-detail"] h2')?.textContent).toBe('om-fix')
+    await waitFor(() =>
+      expect(document.querySelector('[data-slot="skill-used-by"]')?.textContent).toContain('Używany przez'),
     )
   })
 })

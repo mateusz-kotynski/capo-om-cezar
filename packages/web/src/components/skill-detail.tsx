@@ -2,6 +2,7 @@ import { ArrowRightIcon } from 'lucide-react'
 import { Link } from '@/lib/project-router'
 
 import type { Skill } from '@open-mercato/cezar-api-client'
+import { useLocale } from '@/components/locale-provider'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { isProjectSkill } from '@/lib/skills'
 import { cn } from '@/lib/utils'
@@ -46,6 +47,7 @@ export function SkillDetailBody({
   usedBy?: readonly string[]
   heading?: 'h2' | 'h3'
 }) {
+  const { t } = useLocale()
   return (
     <div data-slot="skill-detail" className="min-w-0">
       <div className="flex min-w-0 flex-wrap items-center gap-2.5">
@@ -54,7 +56,7 @@ export function SkillDetailBody({
       </div>
       <p data-slot="skill-path" className="mt-1 font-mono text-[10.5px] break-all text-soft-foreground">
         {skill.path}
-        {skill.team ? ` · from ${skill.team.repo}` : ''}
+        {skill.team ? t('skills.fromRepo', { repo: skill.team.repo }) : ''}
       </p>
       {skill.description ? (
         <p data-slot="skill-description" className="mt-2.5 text-[13px] text-muted-foreground">
@@ -65,7 +67,7 @@ export function SkillDetailBody({
       {usedBy !== undefined ? (
         <section data-slot="skill-used-by" className="mt-5">
           <h3 className="text-[11px] font-semibold tracking-[.04em] text-soft-foreground uppercase">
-            Used by
+            {t('skills.usedBy')}
           </h3>
           {usedBy.length > 0 ? (
             <ul className="mt-1.5 flex flex-col gap-1">
@@ -78,7 +80,7 @@ export function SkillDetailBody({
             </ul>
           ) : (
             <p className="mt-1.5 text-xs text-soft-foreground">
-              Not referenced by any workflow yet — quick-task picks it up when the task mentions it.
+              {t('skills.notReferenced')}
             </p>
           )}
         </section>
@@ -86,7 +88,7 @@ export function SkillDetailBody({
 
       <section className="mt-5">
         <h3 className="text-[11px] font-semibold tracking-[.04em] text-soft-foreground uppercase">
-          Content
+          {t('skills.content')}
         </h3>
         <div data-slot="skill-body" className="mt-2 text-sm">
           <Markdown>{skill.body}</Markdown>
@@ -102,6 +104,7 @@ export function SkillDetailBody({
  * under Settings — the browsable home of the same detail.
  */
 export function SkillPreviewDialog({ skill, onClose }: { skill: Skill | null; onClose: () => void }) {
+  const { t } = useLocale()
   return (
     <Dialog open={skill !== null} onOpenChange={(open) => (open ? undefined : onClose())}>
       <DialogContent
@@ -112,7 +115,7 @@ export function SkillPreviewDialog({ skill, onClose }: { skill: Skill | null; on
           <>
             {/* The visible title is SkillDetailBody's heading; these two feed the dialog a11y contract. */}
             <DialogTitle className="sr-only">{skill.name}</DialogTitle>
-            <DialogDescription className="sr-only">Read-only skill preview</DialogDescription>
+            <DialogDescription className="sr-only">{t('skills.previewDescription')}</DialogDescription>
             <SkillDetailBody skill={skill} heading="h3" />
             <p className="mt-5">
               <Link
@@ -121,7 +124,7 @@ export function SkillPreviewDialog({ skill, onClose }: { skill: Skill | null; on
                 onClick={onClose}
                 className="text-xs font-semibold text-violet hover:underline"
               >
-                Open in the Skills catalog
+                {t('skills.openInCatalog')}
               </Link>
             </p>
           </>

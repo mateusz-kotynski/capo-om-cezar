@@ -7,6 +7,8 @@ import { queryKeys, useImportableSkills, useSkillsUpdate, useWorkspaceUiState, w
 import type { SkillsUpdateState, WorkspaceUiState } from '@open-mercato/cezar-api-client'
 import { Button } from '@/components/ui/button'
 import { CenteredState } from '@/components/centered-state'
+import { useLocale, type TFn } from '@/components/locale-provider'
+import { RichText } from '@/components/rich-text'
 import {
   Dialog,
   DialogContent,
@@ -17,6 +19,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { toast } from '@/components/ui/toaster'
+import { formatLocale } from '@/lib/locale'
 import { useNavigate } from '@/lib/project-router'
 import { cn } from '@/lib/utils'
 import { startedRunPath } from '@/routes/new-task-form'
@@ -61,6 +64,7 @@ function effectiveImported(uiState: WorkspaceUiState | undefined, allNames: read
  * may reconcile the cache, so a slow older response can never overwrite a newer selection.
  */
 export function ImportSkillsPanel({ projectId }: { projectId: string }) {
+  const { t } = useLocale()
   const queryClient = useQueryClient()
   const uiState = useWorkspaceUiState()
   const importable = useImportableSkills()
@@ -144,7 +148,7 @@ export function ImportSkillsPanel({ projectId }: { projectId: string }) {
         icon={<TriangleAlertIcon />}
         tone="danger"
         heading="h2"
-        title="Could not load importable skills"
+        title={t('skills.importLoadFailed')}
         subtitle={importable.error.message}
       />
     )
@@ -161,32 +165,36 @@ export function ImportSkillsPanel({ projectId }: { projectId: string }) {
 
   return (
     <div data-slot="skills-import-panel" className="mx-auto w-full max-w-2xl">
-      <h2 className="text-base font-semibold">Manage skills</h2>
+      <h2 className="text-base font-semibold">{t('skills.manage')}</h2>
       <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-        Reusable, technology-agnostic agent skills from{' '}
-        <a
-          href={SKILLS_REPO_URL}
-          target="_blank"
-          rel="noreferrer"
-          className="underline underline-offset-2 hover:text-foreground"
-        >
-          open-mercato/skills
-        </a>{' '}
-        — PR creation, code review, CI stabilisation, spec writing and more. They&apos;re all in your
-        catalog and the composer picker by default; uncheck any you don&apos;t want.
+        <RichText
+          text={t('skills.importIntro')}
+          tags={{
+            link: (label) => (
+              <a
+                href={SKILLS_REPO_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="underline underline-offset-2 hover:text-foreground"
+              >
+                {label}
+              </a>
+            ),
+          }}
+        />
       </p>
 
       <SkillsUpdateCard projectId={projectId} state={update.data} loadError={update.error} />
 
       <p className="mt-4 text-xs text-soft-foreground">
-        These checkboxes choose what cezar shows; updates refresh installed skill files.
+        {t('skills.importChoose')}
       </p>
 
       <div className="mt-4 flex items-center gap-2">
         <Input
           data-slot="import-filter"
-          placeholder="Filter skills…"
-          aria-label="Filter skills"
+          placeholder={t('skills.filterPlaceholder')}
+          aria-label={t('skills.filterAria')}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           className="h-8 text-[13px]"
@@ -198,13 +206,13 @@ export function ImportSkillsPanel({ projectId }: { projectId: string }) {
           onClick={enableOrDisableAll}
           className="h-8 shrink-0 rounded-md border border-border bg-card px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-55"
         >
-          {allImported ? 'Remove all' : 'Enable all'}
+          {allImported ? t('skills.removeAll') : t('skills.enableAll')}
         </button>
       </div>
 
       <div data-slot="import-list" className="mt-3 flex flex-col gap-1.5">
         {importable.isPending ? (
-          <p className="px-1 py-2 text-[13px] text-soft-foreground">Loading…</p>
+          <p className="px-1 py-2 text-[13px] text-soft-foreground">{t('skills.loading')}</p>
         ) : shown.length > 0 ? (
           shown.map((skill) => {
             const checked = imported.has(skill.name)
@@ -244,7 +252,7 @@ export function ImportSkillsPanel({ projectId }: { projectId: string }) {
           })
         ) : (
           <p className="px-1 py-2 text-xs text-soft-foreground">
-            {all.length > 0 ? '(no skills match)' : '(no skills available — the repo may still be cloning)'}
+            {all.length > 0 ? t('skills.noMatch') : t('skills.noAvailable')}
           </p>
         )}
       </div>
@@ -252,8 +260,8 @@ export function ImportSkillsPanel({ projectId }: { projectId: string }) {
   )
 }
 
-function scopeLabel(scope: SkillsUpdateState['scopes'][number]['scope']) {
-  return scope === 'project' ? 'Project installation' : 'Global installation'
+function scopeLabel(scope: SkillsUpdateState['scopes'][number]['scope'], t: TFn) {
+  return scope === 'project' ? t('skills.projectInstallation') : t('skills.globalInstallation')
 }
 
 function SkillsUpdateCard({
@@ -265,6 +273,7 @@ function SkillsUpdateCard({
   state?: SkillsUpdateState
   loadError: Error | null
 }) {
+  const { t } = useLocale()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const latestAction = useRef(0)
@@ -272,6 +281,7 @@ function SkillsUpdateCard({
   const startUpgradeNotes = useMutation({
     mutationFn: () =>
       createRun({
+        // The agent's own instruction — sent as-is, in English, whatever the UI language.
         task: 'Apply the upgrade notes after updating the installed Open Mercato skills.',
         steps: [
           {
@@ -297,7 +307,7 @@ function SkillsUpdateCard({
       queryClient.setQueryData(workspaceQueryKeys.skillsUpdate(projectId), result)
       if (request.action === 'apply' && result.updatedAt && result.updatedAt !== request.previousUpdatedAt) {
         void queryClient.invalidateQueries({ queryKey: queryKeys.skills })
-        toast(result.status === 'error' ? 'Some skill updates failed.' : 'Open Mercato skills updated.')
+        toast(result.status === 'error' ? t('skills.updateFailedSome') : t('skills.updated'))
         setShowUpgradeNotesPrompt(true)
       }
   }
@@ -327,13 +337,13 @@ function SkillsUpdateCard({
   const failed = state?.scopes.filter((scope) => scope.status === 'error' || scope.status === 'unavailable') ?? []
   const succeeded = state?.scopes.filter((scope) => scope.updatedAt && !failed.includes(scope)) ?? []
 
-  let message = 'Checking installed Open Mercato skills…'
-  if (loadError) message = 'Update status is unavailable right now.'
-  else if (state?.status === 'available') message = 'An update is available for your installed Open Mercato skills.'
-  else if (state?.status === 'updating') message = 'Updating installed Open Mercato skills…'
-  else if (state?.status === 'current') message = 'Installed Open Mercato skills are up to date.'
-  else if (state?.status === 'unavailable') message = state.scopes.find((scope) => scope.reason)?.reason ?? 'Automatic updates are unavailable.'
-  else if (state?.status === 'error') message = 'The update did not finish for every installation.'
+  let message = t('skills.checking')
+  if (loadError) message = t('skills.statusUnavailable')
+  else if (state?.status === 'available') message = t('skills.updateAvailable')
+  else if (state?.status === 'updating') message = t('skills.updating')
+  else if (state?.status === 'current') message = t('skills.upToDate')
+  else if (state?.status === 'unavailable') message = state.scopes.find((scope) => scope.reason)?.reason ?? t('skills.autoUnavailable')
+  else if (state?.status === 'error') message = t('skills.didNotFinish')
 
   return (
     <>
@@ -341,27 +351,27 @@ function SkillsUpdateCard({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-[13px] font-medium text-foreground">{message}</p>
-          {state?.checkedAt ? <p className="mt-1 text-xs text-soft-foreground">Last checked {new Date(state.checkedAt).toLocaleString()}.</p> : null}
+          {state?.checkedAt ? <p className="mt-1 text-xs text-soft-foreground">{t('skills.lastChecked', { when: new Date(state.checkedAt).toLocaleString(formatLocale()) })}</p> : null}
           {state?.scopes.some((scope) => scope.skills.length > 0) ? (
             <ul className="mt-1 text-xs text-soft-foreground">
-              {state.scopes.filter((scope) => scope.skills.length > 0).map((scope) => <li key={scope.scope}>{scopeLabel(scope.scope)} · {scope.skills.length} tracked</li>)}
+              {state.scopes.filter((scope) => scope.skills.length > 0).map((scope) => <li key={scope.scope}>{t('skills.tracked', { scope: scopeLabel(scope.scope, t), count: scope.skills.length })}</li>)}
             </ul>
           ) : null}
-          {failed.length > 0 ? <p className="mt-1 text-xs text-destructive">Failed: {failed.map((scope) => scopeLabel(scope.scope)).join(', ')}{succeeded.length ? `; updated: ${succeeded.map((scope) => scopeLabel(scope.scope)).join(', ')}` : ''}.</p> : null}
+          {failed.length > 0 ? <p className="mt-1 text-xs text-destructive">{t('skills.failedScopes', { scopes: failed.map((scope) => scopeLabel(scope.scope, t)).join(', '), updated: succeeded.length ? t('skills.updatedScopes', { scopes: succeeded.map((scope) => scopeLabel(scope.scope, t)).join(', ') }) : '' })}</p> : null}
         </div>
         {canApply ? (
           <Button data-action="skills-update-apply" size="sm" disabled={pending} onClick={() => run('apply')}>
             <RefreshCwIcon aria-hidden="true" className={cn('size-3.5', pending && 'motion-safe:animate-spin')} />
-            {pending ? 'Updating…' : retryable ? 'Retry' : 'Update now'}
+            {pending ? t('skills.updatingButton') : retryable ? t('skills.retry') : t('skills.updateNow')}
           </Button>
         ) : state?.status === 'current' ? (
-          <Button data-action="skills-update-check" variant="outline" size="sm" disabled={checkMutation.isPending} onClick={() => run('check')}>Check again</Button>
+          <Button data-action="skills-update-check" variant="outline" size="sm" disabled={checkMutation.isPending} onClick={() => run('check')}>{t('skills.checkAgain')}</Button>
         ) : state?.status === 'unavailable' || loadError ? (
-          <Button data-action="skills-update-check" variant="outline" size="sm" disabled={checkMutation.isPending} onClick={() => run('check')}>Retry check</Button>
+          <Button data-action="skills-update-check" variant="outline" size="sm" disabled={checkMutation.isPending} onClick={() => run('check')}>{t('skills.retryCheck')}</Button>
         ) : null}
       </div>
-      {(state?.status === 'unavailable' || loadError) ? <div className="mt-2 text-xs text-soft-foreground">Manual examples: <code>npx skills update -p</code> · <code>npx skills update -g</code>. These broad commands may update other tracked sources.</div> : null}
-      {state?.needsUpgradeNotes ? <div data-slot="skills-upgrade-notes" className="mt-3 flex gap-2 rounded-md border border-primary/30 bg-background p-2.5 text-xs text-foreground"><CheckCircle2Icon aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-primary" /><span>Skill files were updated. Run <code>/om-apply-upgrade-notes</code> in each configured repository to apply descriptor migrations while preserving local edits.</span></div> : null}
+      {(state?.status === 'unavailable' || loadError) ? <div className="mt-2 text-xs text-soft-foreground"><RichText text={t('skills.manualExamples')} tags={{ code: (c) => <code>{c}</code> }} /></div> : null}
+      {state?.needsUpgradeNotes ? <div data-slot="skills-upgrade-notes" className="mt-3 flex gap-2 rounded-md border border-primary/30 bg-background p-2.5 text-xs text-foreground"><CheckCircle2Icon aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-primary" /><span><RichText text={t('skills.upgradeNotesBanner')} tags={{ code: (c) => <code>{c}</code> }} /></span></div> : null}
       </section>
       <Dialog
         open={showUpgradeNotesPrompt}
@@ -369,10 +379,9 @@ function SkillsUpdateCard({
       >
         <DialogContent data-slot="skills-upgrade-notes-dialog" showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>Apply the upgrade notes now?</DialogTitle>
+            <DialogTitle>{t('skills.upgradeNotesTitle')}</DialogTitle>
             <DialogDescription>
-              The skill files were updated successfully. Start a new session with{' '}
-              <code>/om-apply-upgrade-notes</code> to sync repository descriptors while preserving local edits?
+              <RichText text={t('skills.upgradeNotesBody')} tags={{ code: (c) => <code>{c}</code> }} />
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -382,14 +391,14 @@ function SkillsUpdateCard({
               disabled={startUpgradeNotes.isPending}
               onClick={() => setShowUpgradeNotesPrompt(false)}
             >
-              No
+              {t('skills.no')}
             </Button>
             <Button
               type="button"
               disabled={startUpgradeNotes.isPending}
               onClick={() => startUpgradeNotes.mutate()}
             >
-              {startUpgradeNotes.isPending ? 'Starting…' : 'Yes, start session'}
+              {startUpgradeNotes.isPending ? t('skills.starting') : t('skills.yesStart')}
             </Button>
           </DialogFooter>
         </DialogContent>
