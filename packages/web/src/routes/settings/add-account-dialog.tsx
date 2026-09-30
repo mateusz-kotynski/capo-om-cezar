@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { useState } from 'react'
 
 import { useCreateAgentProfile } from '@/api/queries'
@@ -49,6 +50,7 @@ export function AddAccountDialog({
   /** Which agent's "Add account" was clicked; still switchable in the dialog. */
   initialProvider?: ProviderId
 }) {
+  const { t } = useLocale()
   // `null` = the configured browse root. The dialog never spells that path itself.
   const [path, setPath] = useState<string | null>(null)
   const [selected, setSelected] = useState<FsBrowseDir | null>(null)
@@ -84,7 +86,7 @@ export function AddAccountDialog({
           setConfigDir('')
           setSelected(null)
           setBrowsing(false)
-          toast('Account added — use Connect to sign in')
+          toast(t('prefs.accounts.addedToast'))
         },
       },
     )
@@ -94,18 +96,17 @@ export function AddAccountDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent data-slot="add-account-dialog" className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Add agent account</DialogTitle>
+          <DialogTitle>{t('prefs.accounts.addTitle')}</DialogTitle>
           <DialogDescription>
-            The config folder this account uses. It does not have to exist yet — Connect signs in
-            and the CLI creates it.
+            {t('prefs.accounts.addBody')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-2 text-[13px]">
-            <span className="text-muted-foreground">Agent</span>
+            <span className="text-muted-foreground">{t('prefs.accounts.agent')}</span>
             <select
-              aria-label="Agent"
+              aria-label={t('prefs.accounts.agent')}
               data-slot="add-account-provider"
               value={provider}
               onChange={(event) => setProvider(event.target.value as ProviderId)}
@@ -122,10 +123,10 @@ export function AddAccountDialog({
             <span className="shrink-0 text-muted-foreground">Name</span>
             <input
               type="text"
-              aria-label="Account name"
+              aria-label={t('prefs.accounts.accountName')}
               data-slot="add-account-label"
               value={label}
-              placeholder="Work"
+              placeholder={t('prefs.accounts.accountNamePlaceholder')}
               onChange={(event) => setLabel(event.target.value)}
               className="min-w-0 flex-1 rounded-md border border-input bg-card px-2 py-1 text-[13px] outline-none focus-visible:border-ring"
             />
@@ -134,12 +135,12 @@ export function AddAccountDialog({
 
         <div className="flex flex-col gap-1.5">
           <label className="flex min-w-0 items-center gap-2 text-[13px]">
-            <span className="shrink-0 text-muted-foreground">Folder</span>
+            <span className="shrink-0 text-muted-foreground">{t('prefs.accounts.folder')}</span>
             <input
               type="text"
               spellCheck={false}
               autoComplete="off"
-              aria-label="Config folder"
+              aria-label={t('prefs.accounts.configFolder')}
               data-slot="add-account-dir"
               value={configDir}
               placeholder={provider === 'codex' ? '~/.codex-second' : '~/.claude-second'}
@@ -158,11 +159,11 @@ export function AddAccountDialog({
               aria-expanded={browsing}
               onClick={() => setBrowsing((on) => !on)}
             >
-              {browsing ? 'Hide folders' : 'Browse…'}
+              {browsing ? t('prefs.accounts.hideFolders') : t('prefs.accounts.browse')}
             </Button>
           </label>
           <p className="text-[11.5px] text-soft-foreground">
-            A <code>~</code> is kept as written and expanded when the agent runs.
+            {t('prefs.accounts.tildeNote')}
           </p>
         </div>
 
@@ -176,7 +177,7 @@ export function AddAccountDialog({
             onEnter={enter}
             // Every agent config folder is hidden — without this the listing shows none of them.
             showHidden
-            emptyHint="No subfolders here — pick this folder by typing its path above."
+            emptyHint={t('prefs.accounts.noSubfolders')}
           />
         ) : null}
 
@@ -184,20 +185,20 @@ export function AddAccountDialog({
             by …", "must be an absolute path". This dialog cannot know which applies. */}
         {create.isError ? (
           <p data-slot="add-account-error" className="min-w-0 break-words text-[13px] text-danger">
-            {create.error instanceof Error ? create.error.message : 'could not add that folder'}
+            {create.error instanceof Error ? create.error.message : t('prefs.accounts.couldNotAdd')}
           </p>
         ) : null}
 
         <DialogFooter className="min-w-0 sm:items-center sm:justify-end">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             data-slot="add-account-confirm"
             disabled={trimmed === '' || create.isPending}
             onClick={add}
           >
-            {create.isPending ? 'Adding…' : 'Add account'}
+            {create.isPending ? t('prefs.accounts.adding') : t('prefs.accounts.addAccount')}
           </Button>
         </DialogFooter>
       </DialogContent>
