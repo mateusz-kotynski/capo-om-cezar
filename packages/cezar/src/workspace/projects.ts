@@ -231,6 +231,85 @@ export function normalizeProjectTags(tags: readonly string[] | null | undefined)
   return normalized.length > 0 ? normalized : undefined;
 }
 
+/**
+ * The parent `id` is drawn under, or undefined when it reads as top-level. Nesting is one level
+ * and readers only draw children under top-level entries, so a stored `parent` counts only when
+ * the named parent is registered AND is itself effectively top-level (its own `parent` is absent
+ * or names an unregistered id). A chain x->c->p reads c under p and x top-level; a cycle a->b->a
+ * reads both top-level. Deterministic, and nothing ever vanishes from a listing.
+ */
+export function effectiveParent(
+  projects: readonly Pick<WorkspaceProject, 'id' | 'parent'>[],
+  id: string,
+): string | undefined {
+  const byId = new Map(projects.map((project) => [project.id, project]));
+  const parent = byId.get(id)?.parent;
+  const target = parent ? byId.get(parent) : undefined;
+  if (!parent || !target || parent === id) return undefined;
+  return target.parent && byId.has(target.parent) && target.parent !== target.id ? undefined : parent;
+}
+
+/**
+ * Why `id` cannot be nested under `parentId`, or null when it can (spec
+ * 2026-09-29-nested-repo-projects). One level only: the parent must be top-level, and a project
+ * that already has children cannot be nested itself. A parent that `listProjects` reports as top-level
+ * (see `effectiveParent`) counts as top-level here too.
+ */
+export function projectParentError(
+  projects: readonly Pick<WorkspaceProject, 'id' | 'parent'>[],
+  id: string,
+  parentId: string,
+): string | null {
+  if (parentId === id) return 'a project cannot be its own parent';
+  const parent = projects.find((project) => project.id === parentId);
+  if (!parent) return `unknown parent project: ${parentId}`;
+  const grandparent = effectiveParent(projects, parentId);
+  if (grandparent) {
+    return `${parentId} is itself nested under ${grandparent}; nesting is one level`;
+  }
+  if (projects.some((project) => project.parent === id)) {
+    return `${id} has nested projects; it cannot be nested itself`;
+  }
+  return null;
+}
+
+/** An invalid `parent` — the message is the user-facing reason (`projectParentError`). */
+export class ProjectParentError extends Error {}
+
+/**
+ * Nest `id` under `parentId`, or make it top-level again with `null`. `undefined` for an unknown
+ * `id`; throws `ProjectParentError` (and writes nothing) for a parent `projectParentError` refuses.
+ */
+export async function setProjectParent(
+  id: string,
+  parentId: string | null,
+): Promise<WorkspaceProject | undefined> {
+  let updated: WorkspaceProject | undefined;
+  let refusal = null as string | null;
+  await mergeWriteWorkspaceConfig((config) => {
+    const entry = config.projects.find((project) => project.id === id);
+    if (!entry) return;
+    if (parentId === null) {
+      delete entry.parent;
+    } else {
+      refusal = projectParentError(config.projects, id, parentId);
+      if (refusal) return;
+      entry.parent = parentId;
+    }
+    updated = entry;
+  });
+  if (refusal) throw new ProjectParentError(refusal);
+  return updated;
+}
+
+/** A registry id for `ref`: the id itself, or the project whose root is `ref`'s realpath. */
+export async function findProjectId(ref: string): Promise<string | undefined> {
+  const { projects } = await loadWorkspaceConfig();
+  if (projects.some((project) => project.id === ref)) return ref;
+  const root = await normalizeRoot(ref);
+  return projects.find((project) => project.root === root)?.id;
+}
+
 export type ProjectStatus = 'ok' | 'missing' | 'not-git';
 
 export interface ProjectListEntry extends WorkspaceProject {
@@ -349,7 +428,11 @@ export async function listProjects(selector?: ProjectListSelector): Promise<Proj
     ? config.projects.filter((project) => project.id === selector.projectId)
     : config.projects;
   return Promise.all(
-    projects.map(async (project) => ({ ...project, ...(await probeRoot(project.root)) })),
+    projects.map(async ({ parent: _stored, ...project }) => ({
+      ...project,
+      ...(effectiveParent(config.projects, project.id) ? { parent: effectiveParent(config.projects, project.id) } : {}),
+      ...(await probeRoot(project.root)),
+    })),
   );
 }
 
@@ -365,6 +448,8 @@ export async function removeProject(id: string): Promise<boolean> {
     const next = config.projects.filter((p) => p.id !== id);
     removed = next.length !== config.projects.length;
     config.projects = next;
+    // Children of a removed parent become top-level rather than pointing at nothing.
+    if (removed) for (const project of next) if (project.parent === id) delete project.parent;
   });
   return removed;
 }

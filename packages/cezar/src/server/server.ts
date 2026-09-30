@@ -187,6 +187,7 @@ import {
   listProjects,
   normalizeProjectTags,
   probeProjectStatus,
+  projectParentError,
   registerProject,
   removeProject,
   shouldRegisterProject,
@@ -2654,7 +2655,7 @@ export function createApp(deps: ServerDeps) {
       const parsed = { data: c.req.valid('json') };
       // `default` is the boot alias the cockpit is allowed to use everywhere else.
       const id = raw === 'default' ? await resolveBootProject() : raw;
-      const { maxParallel, tags } = parsed.data;
+      const { maxParallel, tags, parent } = parsed.data;
 
       // Read-first (mirroring DELETE, server.ts:1252-1258): a well-formed but
       // unknown id must 404 WITHOUT rewriting the config — otherwise it would both
@@ -2670,10 +2671,16 @@ export function createApp(deps: ServerDeps) {
       if (!known) return c.json({ error: `unknown project: ${id}` }, 404);
 
       let updated: WorkspaceProject | undefined;
+      let parentRefusal = null as string | null;
       try {
         await mergeWriteWorkspaceConfig((config) => {
           const entry = config.projects.find((p) => p.id === id);
           if (!entry) return; // lost a race with a concurrent remove — answered below
+          // Validated before ANY key is applied, so a refused parent leaves the whole body unapplied.
+          if (parent) {
+            parentRefusal = projectParentError(config.projects, id, parent);
+            if (parentRefusal) return;
+          }
           // Each key is applied only when the body NAMED it: a PATCH that says
           // nothing about a field must leave it exactly as it was, which is what
           // keeps the tags editor from clearing a concurrency ceiling (and the
@@ -2691,12 +2698,17 @@ export function createApp(deps: ServerDeps) {
             if (normalized === undefined) delete entry.tags;
             else entry.tags = normalized;
           }
+          if (parent !== undefined) {
+            if (parent === null) delete entry.parent;
+            else entry.parent = parent;
+          }
           updated = entry;
         });
       } catch (err) {
         // e.g. a read-only home — nothing was persisted (atomic tmp+rename).
         return c.json({ error: err instanceof Error ? err.message : String(err) }, 500);
       }
+      if (parentRefusal) return c.json({ error: parentRefusal }, 400);
       // Raced with a concurrent removal between the read and the write.
       if (!updated) return c.json({ error: `unknown project: ${id}` }, 404);
 

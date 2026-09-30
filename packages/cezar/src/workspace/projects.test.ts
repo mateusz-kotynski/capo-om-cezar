@@ -10,11 +10,14 @@ import { writeTrackerAssociation } from '../tracker-association.ts';
 import {
   allocateProjectSlug,
   clearProjectProbeCache,
+  findProjectId,
   listProjects,
   normalizeProjectTags,
+  ProjectParentError,
   probeProjectStatus,
   registerProject,
   removeProject,
+  setProjectParent,
   shouldAutoRegisterProject,
   shouldRegisterProject,
 } from './projects.ts';
@@ -477,5 +480,99 @@ describe('workspace projects', () => {
     const listed = (await listProjects()).find((p) => p.id === entry.id);
     expect(listed).toBeDefined();
     expect(listed?.tags).toBeUndefined();
+  });
+
+  describe('parent (spec 2026-09-29-nested-repo-projects)', () => {
+    const three = async () => {
+      const product = await registerProject(makeRepo('product'));
+      const api = await registerProject(makeRepo('product', 'api'));
+      const web = await registerProject(makeRepo('product', 'web'));
+      return { product, api, web };
+    };
+
+    it('sets, lists and clears a parent', async () => {
+      const { product, api } = await three();
+      expect((await setProjectParent(api.id, product.id))?.parent).toBe(product.id);
+      expect((await listProjects()).find((p) => p.id === api.id)?.parent).toBe(product.id);
+      await setProjectParent(api.id, null);
+      const stored = (await loadWorkspaceConfig()).projects.find((p) => p.id === api.id)!;
+      expect('parent' in stored).toBe(false);
+    });
+
+    it('returns undefined for an unknown id and writes nothing for it', async () => {
+      const { product } = await three();
+      expect(await setProjectParent('nope', product.id)).toBeUndefined();
+    });
+
+    it('refuses an unknown parent, itself, a nested parent, and nesting a parent', async () => {
+      const { product, api, web } = await three();
+      await expect(setProjectParent(api.id, 'ghost')).rejects.toThrow('unknown parent project: ghost');
+      await expect(setProjectParent(api.id, api.id)).rejects.toThrow('a project cannot be its own parent');
+      await setProjectParent(api.id, product.id);
+      await expect(setProjectParent(web.id, api.id)).rejects.toThrow(
+        `${api.id} is itself nested under ${product.id}; nesting is one level`,
+      );
+      await expect(setProjectParent(product.id, web.id)).rejects.toThrow(
+        `${product.id} has nested projects; it cannot be nested itself`,
+      );
+      await expect(setProjectParent(web.id, 'ghost')).rejects.toBeInstanceOf(ProjectParentError);
+      expect((await loadWorkspaceConfig()).projects.find((p) => p.id === web.id)?.parent).toBeUndefined();
+    });
+
+    it('removing a parent makes its children top-level', async () => {
+      const { product, api, web } = await three();
+      await setProjectParent(api.id, product.id);
+      await setProjectParent(web.id, product.id);
+      await removeProject(product.id);
+      const stored = (await loadWorkspaceConfig()).projects;
+      expect(stored.map((p) => p.id)).toEqual([api.id, web.id]);
+      expect(stored.every((p) => !('parent' in p))).toBe(true);
+    });
+
+    it('lists a parent naming an unregistered id as top-level', async () => {
+      const { api } = await three();
+      await mergeWriteWorkspaceConfig((config) => {
+        config.projects.find((p) => p.id === api.id)!.parent = 'gone';
+      });
+      expect((await listProjects()).find((p) => p.id === api.id)?.parent).toBeUndefined();
+    });
+
+    it('reads a chain x->c->p as c under p and x top-level', async () => {
+      const { product, api, web } = await three();
+      await mergeWriteWorkspaceConfig((config) => {
+        config.projects.find((p) => p.id === api.id)!.parent = product.id;
+        config.projects.find((p) => p.id === web.id)!.parent = api.id;
+      });
+      const listed = await listProjects();
+      expect(listed.find((p) => p.id === api.id)?.parent).toBe(product.id);
+      expect(listed.find((p) => p.id === web.id)?.parent).toBeUndefined();
+      expect(listed.find((p) => p.id === product.id)?.parent).toBeUndefined();
+    });
+
+    it('reads both members of a parent cycle as top-level', async () => {
+      const { api, web } = await three();
+      await mergeWriteWorkspaceConfig((config) => {
+        config.projects.find((p) => p.id === api.id)!.parent = web.id;
+        config.projects.find((p) => p.id === web.id)!.parent = api.id;
+      });
+      const listed = await listProjects();
+      expect(listed.find((p) => p.id === api.id)?.parent).toBeUndefined();
+      expect(listed.find((p) => p.id === web.id)?.parent).toBeUndefined();
+    });
+
+    it('degrades a malformed stored parent to top-level on load', async () => {
+      const { api } = await three();
+      await mergeWriteWorkspaceConfig((config) => {
+        (config.projects.find((p) => p.id === api.id) as Record<string, unknown>).parent = 'Not A Slug!';
+      });
+      expect((await loadWorkspaceConfig()).projects.find((p) => p.id === api.id)?.parent).toBeUndefined();
+    });
+
+    it('finds a project by id or by folder', async () => {
+      const { product } = await three();
+      expect(await findProjectId(product.id)).toBe(product.id);
+      expect(await findProjectId(`${product.root}/`)).toBe(product.id);
+      expect(await findProjectId(join(repos, 'nowhere'))).toBeUndefined();
+    });
   });
 });

@@ -38,6 +38,9 @@ describe('cezar projects CLI', () => {
 
   const run = (...args: string[]): Promise<number> =>
     runProjectsCommand(args, { defaultRoot: repos, env: {}, io });
+  // `--parent` is consumed by the top-level parser and arrives as an option, not in argv.
+  const runWithParent = (parent: string | undefined, ...args: string[]): Promise<number> =>
+    runProjectsCommand(args, { defaultRoot: repos, env: {}, io, parent });
 
   const makeDir = (...segments: string[]): string => {
     const dir = join(repos, ...segments);
@@ -239,7 +242,7 @@ describe('cezar projects CLI', () => {
 
   it('documents the single-project mutation restriction in usage output', async () => {
     expect(await run('frobnicate')).toBe(1);
-    expect(io.err.join('\n')).toContain('add/remove/tag are unavailable when CEZ_SINGLE_PROJECT=1');
+    expect(io.err.join('\n')).toContain('add/remove/tag/parent are unavailable when CEZ_SINGLE_PROJECT=1');
   });
 
   /** The terminal twin of Settings -> Projects' Tags cell. */
@@ -286,6 +289,98 @@ describe('cezar projects CLI', () => {
     it('needs an id', async () => {
       expect(await run('tag')).toBe(1);
       expect(io.err.join('\n')).toContain('cezar projects [list]');
+    });
+  });
+
+  describe('nesting (spec 2026-09-29-nested-repo-projects)', () => {
+    it('add --parent by folder nests the new project and says so', async () => {
+      const product = makeRepo('product');
+      // `api` is a reserved slug (RESERVED_PROJECT_IDS) and would allocate `api-2`, so this
+      // fixture uses `svc` to keep the id assertion below exact.
+      const svc = makeRepo('product', 'svc');
+      expect(await run('add', product)).toBe(0);
+      expect(await runWithParent(product, 'add', svc)).toBe(0);
+      expect(io.out.at(-1)).toMatch(/^ {2}\+ svc {2}.*svc {2}↳ product$/);
+      const stored = (await loadWorkspaceConfig()).projects.find((p) => p.id === 'svc');
+      expect(stored?.parent).toBe('product');
+    });
+
+    it('add --parent on an already registered folder sets the parent (Capo re-runs it)', async () => {
+      const product = makeRepo('product');
+      const svc = makeRepo('product', 'svc');
+      await run('add', product);
+      await run('add', svc);
+      expect(await runWithParent('product', 'add', svc)).toBe(0);
+      expect(io.out.at(-1)).toContain('(already registered)');
+      expect((await loadWorkspaceConfig()).projects.find((p) => p.id === 'svc')?.parent).toBe('product');
+    });
+
+    it('add --parent with an unknown parent fails before registering anything', async () => {
+      const api = makeRepo('api');
+      expect(await runWithParent('ghost', 'add', api)).toBe(1);
+      expect(io.err.at(-1)).toBe('unknown parent project: ghost');
+      expect((await loadWorkspaceConfig()).projects).toEqual([]);
+    });
+
+    it('add --parent without a value is a usage error', async () => {
+      expect(await runWithParent('', 'add', makeRepo('api'))).toBe(1);
+      expect(io.err.join('\n')).toContain('cezar projects [list]');
+    });
+
+    it('--parent on any subcommand but add is a usage error', async () => {
+      await run('add', makeRepo('product'));
+      expect(await runWithParent('product', 'list')).toBe(1);
+      expect(await runWithParent('product', 'remove', 'product')).toBe(1);
+      expect(io.err.join('\n')).toContain('--parent applies to `projects add` only');
+      expect((await loadWorkspaceConfig()).projects).toHaveLength(1);
+    });
+
+    it('list keeps the id column width when nothing is nested', async () => {
+      await run('add', makeRepo('product'));
+      await run('add', makeRepo('zeta'));
+      io.out.length = 0;
+      await run('list');
+      const rows = io.out.filter((line) => line.includes(repos));
+      expect(rows[0]).toMatch(/^ {2}✓ product {2}main {2}/);
+      expect(rows[1]).toMatch(/^ {2}✓ zeta {5}main {2}/);
+    });
+
+    it('parent sets, refuses and clears', async () => {
+      await run('add', makeRepo('product'));
+      await run('add', makeRepo('product', 'svc'));
+      expect(await run('parent', 'svc', 'product')).toBe(0);
+      expect(io.out.at(-1)).toBe('  = svc  ↳ product');
+      expect(await run('parent', 'product', 'svc')).toBe(1);
+      expect(io.err.at(-1)).toBe('svc is itself nested under product; nesting is one level');
+      expect(await run('parent', 'svc')).toBe(0);
+      expect(io.out.at(-1)).toBe('  = svc (top-level)');
+      expect(await run('parent', 'ghost', 'product')).toBe(1);
+      expect(io.err.at(-1)).toBe('unknown project: ghost');
+    });
+
+    it('parent is refused in single-project mode', async () => {
+      const code = await runProjectsCommand(['parent', 'svc', 'product'], {
+        defaultRoot: repos, env: { CEZ_SINGLE_PROJECT: '1' }, io,
+      });
+      expect(code).toBe(1);
+    });
+
+    it('list prints children right after their parent, marked ↳', async () => {
+      await run('add', makeRepo('product'));
+      await run('add', makeRepo('zeta'));
+      await run('add', makeRepo('product', 'web'));
+      await run('add', makeRepo('product', 'svc'));
+      await run('parent', 'web', 'product');
+      await run('parent', 'svc', 'product');
+      io.out.length = 0;
+      await run('list');
+      const rows = io.out.filter((line) => line.includes(repos)).map((line) => line.trim());
+      expect(rows.map((row) => row.split(/\s+/).slice(1, 3).join(' '))).toEqual([
+        'product main',
+        '↳ svc',
+        '↳ web',
+        'zeta main',
+      ]);
     });
   });
 });

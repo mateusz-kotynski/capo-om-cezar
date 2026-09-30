@@ -3,10 +3,13 @@ import { resolve } from 'node:path';
 import { workspaceConfigPath } from '../paths.ts';
 import { loadWorkspaceConfig, mergeWriteWorkspaceConfig } from './config.ts';
 import {
+  findProjectId,
   listProjects,
   normalizeProjectTags,
+  ProjectParentError,
   registerProject,
   removeProject,
+  setProjectParent,
   shouldRegisterProject,
 } from './projects.ts';
 
@@ -33,12 +36,15 @@ const defaultIo: ProjectsCommandIo = {
 
 const USAGE = `usage:
   cezar projects [list]        list the registered projects
-  cezar projects add [<dir>]   register a folder (default: --repo, else cwd)
+  cezar projects add [<dir>] [--parent <id|dir>]
+                               register a folder (default: --repo, else cwd), optionally nested
   cezar projects remove <id>   drop a registry entry (the repo is untouched)
   cezar projects tag <id> [<tag>…]
                                set the grouping tags of a project (none clears them)
+  cezar projects parent <id> [<id|dir>]
+                               show a project under another in the sidebar (none makes it top-level)
 
-  add/remove/tag are unavailable when CEZ_SINGLE_PROJECT=1`;
+  add/remove/tag/parent are unavailable when CEZ_SINGLE_PROJECT=1`;
 
 const SINGLE_PROJECT_ADD_ERROR = 'single-project mode is enabled; adding projects is disabled';
 const SINGLE_PROJECT_REMOVE_ERROR = 'single-project mode is enabled; removing projects is disabled';
@@ -51,20 +57,37 @@ const SINGLE_PROJECT_EDIT_ERROR = 'single-project mode is enabled; editing proje
  */
 export async function runProjectsCommand(
   args: string[],
-  opts: { defaultRoot: string; bootProjectId?: string; env?: NodeJS.ProcessEnv; io?: ProjectsCommandIo },
+  opts: {
+    defaultRoot: string;
+    bootProjectId?: string;
+    /** `--parent <id|dir>`, already consumed by the top-level argument parser; `add` only. */
+    parent?: string;
+    env?: NodeJS.ProcessEnv;
+    io?: ProjectsCommandIo;
+  },
 ): Promise<number> {
   const io = opts.io ?? defaultIo;
   const singleProject = (opts.env ?? process.env).CEZ_SINGLE_PROJECT === '1';
   const [sub = 'list', ...rest] = args;
+  if (opts.parent !== undefined && sub !== 'add') {
+    io.error('--parent applies to `projects add` only (use `projects parent <id> <parent>` to nest an existing project)');
+    io.error(USAGE);
+    return 1;
+  }
   switch (sub) {
     case 'list':
       return listCommand(io, singleProject, opts.bootProjectId);
-    case 'add':
+    case 'add': {
       if (singleProject) {
         io.error(SINGLE_PROJECT_ADD_ERROR);
         return 1;
       }
-      return addCommand(rest[0] ? resolve(rest[0]) : opts.defaultRoot, io);
+      if (opts.parent !== undefined && !opts.parent) {
+        io.error(USAGE);
+        return 1;
+      }
+      return addCommand(rest[0] ? resolve(rest[0]) : opts.defaultRoot, io, opts.parent);
+    }
     case 'remove':
     case 'rm':
       if (singleProject) {
@@ -78,6 +101,12 @@ export async function runProjectsCommand(
         return 1;
       }
       return tagCommand(rest[0], rest.slice(1), io);
+    case 'parent':
+      if (singleProject) {
+        io.error(SINGLE_PROJECT_EDIT_ERROR);
+        return 1;
+      }
+      return parentCommand(rest[0], rest[1], io);
     default:
       io.error(`unknown projects subcommand: ${sub}\n`);
       io.error(USAGE);
@@ -97,6 +126,23 @@ function statusMark(status: string): string {
   return status === 'missing' ? '✗' : status === 'not-git' ? '·' : '✓';
 }
 
+/** Registry order for top-level projects, each followed by its children sorted by name. */
+function nestedRows<T extends { id: string; name: string; parent?: string }>(
+  projects: T[],
+): { project: T; child: boolean }[] {
+  const ids = new Set(projects.map((project) => project.id));
+  const rows: { project: T; child: boolean }[] = [];
+  for (const project of projects) {
+    if (project.parent && ids.has(project.parent)) continue;
+    rows.push({ project, child: false });
+    const children = projects
+      .filter((child) => child.parent === project.id)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    for (const child of children) rows.push({ project: child, child: true });
+  }
+  return rows;
+}
+
 async function listCommand(
   io: ProjectsCommandIo,
   singleProject: boolean,
@@ -112,21 +158,26 @@ async function listCommand(
     io.log('  start the cockpit in a repo (npx cezar) or add one: cezar projects add <dir>\n');
     return 0;
   }
-  const idWidth = Math.max(...projects.map((p) => p.id.length));
+  const rows = nestedRows(projects);
+  // The `↳ ` marker widens the id column by 2, but only when some row is a child: with no
+  // nesting the output stays byte-identical to what it was before nesting existed.
+  const idWidth = Math.max(...projects.map((p) => p.id.length)) + (rows.some((row) => row.child) ? 2 : 0);
   const labelWidth = Math.max(...projects.map((p) => statusLabel(p).length));
   io.log('');
-  for (const project of projects) {
+  for (const { project, child } of rows) {
     const label = statusLabel(project).padEnd(labelWidth);
     // Tags trail the path rather than taking a column of their own: most projects have none,
     // and a mostly-empty column would cost every row width to say nothing.
     const tags = project.tags?.length ? `  [${project.tags.join(' ')}]` : '';
-    io.log(`  ${statusMark(project.status)} ${project.id.padEnd(idWidth)}  ${label}  ${project.root}${tags}`);
+    // A child is marked in the id column itself, so the columns after it still line up.
+    const id = child ? `↳ ${project.id}` : project.id;
+    io.log(`  ${statusMark(project.status)} ${id.padEnd(idWidth)}  ${label}  ${project.root}${tags}`);
   }
   io.log(`\n  ${projects.length} project(s) — registry: ${workspaceConfigPath()}\n`);
   return 0;
 }
 
-async function addCommand(root: string, io: ProjectsCommandIo): Promise<number> {
+async function addCommand(root: string, io: ProjectsCommandIo, parentRef?: string): Promise<number> {
   try {
     if (!(await stat(root)).isDirectory()) throw new Error('not a directory');
   } catch {
@@ -140,11 +191,31 @@ async function addCommand(root: string, io: ProjectsCommandIo): Promise<number> 
     io.error(`refusing to register ${root} — cezar task worktrees and your home directory are not projects`);
     return 1;
   }
+  // Resolved BEFORE registering, so an unknown parent leaves the registry untouched.
+  const parentId = parentRef === undefined ? undefined : await findProjectId(parentRef);
+  if (parentRef !== undefined && parentId === undefined) {
+    io.error(`unknown parent project: ${parentRef}`);
+    return 1;
+  }
   const known = new Set((await loadWorkspaceConfig()).projects.map((p) => p.id));
   const entry = await registerProject(root);
   // Registration dedupes by realpath, so a second `add` of the same folder
   // (or a symlink to it) reports the entry that already exists.
-  io.log(known.has(entry.id) ? `  = ${entry.id} (already registered)  ${entry.root}` : `  + ${entry.id}  ${entry.root}`);
+  let nested = '';
+  if (parentId !== undefined) {
+    try {
+      await setProjectParent(entry.id, parentId);
+      nested = `  ↳ ${parentId}`;
+    } catch (err) {
+      if (!(err instanceof ProjectParentError)) throw err;
+      io.error(`${err.message} (${entry.id} is registered, top-level)`);
+      return 1;
+    }
+  }
+  io.log(
+    (known.has(entry.id) ? `  = ${entry.id} (already registered)  ${entry.root}` : `  + ${entry.id}  ${entry.root}`) +
+      nested,
+  );
   return 0;
 }
 
@@ -207,5 +278,41 @@ async function tagCommand(
       ? `  = ${id} (no tags)`
       : `  = ${id}  [${normalized.join(' ')}]`,
   );
+  return 0;
+}
+
+/**
+ * `cezar projects parent <id> [<id|dir>]` — nest a project under another (spec
+ * 2026-09-29-nested-repo-projects), or make it top-level again when no parent is named.
+ */
+async function parentCommand(
+  id: string | undefined,
+  parentRef: string | undefined,
+  io: ProjectsCommandIo,
+): Promise<number> {
+  if (!id) {
+    io.error(USAGE);
+    return 1;
+  }
+  let parentId: string | null = null;
+  if (parentRef !== undefined) {
+    const found = await findProjectId(parentRef);
+    if (found === undefined) {
+      io.error(`unknown parent project: ${parentRef}`);
+      return 1;
+    }
+    parentId = found;
+  }
+  try {
+    if (!(await setProjectParent(id, parentId))) {
+      io.error(`unknown project: ${id}`);
+      return 1;
+    }
+  } catch (err) {
+    if (!(err instanceof ProjectParentError)) throw err;
+    io.error(err.message);
+    return 1;
+  }
+  io.log(parentId === null ? `  = ${id} (top-level)` : `  = ${id}  ↳ ${parentId}`);
   return 0;
 }
