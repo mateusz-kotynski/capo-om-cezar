@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { SettingsIcon } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link as RouterLink, useNavigate } from 'react-router'
@@ -68,6 +69,7 @@ export function CloneProjectDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const { t } = useLocale()
   const [url, setUrl] = useState('')
   const [name, setName] = useState('')
   const [progress, setProgress] = useState<string | null>(null)
@@ -162,19 +164,19 @@ export function CloneProjectDialog({
         className="min-w-0 max-h-[calc(100dvh-2rem)] overflow-x-hidden overflow-y-auto sm:max-w-lg"
       >
         <DialogHeader>
-          <DialogTitle>Clone from GitHub</DialogTitle>
+          <DialogTitle>{t('dialogs.clone.title')}</DialogTitle>
           <DialogDescription>
-            cezar clones with <code>gh</code> into your checkout root and adds the result as a project.
+            {t('dialogs.clone.descriptionPrefix')}<code>gh</code>{t('dialogs.clone.descriptionSuffix')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-1.5">
-          <Label htmlFor="clone-url">Repository</Label>
+          <Label htmlFor="clone-url">{t('dialogs.clone.repository')}</Label>
           <Input
             id="clone-url"
             data-slot="clone-url"
             autoFocus
-            placeholder="owner/repo or https://github.com/owner/repo"
+            placeholder={t('dialogs.clone.urlPlaceholder')}
             value={url}
             disabled={checkout.isPending}
             onChange={(event) => setUrl(event.target.value)}
@@ -185,7 +187,7 @@ export function CloneProjectDialog({
         </div>
 
         <div className="grid gap-1.5">
-          <Label htmlFor="clone-name">Folder name</Label>
+          <Label htmlFor="clone-name">{t('dialogs.clone.folderName')}</Label>
           <Input
             id="clone-name"
             data-slot="clone-name"
@@ -208,8 +210,8 @@ export function CloneProjectDialog({
                 variant="ghost"
                 size="icon-sm"
                 className="size-7"
-                aria-label="Edit checkout root"
-                title="Edit checkout root"
+                aria-label={t('dialogs.clone.editRoot')}
+                title={t('dialogs.clone.editRoot')}
                 disabled
               >
                 <SettingsIcon className="size-3.5" aria-hidden="true" />
@@ -219,8 +221,8 @@ export function CloneProjectDialog({
                 <RouterLink
                   to="/settings/global/projects"
                   data-slot="clone-root-settings"
-                  aria-label="Edit checkout root"
-                  title="Edit checkout root"
+                  aria-label={t('dialogs.clone.editRoot')}
+                  title={t('dialogs.clone.editRoot')}
                 >
                   <SettingsIcon className="size-3.5" aria-hidden="true" />
                 </RouterLink>
@@ -233,7 +235,7 @@ export function CloneProjectDialog({
             and a growing log would scroll a dialog that is otherwise a form. */}
         {checkout.isPending ? (
           <p data-slot="clone-progress" className="truncate font-mono text-[11.5px] text-muted-foreground">
-            {progress ?? 'Starting the clone…'}
+            {progress ?? t('dialogs.clone.starting')}
           </p>
         ) : null}
 
@@ -241,7 +243,7 @@ export function CloneProjectDialog({
           <div data-slot="clone-error" className="grid min-w-0 gap-1.5 text-[13px] text-danger">
             {ssoUrl ? (
               <>
-                <p>GitHub requires SAML authorization for this organization.</p>
+                <p>{t('dialogs.clone.saml')}</p>
                 <p>
                   <a
                     data-slot="clone-sso-link"
@@ -254,14 +256,14 @@ export function CloneProjectDialog({
                       setAwaitingSso(true)
                     }}
                   >
-                    Authorize this GitHub organization
+                    {t('dialogs.clone.authorize')}
                   </a>
                   {awaitingSso
-                    ? ' — return here after authorizing, or choose Retry clone.'
-                    : ' — return to this tab to retry, or choose Retry clone.'}
+                    ? t('dialogs.clone.afterAuthorize')
+                    : t('dialogs.clone.returnToTab')}
                 </p>
                 <details className="min-w-0">
-                  <summary>Error details</summary>
+                  <summary>{t('dialogs.clone.errorDetails')}</summary>
                   <p className="whitespace-pre-wrap break-all">
                     {checkout.error instanceof Error ? checkout.error.message : null}
                   </p>
@@ -269,7 +271,7 @@ export function CloneProjectDialog({
               </>
             ) : (
               <p className="min-w-0 whitespace-pre-wrap break-all">
-                {checkout.error instanceof Error ? checkout.error.message : 'could not clone that repository'}
+                {checkout.error instanceof Error ? checkout.error.message : t('dialogs.clone.couldNotClone')}
               </p>
             )}
           </div>
@@ -277,14 +279,14 @@ export function CloneProjectDialog({
 
         <DialogFooter>
           <Button variant="outline" disabled={checkout.isPending} onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             data-slot="clone-confirm"
             disabled={url.trim() === '' || effectiveName === '' || checkout.isPending}
             onClick={clone}
           >
-            {checkout.isPending ? 'Cloning…' : checkout.isError ? 'Retry clone' : 'Clone'}
+            {checkout.isPending ? t('dialogs.clone.cloning') : checkout.isError ? t('dialogs.clone.retry') : t('dialogs.clone.clone')}
           </Button>
         </DialogFooter>
       </DialogContent>

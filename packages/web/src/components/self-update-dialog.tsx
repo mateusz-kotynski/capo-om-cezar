@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
@@ -44,6 +45,7 @@ export function SelfUpdateDialog({
    *  the dialog opens to its warning and waits for "Update & restart" like every other entry. */
   autoApply?: string
 }) {
+  const { t, tn, locale } = useLocale()
   const status = useSelfUpdate(open)
   const refresh = useRefreshSelfUpdate()
   const setChannel = useSetSelfUpdateChannel()
@@ -89,10 +91,10 @@ export function SelfUpdateDialog({
           <DialogTitle className="flex items-center gap-2">
             <span>cezar {data ? `v${data.version}` : ''}</span>
             {data?.installed.find((entry) => entry.active)?.source === 'local' ? (
-              <Badge variant="outline">local build</Badge>
+              <Badge variant="outline">{t('dialogs.selfUpdate.localBuild')}</Badge>
             ) : null}
           </DialogTitle>
-          <DialogDescription className="sr-only">Update cezar, pick a release channel or switch versions.</DialogDescription>
+          <DialogDescription className="sr-only">{t('dialogs.selfUpdate.srDescription')}</DialogDescription>
         </DialogHeader>
 
         {data ? (
@@ -126,8 +128,7 @@ export function SelfUpdateDialog({
 
             {data.activeRuns > 0 && data.canSelfUpdate ? (
               <p className="rounded-md border border-pending/50 bg-pending/10 px-3 py-2 text-[12.5px] text-foreground">
-                {data.activeRuns} task{data.activeRuns === 1 ? ' is' : 's are'} running. A restart interrupts
-                them; cezar re-queues or resumes them on the way back up.
+                {tn('dialogs.selfUpdate.runningRestart', data.activeRuns)}
               </p>
             ) : null}
 
@@ -157,17 +158,18 @@ function ChannelToggle({
   busy: boolean
   onChange: (channel: UpdateChannel) => void
 }) {
+  const { t } = useLocale()
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="min-w-0">
-        <div className="text-[13px] font-semibold">Release channel</div>
+        <div className="text-[13px] font-semibold">{t('dialogs.selfUpdate.channel')}</div>
         <div className="text-[12px] text-muted-foreground">
-          {data.channel === 'stable' ? 'Tagged releases.' : 'A fresh build of main every night.'}
+          {data.channel === 'stable' ? t('dialogs.selfUpdate.channelStable') : t('dialogs.selfUpdate.channelNightly')}
         </div>
       </div>
       <div
         role="radiogroup"
-        aria-label="Release channel"
+        aria-label={t('dialogs.selfUpdate.channel')}
         data-slot="channel-toggle"
         className="flex shrink-0 rounded-md border border-border bg-muted/40 p-0.5"
       >
@@ -186,7 +188,7 @@ function ChannelToggle({
                 active ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
               )}
             >
-              {channel.label}
+              {t(channel.value === 'stable' ? 'dialogs.selfUpdate.stable' : 'dialogs.selfUpdate.nightly')}
             </button>
           )
         })}
@@ -208,6 +210,7 @@ function LatestCard({
   onApply: (version: string) => void
   applying: boolean
 }) {
+  const { t, tn, locale } = useLocale()
   const jobBusy = data.job?.status === 'running' || data.job?.status === 'restarting'
   const target = data.updateAvailable
   return (
@@ -220,28 +223,31 @@ function LatestCard({
     >
       <div className="min-w-0 text-[13px]">
         {!data.checkedAt ? (
-          <span className="text-muted-foreground">The npm registry has not answered yet.</span>
+          <span className="text-muted-foreground">{t('dialogs.selfUpdate.registryWaiting')}</span>
         ) : target ? (
           <>
-            <span className="font-semibold">v{target}</span> is available on {data.channel}.
+            <span className="font-semibold">v{target}</span>
+            {t('dialogs.selfUpdate.availableOn', { channel: data.channel })}
           </>
         ) : (
           <>
-            You are on the newest {data.channel} version
-            {data.channel === 'nightly' && data.latest.nightly ? ` (v${data.latest.nightly})` : ''}.
+            {t('dialogs.selfUpdate.newest', {
+              channel: data.channel,
+              extra: data.channel === 'nightly' && data.latest.nightly ? ` (v${data.latest.nightly})` : '',
+            })}
           </>
         )}
         {data.checkedAt ? (
-          <div className="text-[11.5px] text-muted-foreground">checked {new Date(data.checkedAt).toLocaleTimeString()}</div>
+          <div className="text-[11.5px] text-muted-foreground">{t('dialogs.selfUpdate.checked', { time: new Date(data.checkedAt).toLocaleTimeString(locale) })}</div>
         ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <Button variant="ghost" size="sm" onClick={onCheck} disabled={checking || jobBusy}>
-          {checking ? 'Checking…' : 'Check again'}
+          {checking ? t('dialogs.selfUpdate.checking') : t('dialogs.selfUpdate.checkAgain')}
         </Button>
         {target ? (
           <Button size="sm" onClick={() => onApply(target)} disabled={!data.canSelfUpdate || applying || jobBusy}>
-            Update &amp; restart
+            {t('dialogs.selfUpdate.updateRestart')}
           </Button>
         ) : null}
       </div>
@@ -262,6 +268,7 @@ function VersionPicker({
   onApply: (version: string) => void
   applying: boolean
 }) {
+  const { t } = useLocale()
   const jobBusy = data.job?.status === 'running' || data.job?.status === 'restarting'
   // Local builds only exist in `installed`; registry versions come from `available`, with the
   // `installed` flag telling the two apart in the label.
@@ -270,7 +277,7 @@ function VersionPicker({
       data.channel === 'stable'
         ? data.installed
             .filter((entry) => entry.source === 'local')
-            .map((entry) => ({ value: entry.id, label: `v${entry.version} · local build`, installed: true, active: entry.active }))
+            .map((entry) => ({ value: entry.id, label: `v${entry.version} · ${t('dialogs.selfUpdate.localBuild')}`, installed: true, active: entry.active }))
         : []
     const remote = data.available
       .filter((entry) => entry.channel === data.channel)
@@ -281,17 +288,17 @@ function VersionPicker({
         active: data.installed.some((row) => row.active && row.id === entry.version),
       }))
     return [...locals, ...remote]
-  }, [data])
+  }, [data, t])
   const selected = options.find((option) => option.value === picked)
   return (
     <div data-slot="self-update-picker" className="flex min-w-0 flex-col gap-2">
       <div className="text-[13px] font-semibold">
-        Pick a version <span className="font-normal text-muted-foreground">· {data.channel}</span>
+        {t('dialogs.selfUpdate.pickVersion')} <span className="font-normal text-muted-foreground">· {data.channel}</span>
       </div>
       <div className="flex min-w-0 items-center gap-2">
         <Select value={picked} onValueChange={onPick} disabled={options.length === 0 || jobBusy}>
-          <SelectTrigger size="sm" aria-label="Version" className="w-0 min-w-0 flex-1 text-[13px]">
-            <SelectValue placeholder={options.length === 0 ? 'No versions known' : 'Choose a version to install'} />
+          <SelectTrigger size="sm" aria-label={t('dialogs.selfUpdate.versionAria')} className="w-0 min-w-0 flex-1 text-[13px]">
+            <SelectValue placeholder={options.length === 0 ? t('dialogs.selfUpdate.noVersions') : t('dialogs.selfUpdate.chooseVersion')} />
           </SelectTrigger>
           <SelectContent className="max-h-72">
             {options.map((option) => (
@@ -299,9 +306,9 @@ function VersionPicker({
                 <span className="flex items-center gap-2">
                   {option.label}
                   {option.active ? (
-                    <Badge variant="secondary">current</Badge>
+                    <Badge variant="secondary">{t('dialogs.selfUpdate.current')}</Badge>
                   ) : option.installed ? (
-                    <Badge variant="outline">installed</Badge>
+                    <Badge variant="outline">{t('dialogs.selfUpdate.installed')}</Badge>
                   ) : null}
                 </span>
               </SelectItem>
@@ -314,17 +321,18 @@ function VersionPicker({
           onClick={() => selected && onApply(selected.value)}
           disabled={!selected || selected.active || !data.canSelfUpdate || applying || jobBusy}
         >
-          {selected?.installed ? 'Switch & restart' : 'Install & restart'}
+          {selected?.installed ? t('dialogs.selfUpdate.switchRestart') : t('dialogs.selfUpdate.installRestart')}
         </Button>
       </div>
       <p className="text-[11.5px] text-muted-foreground">
-        Any version, older ones included. Installed versions stay on disk, so switching back is instant.
+        {t('dialogs.selfUpdate.anyVersion')}
       </p>
     </div>
   )
 }
 
 function InstallHint({ data }: { data: SelfUpdateStatus }) {
+  const { t } = useLocale()
   const command =
     data.installKind === 'checkout'
       ? 'node packages/cezar/dist/index.js install'
@@ -334,7 +342,7 @@ function InstallHint({ data }: { data: SelfUpdateStatus }) {
   return (
     <div data-slot="self-update-install-hint" className="rounded-md border border-border bg-muted/40 px-3 py-2.5 text-[12.5px]">
       <p>{data.reason}</p>
-      <p className="mt-1.5 text-muted-foreground">Run this once, then start cezar with the plain command:</p>
+      <p className="mt-1.5 text-muted-foreground">{t('dialogs.selfUpdate.runOnce')}</p>
       <pre className="mt-1.5 overflow-x-auto rounded bg-background px-2 py-1.5 font-mono text-[12px]">{command}</pre>
     </div>
   )
@@ -343,6 +351,7 @@ function InstallHint({ data }: { data: SelfUpdateStatus }) {
 /** The install log while npm runs, then the restart wait: once the process is gone, poll until a
  *  fresh one (no job on its status) answers, and reload into it. */
 function JobPanel({ data }: { data: SelfUpdateStatus }) {
+  const { t } = useLocale()
   const job = data.job!
   const queryClient = useQueryClient()
   const logRef = useRef<HTMLPreElement>(null)
@@ -392,14 +401,14 @@ function JobPanel({ data }: { data: SelfUpdateStatus }) {
       <div className="flex items-center justify-between text-[12.5px]">
         <span className="font-semibold">
           {job.status === 'running'
-            ? `Installing ${job.target}…`
+            ? t('dialogs.selfUpdate.installing', { target: job.target })
             : job.status === 'failed'
-              ? `Install of ${job.target} failed`
+              ? t('dialogs.selfUpdate.installFailed', { target: job.target })
               : comeback === 'back'
-                ? 'Back — reloading'
+                ? t('dialogs.selfUpdate.backReloading')
                 : comeback === 'timeout'
-                  ? 'Restart took too long — reload the page by hand'
-                  : `Restarting into ${job.target}…`}
+                  ? t('dialogs.selfUpdate.restartTooLong')
+                  : t('dialogs.selfUpdate.restarting', { target: job.target })}
         </span>
       </div>
       <pre

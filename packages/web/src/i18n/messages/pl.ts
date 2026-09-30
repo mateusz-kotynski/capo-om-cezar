@@ -1,4 +1,5 @@
 import type { Messages } from './types'
+import { pl as dialogsPl } from '../areas/dialogs'
 import { pl as prefsPl } from '../areas/prefs'
 import { pl as forgePl } from '../areas/forge'
 import { pl as gitPl } from '../areas/git'
@@ -205,4 +206,5 @@ export const pl: Messages = {
   git: gitPl,
   forge: forgePl,
   prefs: prefsPl,
+  dialogs: dialogsPl,
 }

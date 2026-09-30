@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { ChevronRightIcon, CornerLeftUpIcon, FolderIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 
@@ -47,6 +48,7 @@ export function FolderBrowser({
    *  unable to show the only thing it existed to show. */
   showHidden?: boolean
 }) {
+  const { t } = useLocale()
   const listing = useFsBrowse(path, showHidden)
   const parent = listing.data?.parent ?? null
 
@@ -58,12 +60,12 @@ export function FolderBrowser({
         className="truncate font-mono text-[11.5px] text-soft-foreground"
         title={listing.data?.path ?? undefined}
       >
-        {listing.data?.path ?? (listing.isError ? '' : 'Loading…')}
+        {listing.data?.path ?? (listing.isError ? '' : t('dialogs.common.loading'))}
       </p>
 
       {listing.isError ? (
         <p data-slot="fs-error" className="min-w-0 break-words text-[13px] text-danger">
-          {listing.error instanceof Error ? listing.error.message : 'could not list that folder'}
+          {listing.error instanceof Error ? listing.error.message : t('dialogs.common.couldNotList')}
         </p>
       ) : (
         <ul
@@ -80,7 +82,7 @@ export function FolderBrowser({
                 className="flex flex-1 items-center gap-2 px-3 py-2 text-left text-[13px] hover:bg-muted"
               >
                 <CornerLeftUpIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-                Up one level
+                {t('dialogs.common.upOneLevel')}
               </button>
             </li>
           ) : null}
@@ -107,7 +109,7 @@ export function FolderBrowser({
               <button
                 type="button"
                 data-slot="fs-enter"
-                aria-label={`Open ${dir.name}`}
+                aria-label={t('dialogs.common.openFolder', { name: dir.name })}
                 onClick={() => onEnter(dir.path)}
                 className="flex shrink-0 items-center px-2.5 text-muted-foreground hover:bg-muted hover:text-foreground"
               >
@@ -123,7 +125,7 @@ export function FolderBrowser({
 
       {listing.data?.truncated ? (
         <p data-slot="fs-truncated" className="text-[11.5px] text-muted-foreground">
-          Too many folders to list — only the first ones are shown.
+          {t('dialogs.common.tooMany')}
         </p>
       ) : null}
     </>

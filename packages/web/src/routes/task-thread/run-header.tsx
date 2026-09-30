@@ -411,7 +411,7 @@ function OpenInMenuForRun({
           const resumes = cliTargetResumes(run, target.id)
           return {
             target,
-            ...(resumes ? { suffix: ' (resume)', title: "Resume this run's session" } : {}),
+            ...(resumes ? { suffix: t('dialogs.common.resumeSuffix'), title: t('dialogs.common.resumeTitle') } : {}),
           }
         })
     : []
