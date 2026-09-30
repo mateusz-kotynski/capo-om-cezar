@@ -21,6 +21,7 @@ import {
 import { orderSkills } from '@/lib/skills'
 import { LocaleProvider } from '@/components/locale-provider'
 import { ThemeProvider } from '@/components/theme-provider'
+import { LOCALE_STORAGE_KEY } from '@/lib/locale'
 import { THEME_STORAGE_KEY, type Theme } from '@/lib/theme'
 
 afterEach(cleanup)
@@ -994,5 +995,63 @@ describe('the pure ordering helpers', () => {
       'recent',
       'here',
     ])
+  })
+})
+
+describe('in Polish', () => {
+  beforeEach(() => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'pl')
+  })
+  afterEach(() => {
+    localStorage.removeItem(LOCALE_STORAGE_KEY)
+    document.documentElement.removeAttribute('lang')
+  })
+
+  async function openPl() {
+    renderPalette({ projects: [project({ id: 'a' }), project({ id: 'b' })] })
+    openWith({ metaKey: true })
+    await screen.findByRole('dialog')
+    return screen.getByPlaceholderText(/Szukaj projektów/)
+  }
+
+  const navTargets = () =>
+    Array.from(document.querySelectorAll('[data-slot="palette-view"]')).map((el) => el.getAttribute('data-nav-to'))
+
+  it('renders translated group headings and rows', async () => {
+    await openPl()
+
+    expect(screen.getByText('Widoki')).toBeTruthy()
+    expect(screen.getByText('Akcje')).toBeTruthy()
+    expect(screen.getByText('Nowe zadanie')).toBeTruthy()
+  })
+
+  it('finds a view by its Polish label', async () => {
+    const input = await openPl()
+
+    fireEvent.change(input, { target: { value: 'ustawienia' } })
+
+    await waitFor(() => expect(navTargets()).toContain('/settings'))
+    expect(navTargets()).not.toContain('/git')
+  })
+
+  it('finds the new-task row, the all-tasks view and the theme action by their Polish labels', async () => {
+    const input = await openPl()
+
+    fireEvent.change(input, { target: { value: 'nowe zadanie' } })
+    await waitFor(() => expect(navTargets()).toContain('/new'))
+
+    fireEvent.change(input, { target: { value: 'wszystkie' } })
+    await waitFor(() => expect(navTargets()).toContain('/tasks'))
+
+    fireEvent.change(input, { target: { value: 'motyw' } })
+    await waitFor(() => expect(document.querySelector('[data-action="toggle-theme"]')).not.toBeNull())
+  })
+
+  it('still matches the English words', async () => {
+    const input = await openPl()
+
+    fireEvent.change(input, { target: { value: 'settings' } })
+
+    await waitFor(() => expect(navTargets()).toContain('/settings'))
   })
 })

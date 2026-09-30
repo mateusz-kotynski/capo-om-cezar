@@ -7,7 +7,7 @@ import type { ProjectListEntry, RunIndexEntry, RunRecord } from '@open-mercato/c
 import { visibleNavItems } from '@/components/nav-items'
 import { useLocale } from '@/components/locale-provider'
 import { StatusDot } from '@/components/status-dot'
-import { NEXT_THEME } from '@/components/theme-toggle'
+import { NEXT_THEME, THEME_LABEL_KEYS } from '@/components/theme-toggle'
 import { useTheme } from '@/components/theme-provider'
 import { navItemLabel } from '@/i18n/ui-labels'
 import {
@@ -412,6 +412,7 @@ function PaletteContent({ close }: { close: () => void }) {
         <CommandGroup>
           <CommandItem
             value="new task"
+            keywords={[t('nav.newTask')]}
             data-slot="palette-view"
             data-nav-to="/new"
             onSelect={() => go('/new')}
@@ -447,6 +448,7 @@ function PaletteContent({ close }: { close: () => void }) {
           {multiProject ? (
             <CommandItem
               value="view All tasks"
+              keywords={[t('nav.allTasks')]}
               data-slot="palette-view"
               data-nav-to="/tasks"
               onSelect={() => goGlobal('/tasks')}
@@ -469,6 +471,9 @@ function PaletteContent({ close }: { close: () => void }) {
                 // The `view` prefix keeps values unique across groups and gives "view git" a
                 // deterministic hit; the value is filter fodder, never rendered.
                 value={`view ${item.label}`}
+                // The translated label is searchable too, next to the English value: a Polish
+                // user types "ustawienia", an English habit ("settings") keeps working.
+                keywords={[navItemLabel(t, item)]}
                 data-slot="palette-view"
                 data-nav-to={item.to}
                 onSelect={() => go(item.to)}
@@ -538,6 +543,7 @@ function PaletteContent({ close }: { close: () => void }) {
         <CommandGroup heading={t('commandPalette.actions')}>
           <CommandItem
             value="action toggle theme"
+            keywords={[t('commandPalette.toggleTheme')]}
             data-slot="palette-action"
             data-action="toggle-theme"
             onSelect={() => {
@@ -548,7 +554,7 @@ function PaletteContent({ close }: { close: () => void }) {
             <MoonIcon aria-hidden="true" />
             {t('commandPalette.toggleTheme')}
             <CommandShortcut className="tracking-normal">
-              {theme} → {nextTheme}
+              {t(THEME_LABEL_KEYS[theme])} → {t(THEME_LABEL_KEYS[nextTheme])}
             </CommandShortcut>
           </CommandItem>
         </CommandGroup>

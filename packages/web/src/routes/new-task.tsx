@@ -457,9 +457,8 @@ export function NewTaskRoute() {
     toast(message, { tone })
     // Legacy focused the Run button so a bare Enter submits the reviewed form.
     document
-      .querySelector<HTMLButtonElement>(
-        '[data-slot="composer"] button[aria-label="Start task"], [data-slot="composer"] button[aria-label="Plan task"]',
-      )
+      // Selected by slot, never by aria-label: that label is translated.
+      .querySelector<HTMLButtonElement>('[data-slot="composer"] button[data-slot="composer-send"]')
       ?.focus()
   }, [notice, sourcesReady]) // eslint-disable-line react-hooks/exhaustive-deps
 

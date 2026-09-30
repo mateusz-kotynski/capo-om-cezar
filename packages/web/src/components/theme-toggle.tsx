@@ -13,7 +13,7 @@ import type { Theme } from '@/lib/theme'
  *  one order, defined once. */
 export const NEXT_THEME: Record<Theme, Theme> = { light: 'dark', dark: 'system', system: 'light' }
 const ICON = { light: SunIcon, dark: MoonIcon, system: MonitorIcon } as const
-const LABEL_KEYS = {
+export const THEME_LABEL_KEYS = {
   light: 'shell.misc.themeLight',
   dark: 'shell.misc.themeDark',
   system: 'shell.misc.themeSystem',
@@ -33,8 +33,8 @@ export function ThemeToggle({ className }: { className?: string }) {
       className={className}
       data-slot="theme-toggle"
       data-theme-pref={theme}
-      title={t('shell.misc.themeTitle', { theme: t(LABEL_KEYS[theme]) })}
-      aria-label={t('shell.misc.themeAria', { theme: t(LABEL_KEYS[theme]), next: t(LABEL_KEYS[next]) })}
+      title={t('shell.misc.themeTitle', { theme: t(THEME_LABEL_KEYS[theme]) })}
+      aria-label={t('shell.misc.themeAria', { theme: t(THEME_LABEL_KEYS[theme]), next: t(THEME_LABEL_KEYS[next]) })}
       onClick={() => setTheme(next)}
     >
       <Icon aria-hidden="true" />

@@ -596,6 +596,7 @@ export function Composer({
                   type="button"
                   size="icon-sm"
                   aria-label={sendAriaLabel}
+                  data-slot="composer-send"
                   disabled={
                     disabled || busy || (text.trim() === '' && images.length === 0 && !allowEmptySubmit)
                   }
