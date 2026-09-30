@@ -1,4 +1,5 @@
 import { ArrowDownIcon } from 'lucide-react'
+import { useLocale } from '@/components/locale-provider'
 import {
   useCallback,
   useEffect,
@@ -605,6 +606,7 @@ function VirtualRows({
 
 /** The floating "Jump to latest" pill, absolutely positioned above the dock by its caller. */
 export function JumpToLatestPill({ onJump }: { onJump: () => void }) {
+  const { t } = useLocale()
   return (
     <button
       type="button"
@@ -613,7 +615,7 @@ export function JumpToLatestPill({ onJump }: { onJump: () => void }) {
       className="pointer-events-auto inline-flex min-h-8 items-center gap-1.5 rounded-full border border-border bg-background px-3.5 text-xs font-medium text-muted-foreground shadow-modal hover:text-foreground"
     >
       <ArrowDownIcon aria-hidden className="size-3.5" />
-      Jump to latest
+      {t('transcript.jumpToLatest')}
     </button>
   )
 }

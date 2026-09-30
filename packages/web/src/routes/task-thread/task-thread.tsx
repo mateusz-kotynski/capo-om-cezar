@@ -288,7 +288,7 @@ export function ThreadView({
     const actions: Record<string, TranscriptMessageActions> = {
       // `draftSurface` (#939) is what makes an unsaved edit survive leaving the task: the bubble
       // writes it to the run's draft store and re-opens holding it on return.
-      task: { onEdit: edit.onEditTask, editLabel: 'Edit the prompt', draftSurface: 'task-prompt' },
+      task: { onEdit: edit.onEditTask, editLabel: t('transcript.editPrompt'), draftSurface: 'task-prompt' },
     }
     for (const message of run.queuedMessages ?? []) {
       actions[`queued:${message.id}`] = {
@@ -392,7 +392,7 @@ export function ThreadView({
                 rel="noopener noreferrer"
                 className="font-medium text-foreground underline-offset-2 hover:underline"
               >
-                PR ↗
+                {t('transcript.pr')}
               </a>
             ) : null}
             {/* #526: an issue-subject run (om-prepare-issue) links the issue it created — it
@@ -405,7 +405,7 @@ export function ThreadView({
                 rel="noopener noreferrer"
                 className="font-medium text-foreground underline-offset-2 hover:underline"
               >
-                Issue ↗
+                {t('transcript.issue')}
               </a>
             ) : null}
           </div>
@@ -463,7 +463,7 @@ export function ThreadView({
               className="flex items-center gap-2 px-1 text-xs text-muted-foreground"
             >
               <StatusDot tone="pending" pulse />
-              The agent is paused, waiting for your reply
+              {t('transcript.paused')}
             </div>
           ) : null}
 

@@ -118,6 +118,7 @@ export function PlanDock({
 }
 
 function PlanRow({ entry, settled }: { entry: PlanEntry; settled: boolean }) {
+  const { t } = useLocale()
   // A settled run has no current item: its stale `in_progress` renders like any other
   // unreached entry (see PlanDock's `settled`).
   const status: PlanStatus = settled && entry.status === 'in_progress' ? 'pending' : entry.status
@@ -141,7 +142,7 @@ function PlanRow({ entry, settled }: { entry: PlanEntry; settled: boolean }) {
           data-slot="plan-tag"
           className="ml-auto shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10.5px] font-semibold tracking-[0.05em] text-muted-foreground uppercase"
         >
-          in progress
+          {t('transcript.inProgress')}
         </span>
       ) : null}
     </li>

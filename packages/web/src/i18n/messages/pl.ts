@@ -7,6 +7,7 @@ import { pl as gitPl } from '../areas/git'
 import { pl as composePl } from '../areas/compose'
 import { pl as threadPl } from '../areas/thread'
 import { pl as tasksPl } from '../areas/tasks'
+import { pl as transcriptPl } from '../areas/transcript'
 import { pl as planReviewPl } from '../areas/planReview'
 import { pl as comparePl } from '../areas/compare'
 import { pl as trackerPl } from '../areas/tracker'
@@ -201,4 +202,5 @@ export const pl: Messages = {
   tracker: trackerPl,
   compare: comparePl,
   planReview: planReviewPl,
+  transcript: transcriptPl,
 }

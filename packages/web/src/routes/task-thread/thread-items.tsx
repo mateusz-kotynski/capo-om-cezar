@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 
+import { useLocale } from '@/components/locale-provider'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { ZoomableImage } from '@/components/zoomable-image'
 import { Link } from '@/lib/project-router'
@@ -24,7 +25,7 @@ import { cn } from '@/lib/utils'
 
 import { Markdown } from './markdown'
 import { useDraft } from './thread-draft'
-import { splitToolTitle, streakLabel, type ContextGroupBlock } from './thread-groups'
+import { splitToolTitle, type ContextGroupBlock } from './thread-groups'
 import { useThreadCardCache } from './thread-open-cards'
 import { isNearBottom } from './thread-scroll'
 import { MessageTime, clockLabel, elapsedSince, exactLabel, useNow } from './thread-time'
@@ -62,8 +63,8 @@ export function UserBubble({
   ts,
   onEdit,
   onRemove,
-  editLabel = 'Edit message',
-  removeLabel = 'Remove message',
+  editLabel,
+  removeLabel,
   draftRunId,
   draftSurface,
 }: {
@@ -83,6 +84,7 @@ export function UserBubble({
   draftRunId?: string
   draftSurface?: string
 }) {
+  const { t } = useLocale()
   const missing = imageCount - images.length
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(text)
@@ -142,7 +144,7 @@ export function UserBubble({
       await store.submit(() => onEdit?.(next) ?? Promise.resolve())
       setEditing(false)
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Could not save the message')
+      setActionError(error instanceof Error ? error.message : t('transcript.saveFailed'))
     } finally {
       setBusy(false)
     }
@@ -162,7 +164,7 @@ export function UserBubble({
       // the store with nothing left to restore it into.
       store.clear()
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Could not remove the message')
+      setActionError(error instanceof Error ? error.message : t('transcript.removeFailed'))
     } finally {
       setBusy(false)
     }
@@ -177,7 +179,7 @@ export function UserBubble({
       >
         <textarea
           autoFocus
-          aria-label="Edit the message"
+          aria-label={t('transcript.editAria')}
           value={draft}
           onChange={(e) => edit(e.target.value)}
           onKeyDown={(e) => {
@@ -200,7 +202,7 @@ export function UserBubble({
             disabled={busy}
             className="rounded-sm px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-background hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
           >
-            Cancel
+            {t('transcript.cancel')}
           </button>
           <button
             type="button"
@@ -208,7 +210,7 @@ export function UserBubble({
             disabled={busy}
             className="rounded-sm bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground hover:brightness-[0.96] focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
           >
-            {busy ? <LoaderCircleIcon className="size-3.5 animate-spin" /> : 'Save'}
+            {busy ? <LoaderCircleIcon className="size-3.5 animate-spin" /> : t('transcript.save')}
           </button>
         </span>
         {actionError ? <p role="alert" className="mt-1.5 text-xs text-danger">{actionError}</p> : null}
@@ -229,7 +231,7 @@ export function UserBubble({
           {onEdit ? (
             <button
               type="button"
-              aria-label={editLabel}
+              aria-label={editLabel ?? t('transcript.editMessage')}
               onClick={startEditing}
               disabled={busy}
               className="rounded-sm p-1 text-soft-foreground hover:bg-background hover:text-foreground focus-visible:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
@@ -240,7 +242,7 @@ export function UserBubble({
           {onRemove ? (
             <button
               type="button"
-              aria-label={removeLabel}
+              aria-label={removeLabel ?? t('transcript.removeMessage')}
               onClick={() => void remove()}
               disabled={busy}
               className="rounded-sm p-1 text-soft-foreground hover:bg-background hover:text-danger focus-visible:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
@@ -262,7 +264,7 @@ export function UserBubble({
               <ZoomableImage
                 key={url}
                 src={url}
-                alt="attached"
+                alt={t('transcript.attached')}
                 className="max-h-40 max-w-[220px] rounded-md border border-border object-contain"
               />
             ) : (
@@ -331,6 +333,7 @@ export function ProviderAuthRequiredCard({
 }: {
   incident: ThreadProviderAuthRequired
 }) {
+  const { t } = useLocale()
   const label = PROVIDER_LABEL[incident.provider]
   return (
     <div
@@ -339,16 +342,16 @@ export function ProviderAuthRequiredCard({
       className="rounded-md border border-danger/30 bg-danger/5 px-3.5 py-3"
     >
       <p className="text-[13px] font-semibold text-foreground">
-        This run needed {label} authorization
+        {t('transcript.providerAuthTitle', { provider: label })}
       </p>
       <p className="mt-1 text-xs text-muted-foreground">
-        Review {label} settings before retrying.
+        {t('transcript.providerAuthBody', { provider: label })}
       </p>
       <Link
         to="/settings/agents#providers"
         className="mt-2 inline-flex text-xs font-medium text-foreground underline-offset-2 hover:underline"
       >
-        Open provider settings
+        {t('transcript.openProviderSettings')}
       </Link>
     </div>
   )
@@ -359,6 +362,7 @@ export function ProviderAuthRequiredCard({
  * Streams live — the reducer grows `text` in place, so the summary line grows with it.
  */
 export function ReasoningItem({ text }: { text: string }) {
+  const { t } = useLocale()
   const previewId = useId()
   // A mapper regression that mints an empty reasoning item should degrade
   // quietly rather than render a bare, un-expandable "Thinking —" row (#528).
@@ -375,7 +379,7 @@ export function ReasoningItem({ text }: { text: string }) {
           aria-hidden
           className="size-3.5 shrink-0 transition-transform group-data-[state=open]/reasoning:rotate-90"
         />
-        <span className="shrink-0">Thinking — </span>
+        <span className="shrink-0">{t('transcript.thinking')}</span>
         <div className="min-w-0 truncate text-muted-foreground">
           <Markdown inline>{firstLine}</Markdown>
         </div>
@@ -409,6 +413,7 @@ export function ReasoningItem({ text }: { text: string }) {
  * same at 5s and at 20m. Either stamp missing or unparseable drops just its part.
  */
 export function WorkingIndicator({ since, lastActivityAt }: { since?: string; lastActivityAt?: string } = {}) {
+  const { t } = useLocale()
   const now = useNow()
   const elapsed = elapsedSince(since, now)
   const quiet = elapsedSince(lastActivityAt, now)
@@ -419,16 +424,16 @@ export function WorkingIndicator({ since, lastActivityAt }: { since?: string; la
       // Wraps rather than overflows: with both stamps the line outgrows a 320px phone column.
       className="flex flex-wrap items-center gap-x-2 gap-y-0.5 py-1 text-[13px] text-soft-foreground"
     >
-      <LoaderCircleIcon role="status" aria-label="Working" className="size-3.5 shrink-0 animate-spin" />
-      <span className="shimmer font-medium">Working…</span>
+      <LoaderCircleIcon role="status" aria-label={t('transcript.workingAria')} className="size-3.5 shrink-0 animate-spin" />
+      <span className="shimmer font-medium">{t('transcript.working')}</span>
       {elapsed !== undefined ? (
-        <span data-slot="working-elapsed" title={`Started ${exactLabel(since)}`} className="font-mono text-xs tabular-nums">
+        <span data-slot="working-elapsed" title={t('transcript.started', { when: exactLabel(since) ?? '' })} className="font-mono text-xs tabular-nums">
           {elapsed}
         </span>
       ) : null}
       {quiet !== undefined && lastClock !== undefined ? (
         <span data-slot="working-last-activity" title={exactLabel(lastActivityAt)} className="text-xs">
-          · last activity {lastClock} ({quiet} ago)
+          {t('transcript.lastActivity', { clock: lastClock, quiet })}
         </span>
       ) : null}
     </div>
@@ -460,6 +465,7 @@ const countLines = (text: string): number => text.split('\n').length
  * behind a bottom fade with an explicit "Show all N lines" expansion.
  */
 function ToolOutput({ text, streaming }: { text: string; streaming: boolean }) {
+  const { t } = useLocale()
   const [expanded, setExpanded] = useState(false)
   const boxRef = useRef<HTMLDivElement | null>(null)
   const stickRef = useRef(true)
@@ -506,7 +512,7 @@ function ToolOutput({ text, streaming }: { text: string; streaming: boolean }) {
           onClick={() => setExpanded((value) => !value)}
           className="block w-full border-t border-border/50 px-4 py-1.5 text-left text-[11px] font-medium text-soft-foreground hover:text-foreground"
         >
-          {expanded ? 'Show less' : `Show all ${lines} lines`}
+          {expanded ? t('transcript.showLess') : t('transcript.showAllLines', { lines })}
         </button>
       ) : null}
     </div>
@@ -598,6 +604,7 @@ export function ToolCard({
   cacheKey?: string
   renderNested?: (entries: readonly ThreadEntry[], scope: string) => ReactNode
 }) {
+  const { t } = useLocale()
   const cache = useThreadCardCache()
   const [userOpen, setUserOpenState] = useState<boolean | null>(
     () => (cacheKey !== undefined ? (cache?.get(cacheKey) ?? null) : null),
@@ -656,10 +663,10 @@ export function ToolCard({
         ) : null}
         <span className="ml-auto flex shrink-0 items-center gap-2 pl-2">
           {busy ? (
-            <LoaderCircleIcon role="status" aria-label="Running" className="size-3.5 animate-spin text-soft-foreground" />
+            <LoaderCircleIcon role="status" aria-label={t('transcript.running')} className="size-3.5 animate-spin text-soft-foreground" />
           ) : null}
-          {item.status === 'failed' ? <span className="text-xs text-muted-foreground">failed</span> : null}
-          {item.status === 'declined' ? <span className="text-xs text-soft-foreground">declined</span> : null}
+          {item.status === 'failed' ? <span className="text-xs text-muted-foreground">{t('transcript.failed')}</span> : null}
+          {item.status === 'declined' ? <span className="text-xs text-soft-foreground">{t('transcript.declined')}</span> : null}
           {item.toolKind === 'execute' && typeof item.exitCode === 'number' ? (
             <span
               data-slot="tool-exit"
@@ -698,6 +705,11 @@ export function ToolCard({
 /** "Explored N files · M searches" — consecutive finished read/search tools, one row,
  *  expandable to the individual cards (mockup `.ctx-group`). */
 export function ContextGroup({ group, scope }: { group: ContextGroupBlock; scope?: string }) {
+  const { t, tn } = useLocale()
+  const parts = [
+    ...(group.files > 0 ? [tn('transcript.fileCount', group.files)] : []),
+    ...(group.searches > 0 ? [tn('transcript.searchCount', group.searches)] : []),
+  ]
   return (
     <Collapsible data-slot="ctx-group" className="min-w-0">
       <CollapsibleTrigger className="group flex h-[34px] w-full items-center gap-2 rounded-md px-2 -mx-2 text-left text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
@@ -705,7 +717,7 @@ export function ContextGroup({ group, scope }: { group: ContextGroupBlock; scope
           aria-hidden
           className="size-3.5 shrink-0 text-soft-foreground transition-transform group-data-[state=open]:rotate-90"
         />
-        {group.label}
+        {t('transcript.explored', { parts: parts.join(' · ') })}
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div className="flex flex-col gap-1.5 pt-1.5 pl-4">
@@ -721,6 +733,7 @@ export function ContextGroup({ group, scope }: { group: ContextGroupBlock; scope
 /** The legacy tool-streak fold, kept: older finished tool cards collapse under
  *  "▸ N earlier tool calls". The caller renders the folded blocks as children. */
 export function ToolStreak({ count, children }: { count: number; children: ReactNode }) {
+  const { tn } = useLocale()
   return (
     <Collapsible data-slot="tool-streak" className="min-w-0">
       <CollapsibleTrigger className="group flex items-center gap-1.5 rounded-md p-0.5 text-left text-xs text-soft-foreground hover:text-muted-foreground">
@@ -728,7 +741,7 @@ export function ToolStreak({ count, children }: { count: number; children: React
           aria-hidden
           className="size-3.5 shrink-0 transition-transform group-data-[state=open]:rotate-90"
         />
-        {streakLabel(count)}
+        {tn('transcript.earlierTools', count)}
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div className="flex flex-col gap-2 pt-2">{children}</div>
@@ -739,11 +752,12 @@ export function ToolStreak({ count, children }: { count: number; children: React
 
 /** A persisted run image (served by the cockpit itself — never an external origin). Click to zoom. */
 export function ImageItem({ image }: { image: ThreadImage }) {
+  const { t } = useLocale()
   return (
     <ZoomableImage
       data-slot="thread-image"
       src={image.url}
-      alt={image.name ?? 'image from the agent session'}
+      alt={image.name ?? t('transcript.agentImage')}
       className="max-h-72 max-w-full self-start rounded-lg border border-border"
     />
   )

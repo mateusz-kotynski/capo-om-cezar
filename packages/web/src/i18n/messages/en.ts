@@ -7,6 +7,7 @@ import { en as gitEn } from '../areas/git'
 import { en as composeEn } from '../areas/compose'
 import { en as threadEn } from '../areas/thread'
 import { en as tasksEn } from '../areas/tasks'
+import { en as transcriptEn } from '../areas/transcript'
 import { en as planReviewEn } from '../areas/planReview'
 import { en as compareEn } from '../areas/compare'
 import { en as trackerEn } from '../areas/tracker'
@@ -197,4 +198,5 @@ export const en: Messages = {
   tracker: trackerEn,
   compare: compareEn,
   planReview: planReviewEn,
+  transcript: transcriptEn,
 }

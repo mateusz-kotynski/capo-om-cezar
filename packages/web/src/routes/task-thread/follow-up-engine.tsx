@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useLocale } from '@/components/locale-provider'
 import { useState, type ReactNode } from 'react'
 
 import { hasAccountChoice, useAgentAccounts } from '@/api/agent-accounts'
@@ -48,6 +49,7 @@ export interface ContinueAction {
  * the pills' state lives here.
  */
 export function useContinueAction(run: ApiRun): ContinueAction {
+  const { t } = useLocale()
   const queryClient = useQueryClient()
   const available = runActionFlags(run).continueRun
   const config = useConfig()
@@ -102,7 +104,7 @@ export function useContinueAction(run: ApiRun): ContinueAction {
   const mutation = useMutation({
     mutationFn: ({ text, images }: { text: string; images: AttachmentInput[] }) => {
       if (!canContinue) {
-        return Promise.reject(new Error(continuation.reason ?? 'Connect an agent provider to continue.'))
+        return Promise.reject(new Error(continuation.reason ?? t('transcript.connectToContinue')))
       }
       return continueRun(run.id, {
         // An empty draft posts no `text` at all, so the server's default opening prompt
@@ -155,11 +157,11 @@ export function useContinueAction(run: ApiRun): ContinueAction {
         ) : null}
         <PickerPill
           slot="follow-up-model-pill"
-          ariaLabel="Model"
+          ariaLabel={t('compose.newTask.model')}
           label={models.find((m) => m.id === model)?.label ?? 'auto'}
           value={model}
           readOnly={modelsLocked}
-          disabledHint="Model selection is locked to native coding-agent settings."
+          disabledHint={t('transcript.modelLockedHint')}
           onPick={(next) => setPickedModel(next)}
           options={models.map((m) => ({ value: m.id, label: m.label, desc: m.desc }))}
           status={modelCatalogStatus(runner, catalog.data, catalog.isError)}

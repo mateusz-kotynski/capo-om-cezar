@@ -7,6 +7,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { RunEvent } from '@open-mercato/cezar-api-client'
 import type { UiToolItem } from '@open-mercato/cezar-api-client'
 import { createQueryClient } from '@/api/query-client'
+import { LocaleProvider } from '@/components/locale-provider'
+import { LOCALE_STORAGE_KEY } from '@/lib/locale'
 
 import bashAndScreenshot from '../../../../cezar/src/core/__fixtures__/claude/bash-and-screenshot.expected.json'
 import failedAndDenied from '../../../../cezar/src/core/__fixtures__/claude/failed-and-denied.expected.json'
@@ -283,6 +285,30 @@ describe('ContextGroup + ToolStreak', () => {
     expect(screen.queryByTestId('older-card')).toBeNull()
     fireEvent.click(button)
     expect(screen.getByTestId('older-card')).toBeTruthy()
+  })
+})
+
+describe('ContextGroup + ToolStreak in Polish', () => {
+  afterEach(() => {
+    localStorage.removeItem(LOCALE_STORAGE_KEY)
+    document.documentElement.removeAttribute('lang')
+  })
+
+  it('words the group and the fold with Polish plurals', () => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'pl')
+    const read = goldenItem(subagentTask, 'toolu_sub_01', 'completed')
+    const group = groupThreadItems([read, { ...read, id: 'toolu_sub_02' }])[0]!
+    if (group.kind !== 'context-group') throw new Error('expected a context group')
+    render(
+      <LocaleProvider>
+        <ContextGroup group={group} />
+        <ToolStreak count={5}>
+          <div />
+        </ToolStreak>
+      </LocaleProvider>,
+    )
+    expect(screen.getByRole('button', { name: 'Przejrzano: 2 wyszukiwania' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '5 wcześniejszych wywołań narzędzi' })).toBeTruthy()
   })
 })
 

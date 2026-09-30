@@ -17,6 +17,7 @@ import {
 } from './thread-items'
 import { ThreadCardCache } from './thread-open-cards'
 import { threadRenderMode } from './thread-scroll'
+import { useLocale } from '@/components/locale-provider'
 import { DaySeparator, TurnTime, localDayKey } from './thread-time'
 import {
   JumpToLatestPill,
@@ -236,6 +237,7 @@ export function SessionTranscript({
   renderMode,
   rowModels: providedRowModels,
 }: SessionTranscriptProps) {
+  const { t } = useLocale()
   const rowModels = useMemo(
     () => providedRowModels ?? buildTranscriptRows(sections, runId),
     [providedRowModels, sections, runId],
@@ -271,7 +273,7 @@ export function SessionTranscript({
       {mode === 'panel' ? (
         <div
           data-slot="transcript-viewport"
-          aria-label="Agent transcript"
+          aria-label={t('transcript.agentTranscript')}
           role="region"
           tabIndex={0}
           className="relative flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]"
@@ -426,6 +428,7 @@ function ThreadEntryRenderer({
   scope: string
   renderAsk?: (ask: ThreadAsk) => ReactNode
 }): ReactNode {
+  const { t } = useLocale()
   switch (entry.kind) {
     case 'message':
       return entry.role === 'assistant' ? (
@@ -446,7 +449,7 @@ function ThreadEntryRenderer({
         renderAsk(entry)
       ) : (
         <div data-slot="ask-card" className="rounded-lg border border-border bg-card px-4 py-3 text-sm">
-          The agent asked a question. Open the main session to answer it.
+          {t('transcript.askFallback')}
         </div>
       )
     case 'provider-auth-required':
