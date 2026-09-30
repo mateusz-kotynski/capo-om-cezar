@@ -1,4 +1,5 @@
 import type { Messages } from './types'
+import { pl as composePl } from '../areas/compose'
 import { pl as threadPl } from '../areas/thread'
 import { pl as tasksPl } from '../areas/tasks'
 
@@ -264,4 +265,5 @@ export const pl: Messages = {
   },
   tasks: tasksPl,
   thread: threadPl,
+  compose: composePl,
 }

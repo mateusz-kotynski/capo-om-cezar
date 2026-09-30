@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   CheckIcon,
@@ -109,6 +110,7 @@ import { PlanReview } from './plan-review'
  * web/app.js, verbatim (see new-task-autostart.ts for the verified semantics).
  */
 export function NewTaskRoute() {
+  const { t } = useLocale()
   const [search] = useSearchParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -238,6 +240,11 @@ export function NewTaskRoute() {
   const runner = runners.length > 0 ? resolveRunner(draft.runner, runners, preferredRunner) : null
   const displayRunner = runner ?? preferredRunner
   const providersReady = providers.isSuccess && runners.length > 0
+  const providerBlockedMessage = providers.isPending
+    ? t('compose.newTask.checkingProviders')
+    : providers.isError
+      ? t('compose.newTask.providerAuthFailed')
+      : t('compose.newTask.connectProvider')
   const catalog = useRunnerModels(displayRunner)
   const modelsLocked = config.data?.modelsLocked === true
   const models = runner === null
@@ -268,7 +275,7 @@ export function NewTaskRoute() {
     providersWereReady.current = providersReady
     if (becameReady && document.activeElement === document.body) {
       document
-        .querySelector<HTMLTextAreaElement>('textarea[aria-label="Describe a task for the agent"]')
+        .querySelector<HTMLTextAreaElement>('[data-route="new"] textarea')
         ?.focus()
     }
   }, [providersReady])
@@ -459,16 +466,12 @@ export function NewTaskRoute() {
   const submit = async (text: string, images: AttachmentInput[]) => {
     if (!providersReady || runner === null) {
       throw new Error(
-        providers.isPending
-          ? 'Checking agent providers…'
-          : providers.isError
-            ? 'Provider authentication could not be verified.'
-            : 'Connect an agent provider before starting a task.',
+        providerBlockedMessage,
       )
     }
     if (!sourcesReady) {
       // Rejection restores the draft — nothing typed is lost to a race with the pickers.
-      throw new Error('Still loading workflows and skills — try again in a second.')
+      throw new Error(t('compose.newTask.stillLoading'))
     }
     if (draft.planFirst) {
       // Plan mode: submit means PLAN. A rejection propagates — the composer toasts and
@@ -587,9 +590,9 @@ export function NewTaskRoute() {
       >
         <TwinkleBackdrop />
         <div data-slot="auto-starting" role="status" className="text-center">
-          <h1 className="animate-pulse text-lg font-semibold tracking-tight">Starting task…</h1>
+          <h1 className="animate-pulse text-lg font-semibold tracking-tight">{t('compose.newTask.starting')}</h1>
           <p className="mt-1.5 text-[13.5px] text-muted-foreground">
-            Launched from a bookmarklet — taking you to the run.
+            {t('compose.newTask.bookmarklet')}
           </p>
         </div>
       </div>
@@ -630,16 +633,12 @@ export function NewTaskRoute() {
           images={images}
           onImagesChange={setImages}
           autoFocus
-          placeholder="Describe a task for the agent — / for skills…"
-          ariaLabel="Describe a task for the agent"
-          sendAriaLabel={draft.planFirst ? 'Plan task' : 'Start task'}
+          placeholder={t('compose.newTask.placeholder')}
+          ariaLabel={t('compose.newTask.ariaLabel')}
+          sendAriaLabel={draft.planFirst ? t('compose.newTask.planTask') : t('compose.newTask.startTask')}
           disabled={!providersReady || starting}
           disabledReason={
-            providers.isPending
-              ? 'Checking agent providers…'
-              : providers.isError
-                ? 'Provider authentication could not be verified.'
-                : 'Connect an agent provider before starting a task.'
+            providerBlockedMessage
           }
           autocompleteSkills
           footerStart={
@@ -698,14 +697,14 @@ export function NewTaskRoute() {
               ) : null}
               <PickerPill
                 slot="model-pill"
-                ariaLabel="Model"
+                ariaLabel={t('compose.newTask.model')}
                 label={models.find((m) => m.id === model)?.label ?? 'auto'}
                 value={model}
                 disabled={!providersReady}
                 readOnly={modelsLocked}
                 disabledHint={
                   modelsLocked
-                    ? 'Model selection is locked to native coding-agent settings.'
+                    ? t('compose.newTask.modelLocked')
                     : undefined
                 }
                 onPick={(next) => update({ model: next })}
@@ -714,17 +713,17 @@ export function NewTaskRoute() {
               />
               <PickerPill
                 slot="variants-pill"
-                ariaLabel="Parallel variants"
-                label={variants > 1 ? `×${variants} variants` : '×1'}
+                ariaLabel={t('compose.newTask.variantsAria')}
+                label={variants > 1 ? t('compose.newTask.variantsLabel', { count: variants }) : '×1'}
                 value={String(variants)}
                 onPick={(next) => update({ variants: Number(next) })}
                 disabled={!hasGit}
-                hint="How many times to run this task in parallel — each variant gets its own worktree, and you pick the diff you keep. ×1 runs it once."
-                disabledHint="Parallel variants need a git repository — each variant runs in its own worktree."
+                hint={t('compose.newTask.variantsHint')}
+                disabledHint={t('compose.newTask.variantsNeedGit')}
                 options={[
-                  { value: '1', label: '×1', desc: 'One run' },
-                  { value: '2', label: '×2 variants', desc: 'Two competing runs — pick the diff you keep' },
-                  { value: '3', label: '×3 variants', desc: 'Three competing runs — pick the diff you keep' },
+                  { value: '1', label: '×1', desc: t('compose.newTask.oneRun') },
+                  { value: '2', label: t('compose.newTask.variantsLabel', { count: 2 }), desc: t('compose.newTask.twoRuns') },
+                  { value: '3', label: t('compose.newTask.variantsLabel', { count: 3 }), desc: t('compose.newTask.threeRuns') },
                 ]}
               />
               {/* The row reads in clusters: WHAT runs (project, source, runner, model,
@@ -738,8 +737,8 @@ export function NewTaskRoute() {
                   disabled={worktreeForced}
                   disabledReason={
                     dispatchOn
-                      ? "Dispatch forks this task's commits — subtasks need a worktree"
-                      : 'Parallel variants always use isolated worktrees'
+                      ? t('compose.newTask.dispatchNeedsWorktree')
+                      : t('compose.newTask.variantsNeedWorktree')
                   }
                   onChange={(on) => update({ worktree: on })}
                 />
@@ -791,7 +790,7 @@ export function NewTaskRoute() {
                   to="/settings/agents#providers"
                   className="text-xs font-medium text-foreground underline underline-offset-4"
                 >
-                  Configure providers
+                  {t('compose.newTask.configureProviders')}
                 </Link>
               ) : null}
               <ModeSegment
@@ -814,9 +813,8 @@ export function NewTaskRoute() {
             data-slot="dispatch-hint"
             className="mt-2 rounded-md border border-primary/25 bg-primary/[0.07] px-3 py-1.5 text-xs text-muted-foreground"
           >
-            <strong className="font-semibold text-foreground">Dispatch is on.</strong> Splits this
-            task into subtasks it runs as separate tasks. Worktree stays on. Long-press the icon
-            for limits.
+            <strong className="font-semibold text-foreground">{t('compose.newTask.dispatchOn')}</strong>{' '}
+            {t('compose.newTask.dispatchHint')}
           </p>
         ) : null}
 
@@ -829,15 +827,11 @@ export function NewTaskRoute() {
           starting={starting}
           startAvailable={providersReady}
           startUnavailableReason={
-            providers.isPending
-              ? 'Checking agent providers…'
-              : providers.isError
-                ? 'Provider authentication could not be verified.'
-                : 'Connect an agent provider before starting a task.'
+            providerBlockedMessage
           }
           startUnavailableAction={
             !providers.isPending ? (
-              <Link to="/settings/agents#providers">Configure providers</Link>
+              <Link to="/settings/agents#providers">{t('compose.newTask.configureProviders')}</Link>
             ) : undefined
           }
           onStepsChange={(steps) => setPlan((current) => (current ? { ...current, steps } : current))}
@@ -867,6 +861,7 @@ function WorktreeToggle({
   disabledReason?: string
   onChange: (on: boolean) => void
 }) {
+  const { t } = useLocale()
   return (
     <button
       type="button"
@@ -879,8 +874,8 @@ function WorktreeToggle({
         disabled
           ? disabledReason
           : on
-          ? 'Runs in an isolated worktree — uncheck to run in the repo working tree'
-          : 'Runs in the repo working tree — check to isolate in a worktree'
+          ? t('compose.newTask.worktreeOn')
+          : t('compose.newTask.worktreeOff')
       }
       className={cn(chipClass, on && 'border-primary/60 text-foreground')}
     >
@@ -889,7 +884,7 @@ function WorktreeToggle({
       ) : (
         <SquareIcon aria-hidden="true" className="size-3 shrink-0 text-soft-foreground" />
       )}
-      Worktree
+      {t('compose.newTask.worktree')}
     </button>
   )
 }
@@ -905,6 +900,7 @@ function AutonomousToggle({
   disabled?: boolean
   onChange: (on: boolean) => void
 }) {
+  const { t } = useLocale()
   return (
     <button
       type="button"
@@ -915,10 +911,10 @@ function AutonomousToggle({
       onClick={() => onChange(!on)}
       title={
         disabled
-          ? 'Plan-first runs are interactive — autonomous is unavailable'
+          ? t('compose.newTask.autonomousDisabled')
           : on
-            ? 'Autonomous — the agent runs to completion without pausing for you'
-            : 'Runs interactively — check to let the agent finish without pausing for you'
+            ? t('compose.newTask.autonomousOn')
+            : t('compose.newTask.autonomousOff')
       }
       className={cn(chipClass, on && !disabled && 'border-primary/60 text-foreground')}
     >
@@ -927,7 +923,7 @@ function AutonomousToggle({
       ) : (
         <SquareIcon aria-hidden="true" className="size-3 shrink-0 text-soft-foreground" />
       )}
-      Autonomous
+      {t('compose.newTask.autonomous')}
     </button>
   )
 }
@@ -941,6 +937,7 @@ function GenerateFollowupsToggle({
   on: boolean
   onChange: (on: boolean) => void
 }) {
+  const { t } = useLocale()
   return (
     <button
       type="button"
@@ -950,8 +947,8 @@ function GenerateFollowupsToggle({
       onClick={() => onChange(!on)}
       title={
         on
-          ? 'Agents can add newly discovered follow-up work to the task inbox'
-          : 'Follow-up generation is off; agents still maintain the handoff journal'
+          ? t('compose.newTask.followupsOn')
+          : t('compose.newTask.followupsOff')
       }
       className={cn(chipClass, on && 'border-primary/60 text-foreground')}
     >
@@ -960,7 +957,7 @@ function GenerateFollowupsToggle({
       ) : (
         <SquareIcon aria-hidden="true" className="size-3 shrink-0 text-soft-foreground" />
       )}
-      Follow-ups
+      {t('compose.newTask.followups')}
     </button>
   )
 }
@@ -1016,6 +1013,7 @@ function ProjectPill({
   projectId: string
   onPick: (projectId: string) => void
 }) {
+  const { t } = useLocale()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const selected = projects.find((project) => project.id === projectId)
@@ -1033,8 +1031,8 @@ function ProjectPill({
         <button
           type="button"
           data-slot="project-pill"
-          aria-label="Project"
-          title="Which project this task runs in — its skills, workflows, settings and draft"
+          aria-label={t('compose.newTask.project')}
+          title={t('compose.newTask.projectTitle')}
           className={cn(chipClass, 'border-foreground/60 font-semibold text-foreground')}
         >
           <FolderOpenIcon aria-hidden="true" className="size-3 shrink-0 text-soft-foreground" />
@@ -1050,13 +1048,13 @@ function ProjectPill({
         className="w-[300px] max-w-[calc(100vw-2rem)] p-0"
       >
         <Command shouldFilter={false}>
-          <CommandInput placeholder="search projects…" value={search} onValueChange={setSearch} />
+          <CommandInput placeholder={t('compose.newTask.searchProjects')} value={search} onValueChange={setSearch} />
           {/* Same 3rem headroom rule as the source picker: the list must not eat the search box. */}
           <CommandList
             data-slot="project-menu"
             className="max-h-[min(18rem,calc(var(--radix-popover-content-available-height)-3rem))]"
           >
-            {matched.length === 0 ? <CommandEmpty>Nothing matches.</CommandEmpty> : null}
+            {matched.length === 0 ? <CommandEmpty>{t('common.nothingMatches')}</CommandEmpty> : null}
             {matched.map((project) => (
               <CommandItem
                 key={project.id}
@@ -1075,7 +1073,7 @@ function ProjectPill({
               >
                 <span className="min-w-0 flex-1 truncate text-xs font-medium">{project.name}</span>
                 {project.status === 'missing' ? (
-                  <span className="shrink-0 text-[11px] text-soft-foreground">folder not found</span>
+                  <span className="shrink-0 text-[11px] text-soft-foreground">{t('common.folderNotFound')}</span>
                 ) : project.branch !== undefined ? (
                   <span className="shrink-0 font-mono text-[11px] text-soft-foreground">
                     {project.branch}
@@ -1090,7 +1088,7 @@ function ProjectPill({
           {/* The mockup's `dd-note`. Worth the two lines: picking here does far more than
               relabel a pill, and nothing else on screen says so. */}
           <p className="border-t border-border px-3 py-2 text-[11px] leading-snug text-soft-foreground">
-            Skills, workflows, settings and the draft re-resolve against the selected project.
+            {t('compose.newTask.projectNote')}
           </p>
         </Command>
       </PopoverContent>
@@ -1102,6 +1100,7 @@ function ProjectPill({
  *  (`PUT /api/config`, exactly the legacy Repo tab's picker), not a per-run flag — so it
  *  mutates the server and refetches, rather than living in the draft. Hidden without git. */
 function BaseBranchPill({ repo }: { repo: RepoResponse }) {
+  const { t } = useLocale()
   const queryClient = useQueryClient()
   const mutation = useMutation({
     mutationFn: (baseBranch: string | null) => putConfig({ baseBranch }),
@@ -1109,8 +1108,8 @@ function BaseBranchPill({ repo }: { repo: RepoResponse }) {
       void queryClient.invalidateQueries({ queryKey: queryKeys.repo })
       toast(
         result.baseBranch
-          ? `New tasks will branch off "${result.baseBranch}" (PRs target it too).`
-          : 'Base branch cleared — new tasks fork from the checked-out branch.',
+          ? t('compose.newTask.baseSet', { branch: result.baseBranch })
+          : t('compose.newTask.baseCleared'),
       )
     },
     onError: (error: Error) => toast(error.message, { tone: 'danger' }),
@@ -1120,13 +1119,13 @@ function BaseBranchPill({ repo }: { repo: RepoResponse }) {
   return (
     <PickerPill
       slot="base-pill"
-      ariaLabel="Base branch"
-      label={<span className="font-mono text-[11.5px]">base: {current}</span>}
+      ariaLabel={t('compose.newTask.baseBranch')}
+      label={<span className="font-mono text-[11.5px]">{t('compose.newTask.baseLabel', { branch: current })}</span>}
       value={repo.baseBranch ?? ''}
       onPick={(value) => mutation.mutate(value === '' ? null : value)}
-      searchPlaceholder="Search branches…"
+      searchPlaceholder={t('compose.newTask.searchBranches')}
       options={[
-        { value: '', label: `follow checked-out branch (${repo.info.branch})`, desc: 'New task worktrees fork from whatever branch is checked out' },
+        { value: '', label: t('compose.newTask.followCheckedOut', { branch: repo.info.branch }), desc: t('compose.newTask.followCheckedOutDesc') },
         ...repo.branches.map((branch) => ({ value: branch, label: branch })),
       ]}
     />
@@ -1146,11 +1145,12 @@ function ModeSegment({
   planning: boolean
   onModeChange: (planFirst: boolean) => void
 }) {
+  const { t } = useLocale()
   return (
     <div
       data-slot="mode-seg"
       role="radiogroup"
-      aria-label="Run mode"
+      aria-label={t('compose.newTask.runMode')}
       className="inline-flex items-center gap-0.5 rounded-lg bg-muted p-[3px]"
     >
       <button
@@ -1165,7 +1165,7 @@ function ModeSegment({
             : 'font-medium text-muted-foreground hover:text-foreground',
         )}
       >
-        Start
+        {t('compose.newTask.start')}
       </button>
       <button
         type="button"
@@ -1182,7 +1182,7 @@ function ModeSegment({
           planning && 'animate-pulse',
         )}
       >
-        {planning ? 'Planning…' : 'Plan first'}
+        {planning ? t('compose.newTask.planning') : t('compose.newTask.planFirst')}
       </button>
     </div>
   )
@@ -1190,16 +1190,13 @@ function ModeSegment({
 
 /** Honest static starters (the mockup's ghost chips): they only fill the textarea — the user
  *  still aims and submits. */
-const SUGGESTIONS = [
-  'Fix a failing or flaky test',
-  'Summarize recent commits on this branch',
-  'Update the README for recent changes',
-]
+const SUGGESTION_KEYS = ['compose.newTask.suggestion1', 'compose.newTask.suggestion2', 'compose.newTask.suggestion3'] as const
 
 function SuggestedChips({ onPick }: { onPick: (text: string) => void }) {
+  const { t } = useLocale()
   return (
     <div className="mt-7 flex flex-wrap justify-center gap-2 max-md:justify-start">
-      {SUGGESTIONS.map((suggestion) => (
+      {SUGGESTION_KEYS.map((key) => t(key)).map((suggestion) => (
         <button
           key={suggestion}
           type="button"

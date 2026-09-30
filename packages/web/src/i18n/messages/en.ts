@@ -1,4 +1,5 @@
 import type { Messages } from './types'
+import { en as composeEn } from '../areas/compose'
 import { en as threadEn } from '../areas/thread'
 import { en as tasksEn } from '../areas/tasks'
 
@@ -260,4 +261,5 @@ export const en: Messages = {
   },
   tasks: tasksEn,
   thread: threadEn,
+  compose: composeEn,
 }

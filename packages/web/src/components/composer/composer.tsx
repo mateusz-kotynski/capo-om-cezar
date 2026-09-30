@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { useQueryClient } from '@tanstack/react-query'
 import { ArrowUpIcon, CheckIcon, MicIcon, PaperclipIcon, XIcon } from 'lucide-react'
 import {
@@ -129,17 +130,22 @@ export function Composer({
   autoFocus = false,
   footerStart,
   footerEnd,
-  sendAriaLabel = 'Send',
+  sendAriaLabel: sendAriaLabelProp,
   disabled = false,
-  disabledReason = 'Session closed — Continue to reopen.',
+  disabledReason: disabledReasonProp,
   allowEmptySubmit = false,
-  placeholder = 'Reply — / for skills, @ for files…',
-  ariaLabel = 'Reply to the agent',
+  placeholder: placeholderProp,
+  ariaLabel: ariaLabelProp,
   autocompleteSkills = true,
   quickReplies = false,
   getMentionCandidates,
   ref,
 }: ComposerProps) {
+  const { t } = useLocale()
+  const sendAriaLabel = sendAriaLabelProp ?? t('compose.composer.send')
+  const disabledReason = disabledReasonProp ?? t('compose.composer.sessionClosed')
+  const placeholder = placeholderProp ?? t('compose.composer.placeholder')
+  const ariaLabel = ariaLabelProp ?? t('compose.composer.ariaLabel')
   // Optionally controlled: `value` (when given) shadows the internal state, and every write is
   // mirrored to both — updater functions resolve against whichever is authoritative right now.
   const [internalText, setInternalText] = useState('')
@@ -495,8 +501,8 @@ export function Composer({
                 <button
                   key={`${attachment.name}-${index}`}
                   type="button"
-                  aria-label={`Remove ${attachment.name}`}
-                  title="Click to remove"
+                  aria-label={t('compose.composer.removeAttachment', { name: attachment.name })}
+                  title={t('compose.composer.clickToRemove')}
                   className={cn(
                     'group relative overflow-hidden rounded-md border border-border',
                     attachment.isImage
@@ -572,13 +578,13 @@ export function Composer({
                     variant="ghost"
                     size="sm"
                     disabled={disabled}
-                    aria-label="Start dictation"
-                    title="Dictation"
+                    aria-label={t('compose.composer.startDictation')}
+                    title={t('compose.composer.dictation')}
                     className="h-8 gap-1.5 px-2.5 text-xs font-medium text-muted-foreground"
                     onClick={dictation.start}
                   >
                     <MicIcon aria-hidden="true" className="size-3.5" />
-                    Dictation
+                    {t('compose.composer.dictation')}
                   </Button>
                 ) : null}
                 {footerEnd ? (
@@ -628,10 +634,10 @@ export function Composer({
             {candidates.length === 0 ? (
               <p className="px-3 py-4 text-center text-xs text-muted-foreground">
                 {trigger?.trigger === '@'
-                  ? 'No files seen in this session yet — full file search arrives with the Files tab.'
+                  ? t('compose.composer.noFiles')
                   : skills.isPending
-                    ? 'Loading skills…'
-                    : 'No matching skills.'}
+                    ? t('compose.composer.loadingSkills')
+                    : t('compose.composer.noSkills')}
               </p>
             ) : (
               candidates.map((candidate) => (
@@ -678,6 +684,7 @@ function AttachButton({
   disabled: boolean
   onFiles: (files: readonly File[]) => void
 }) {
+  const { t } = useLocale()
   const inputRef = useRef<HTMLInputElement>(null)
   return (
     <>
@@ -685,8 +692,8 @@ function AttachButton({
         type="button"
         variant="ghost"
         size="icon-sm"
-        aria-label="Attach files"
-        title="Attach an image, PDF, TXT or MD file (or paste a screenshot)"
+        aria-label={t('compose.composer.attachFiles')}
+        title={t('compose.composer.attachTitle')}
         disabled={disabled}
         className="size-8 text-muted-foreground"
         onClick={() => inputRef.current?.click()}
@@ -729,12 +736,13 @@ function DictationBar({
   onInsert: () => void
   onInsertAndSend: () => void
 }) {
+  const { t } = useLocale()
   const now = useNow(1000)
   return (
     <div
       data-slot="dictation-overlay"
       role="status"
-      aria-label="Dictation in progress"
+      aria-label={t('compose.composer.dictationInProgress')}
       className="flex items-center gap-2.5 rounded-b-xl border-t border-border bg-muted/60 px-3 py-2"
     >
       <span
@@ -750,7 +758,7 @@ function DictationBar({
         className="min-w-0 flex-1 truncate text-sm text-foreground"
       >
         {transcript === '' ? (
-          <span className="text-muted-foreground">Listening…</span>
+          <span className="text-muted-foreground">{t('compose.composer.listening')}</span>
         ) : (
           transcript
         )}
@@ -759,7 +767,7 @@ function DictationBar({
         type="button"
         variant="ghost"
         size="icon-sm"
-        aria-label="Cancel dictation"
+        aria-label={t('compose.composer.cancelDictation')}
         className="size-8 text-muted-foreground"
         onClick={onCancel}
       >
@@ -769,7 +777,7 @@ function DictationBar({
         type="button"
         variant="outline"
         size="icon-sm"
-        aria-label="Insert transcription"
+        aria-label={t('compose.composer.insertTranscription')}
         className="size-8"
         onClick={onInsert}
       >
@@ -778,7 +786,7 @@ function DictationBar({
       <Button
         type="button"
         size="icon-sm"
-        aria-label="Insert transcription and send"
+        aria-label={t('compose.composer.insertAndSend')}
         className="size-8"
         onClick={onInsertAndSend}
       >

@@ -1,4 +1,5 @@
 import type { PluralForms } from '../plural-forms'
+import type { en as composeEn } from '../areas/compose'
 import type { en as threadEn } from '../areas/thread'
 import type { en as tasksEn } from '../areas/tasks'
 
@@ -228,4 +229,5 @@ export interface Messages {
   }
   tasks: typeof tasksEn
   thread: typeof threadEn
+  compose: typeof composeEn
 }

@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { ChevronDownIcon } from 'lucide-react'
 import { useState } from 'react'
 
@@ -58,6 +59,7 @@ export function PlanDock({
   entries: PlanEntry[]
   settled?: boolean
 }) {
+  const { t } = useLocale()
   const [open, setOpen] = useState(() => openByRun.get(runId) ?? defaultOpen())
   if (entries.length === 0) return null // full-replacement can empty the plan — nothing to dock
 
@@ -85,13 +87,13 @@ export function PlanDock({
         aria-expanded={open}
         className={cn('flex w-full items-center gap-2 px-3.5 text-left text-[13px]', open ? 'pt-2 pb-1.5' : 'py-2')}
       >
-        <span className="shrink-0 font-semibold">Plan</span>
+        <span className="shrink-0 font-semibold">{t('thread.plan.title')}</span>
         <span data-slot="plan-count" className="shrink-0 text-muted-foreground tabular-nums">
           · {done}/{total}
         </span>
         {unfinished ? (
           <span data-slot="plan-unfinished" className="shrink-0 text-soft-foreground">
-            · left unfinished
+            {t('thread.plan.unfinished')}
           </span>
         ) : null}
         {!open && active !== undefined ? (
