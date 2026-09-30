@@ -1,3 +1,5 @@
+import { useLocale } from '@/components/locale-provider'
+import { attentionLabel, taskColumnLabel } from '@/i18n/ui-labels'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArchiveIcon,
@@ -124,6 +126,7 @@ export function TasksOverview({
   /** Prevent a shallow write before the authoritative workspace state can preserve siblings. */
   columnsPending?: boolean
 }) {
+  const { t, tn } = useLocale()
   const [query, setQuery] = React.useState('')
   // The subtask accordion (#1110): ids of the parents whose dispatched rows are unfolded.
   // Empty on arrival — collapsed is the default, and the chip on the parent row is the handle.
@@ -167,13 +170,13 @@ export function TasksOverview({
       {/* Desktop header. Below `md` the shell's top bar already says "Tasks", and the drawer
           carries the shared Active/Archived tabs — repeating them here would be a third copy. */}
       <header className="sticky top-0 z-10 hidden h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-5 md:flex">
-        <h1 className="text-base font-semibold">Tasks</h1>
+        <h1 className="text-base font-semibold">{t('nav.tasks')}</h1>
         <div className="inline-flex gap-0.5 rounded-md bg-muted p-[3px]">
           <OverviewTab view="active" current={view} onSelect={onViewChange} count={counts.active}>
-            Active
+            {t('tasksPage.active')}
           </OverviewTab>
           <OverviewTab view="archived" current={view} onSelect={onViewChange} count={counts.archived}>
-            Archived
+            {t('tasksPage.archived')}
           </OverviewTab>
         </div>
         <div className="flex-1" />
@@ -189,7 +192,7 @@ export function TasksOverview({
             onClick={onMarkAllRead}
           >
             <CheckCheckIcon className="size-3.5" aria-hidden="true" />
-            Mark all read
+            {t('tasksPage.markAllRead')}
           </Button>
         ) : null}
         {/* Only when there is something to sweep, like the legacy header's count-gated broom. */}
@@ -202,7 +205,7 @@ export function TasksOverview({
             onClick={onArchiveFinished}
           >
             <ArchiveIcon className="size-3.5" aria-hidden="true" />
-            Archive finished
+            {t('tasksPage.archiveFinished')}
           </Button>
         ) : null}
         <div className="relative w-60">
@@ -214,8 +217,8 @@ export function TasksOverview({
             type="text"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search tasks…"
-            aria-label="Search tasks"
+            placeholder={t('tasksPage.searchPlaceholder')}
+            aria-label={t('tasksPage.searchAriaLabel')}
             className="h-9 w-full rounded-md border border-input bg-card pr-3 pl-8 text-[13px] text-foreground outline-none placeholder:text-soft-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
           />
         </div>
@@ -315,11 +318,10 @@ export function TasksOverview({
           >
             <ScaleIcon className="size-[15px] shrink-0 text-soft-foreground" aria-hidden="true" />
             <span>
-              <strong className="font-semibold text-foreground">{group.title}</strong> — {group.count} variants
-              finished
+              <strong className="font-semibold text-foreground">{group.title}</strong> — {tn('tasks.overview.variantsFinished', group.count)}
             </span>
             <Button asChild variant="outline" size="sm" className="md:ml-auto">
-              <Link to={`/compare/${group.groupId}`}>Compare</Link>
+              <Link to={`/compare/${group.groupId}`}>{t('tasksPage.compare')}</Link>
             </Button>
           </div>
         ))}
@@ -330,7 +332,7 @@ export function TasksOverview({
       <Link
         to="/new"
         data-slot="new-task-fab"
-        aria-label="New task"
+        aria-label={t('tasksPage.newTaskFabAria')}
         className="fixed right-4 bottom-[calc(16px+env(safe-area-inset-bottom))] z-20 inline-flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-modal md:hidden"
       >
         <PlusIcon className="size-[22px]" aria-hidden="true" />
@@ -346,6 +348,7 @@ export function TasksOverview({
  * a fact, so those stay flat. `heading="h2"` because the page's h1 is the header's "Tasks".
  */
 function TasksEmptyState({ view, query }: { view: ListView; query: string }) {
+  const { t } = useLocale()
   const needle = query.trim()
   const kind = needle ? 'search-miss' : view === 'archived' ? 'archive' : 'no-tasks'
   return (
@@ -355,16 +358,16 @@ function TasksEmptyState({ view, query }: { view: ListView; query: string }) {
           heading="h2"
           icon={<SearchXIcon />}
           tone="neutral"
-          title="No matching tasks"
-          subtitle={`No tasks match “${needle}”.`}
+          title={t('tasksPage.emptySearchTitle')}
+          subtitle={t('tasks.overview.searchMissSubtitle', { query: needle })}
         />
       ) : kind === 'archive' ? (
         <CenteredState
           heading="h2"
           icon={<ArchiveIcon />}
           tone="neutral"
-          title="Nothing archived yet"
-          subtitle="Finished tasks you archive land here."
+          title={t('tasksPage.emptyArchiveTitle')}
+          subtitle={t('tasks.overview.archivedEmptySubtitle')}
         />
       ) : (
         <CenteredState
@@ -372,13 +375,13 @@ function TasksEmptyState({ view, query }: { view: ListView; query: string }) {
           icon={<ListChecksIcon />}
           tone="primary"
           backdrop
-          title="No tasks yet"
-          subtitle="Describe a task to get started."
+          title={t('tasksPage.emptyNoTasksTitle')}
+          subtitle={t('tasksPage.emptyNoTasksSubtitle')}
           actions={
             <Button asChild>
               <Link to="/new">
                 <PlusIcon aria-hidden="true" />
-                New task
+                {t('nav.newTask')}
               </Link>
             </Button>
           }
@@ -460,22 +463,23 @@ function TaskColumnHeader({
   onToggle: (id: TaskColumnId) => void
   disabled: boolean
 }) {
+  const { t } = useLocale()
   if (!column.canFold) {
     return (
       <Th columnId={column.id} right={column.align === 'right'}>
-        {column.label}
+        {taskColumnLabel(t, column.id, column.label)}
       </Th>
     )
   }
 
-  const action = expanded ? 'Fold' : 'Expand'
+  const label = taskColumnLabel(t, column.id, column.label)
   return (
     <Th columnId={column.id} right={column.align === 'right'} folded={!expanded}>
       <Tooltip>
         <TooltipTrigger asChild>
           <button
             type="button"
-            aria-label={`${action} ${column.label} column`}
+            aria-label={t(expanded ? 'tasks.overview.foldColumn' : 'tasks.overview.expandColumn', { label })}
             aria-pressed={expanded}
             disabled={disabled}
             onClick={() => onToggle(column.id)}
@@ -487,7 +491,7 @@ function TaskColumnHeader({
           >
             {expanded ? (
               <>
-                <span>{column.label}</span>
+                <span>{label}</span>
                 <ChevronsLeftIcon className="size-3 opacity-55" aria-hidden="true" />
               </>
             ) : (
@@ -498,7 +502,7 @@ function TaskColumnHeader({
             )}
           </button>
         </TooltipTrigger>
-        <TooltipContent side="top">{column.label} · {action} column</TooltipContent>
+        <TooltipContent side="top">{t(expanded ? 'tasks.overview.foldTip' : 'tasks.overview.expandTip', { label })}</TooltipContent>
       </Tooltip>
     </Th>
   )
@@ -568,6 +572,7 @@ function TableRow({
   columns: readonly TaskColumnDefinition[]
   expandedColumns: NormalizedExpandedColumns
 }) {
+  const { t } = useLocale()
   const navigate = useNavigate()
   const attention = deriveAttention(run)
   const scheduled = scheduledResume(run)
@@ -604,7 +609,7 @@ function TableRow({
               colSpan={2}
               className={cn(TD_BASE, 'text-right font-mono text-[11.5px] text-soft-foreground')}
             >
-              #{queuePosition} in queue
+              {t('tasks.overview.queueNote', { position: queuePosition })}
             </td>
           ) : (
             <UsageTds
@@ -673,6 +678,7 @@ function TaskTableCell({
   onTogglePin?: (run: RunRecord, pinned: boolean) => void
   now: number
 }) {
+  const { t } = useLocale()
   if (!expanded) return <FoldedTd column={column.id} />
 
   switch (column.id) {
@@ -682,7 +688,7 @@ function TaskTableCell({
           {/* A scheduled run wears its appointment in the pill, the way a queued one wears its
               queue position — the row's whole answer to "what is this waiting for?". */}
           <Pill dot={attention.tone} pulse={attention.pulse} title={scheduled?.title}>
-            {attention.label}
+            {attentionLabel(t, attention.label)}
             {scheduled ? <span className="tabular-nums">{scheduled.label}</span> : null}
           </Pill>
         </td>
@@ -795,6 +801,7 @@ function TitleCell({
   onRename: (id: string, title: string) => void
   onTogglePin?: (run: RunRecord, pinned: boolean) => void
 }) {
+  const { t } = useLocale()
   const title = runTitle(run)
   const editor = useTitleEditor(title, (next) => onRename(run.id, next))
   // Read/unread (#unread-done-items, "Option B"): promote an unread done item (bright + semibold)
@@ -863,15 +870,15 @@ function TitleCell({
         <StatusDot
           tone="violet"
           role="img"
-          aria-label="unread"
-          title="Unread — not opened since it finished"
+          aria-label={t('tasks.overview.unreadAria')}
+          title={t('tasks.overview.unreadTitle')}
           className="shrink-0"
         />
       ) : null}
       <button
         type="button"
         data-slot="row-rename"
-        aria-label="Rename task"
+        aria-label={t('tasksPage.renameAria')}
         onClick={editor.begin}
         className="shrink-0 rounded-sm p-0.5 text-soft-foreground opacity-0 transition-opacity group-hover/row:opacity-100 hover:text-foreground focus-visible:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
       >
@@ -965,6 +972,7 @@ function TaskCard({
   showCost: boolean
   onTogglePin?: (run: RunRecord, pinned: boolean) => void
 }) {
+  const { t } = useLocale()
   const navigate = useNavigate()
   const attention = deriveAttention(run)
   const scheduled = scheduledResume(run)
@@ -996,7 +1004,7 @@ function TaskCard({
     >
       <div className="flex items-start gap-2.5">
         <Pill dot={attention.tone} pulse={attention.pulse} className="mt-px shrink-0" title={scheduled?.title}>
-          {attention.label}
+          {attentionLabel(t, attention.label)}
           {scheduled ? <span className="tabular-nums">{scheduled.label}</span> : null}
         </Pill>
         <Link
@@ -1032,8 +1040,8 @@ function TaskCard({
           <StatusDot
             tone="violet"
             role="img"
-            aria-label="unread"
-            title="Unread — not opened since it finished"
+            aria-label={t('tasks.overview.unreadAria')}
+            title={t('tasks.overview.unreadTitle')}
             className="mt-1.5 shrink-0"
           />
         ) : null}
@@ -1055,7 +1063,7 @@ function TaskCard({
         {queuePosition !== null ? (
           <>
             <Sep />
-            <span data-slot="queue-note">#{queuePosition} in queue</span>
+            <span data-slot="queue-note">{t('tasks.overview.queueNote', { position: queuePosition })}</span>
           </>
         ) : (
           <>

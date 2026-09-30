@@ -1,4 +1,5 @@
 import type { Messages } from './types'
+import { en as tasksEn } from '../areas/tasks'
 
 /**
  * The English dictionary — also the reference translators work from. See `types.ts` for why
@@ -256,4 +257,5 @@ export const en: Messages = {
       'The sidebar is in the order you dragged it into. Reset puts it back to most-recently-opened first. Shared with every browser signed in to this cezar.',
     resetOrder: 'Reset order',
   },
+  tasks: tasksEn,
 }

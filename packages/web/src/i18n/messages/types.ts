@@ -1,4 +1,5 @@
 import type { PluralForms } from '../plural-forms'
+import type { en as tasksEn } from '../areas/tasks'
 
 /**
  * The one typed shape both `en.ts` and `pl.ts` are written against (`export const en: Messages`
@@ -224,4 +225,5 @@ export interface Messages {
     projectOrderHint: string
     resetOrder: string
   }
+  tasks: typeof tasksEn
 }

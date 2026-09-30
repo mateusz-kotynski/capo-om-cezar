@@ -40,13 +40,42 @@ export function navItemLabel(t: T, item: Pick<NavItem, 'to' | 'label'>): string 
  *  module keeps its English `label` (persisted ids are never derived from it), and this maps
  *  the stable `id` to a dictionary key at the point columns are rendered. */
 const TASK_COLUMN_LABEL_KEYS: Partial<Record<TaskColumnId, StringPath<Messages>>> = {
-  task: 'tasksPage.taskColumn',
-  branch: 'tasksPage.branchColumn',
+  status: 'tasks.columns.status',
+  task: 'tasks.columns.task',
+  workflow: 'tasks.columns.workflow',
+  branch: 'tasks.columns.branch',
+  reference: 'tasks.columns.ref',
+  tokens: 'tasks.columns.tokens',
+  cost: 'tasks.columns.cost',
+  cpu: 'tasks.columns.cpu',
+  memory: 'tasks.columns.mem',
+  started: 'tasks.columns.started',
 }
 
 export function taskColumnLabel(t: T, id: TaskColumnId, fallback: string): string {
   const key = TASK_COLUMN_LABEL_KEYS[id]
   return key ? t(key) : fallback
+}
+
+/** `lib/attention.ts` keeps its English labels (they double as stable strings in tests and the
+ *  notification path); every render site maps them here. Unknown labels pass through. */
+const ATTENTION_LABEL_KEYS: Record<string, StringPath<Messages>> = {
+  running: 'tasks.status.running',
+  done: 'tasks.status.done',
+  failed: 'tasks.status.failed',
+  cancelled: 'tasks.status.cancelled',
+  queued: 'tasks.status.queued',
+  scheduled: 'tasks.status.scheduled',
+  monitoring: 'tasks.status.monitoring',
+  'needs you': 'tasks.status.needsYou',
+  'needs review': 'tasks.status.needsReview',
+  'needs permission': 'tasks.status.needsPermission',
+  unseen: 'tasks.status.unseen',
+}
+
+export function attentionLabel(t: T, label: string): string {
+  const key = ATTENTION_LABEL_KEYS[label]
+  return key ? t(key) : label
 }
 
 /** Settings section titles/descriptions (`routes/settings/registry.tsx`) translated the same

@@ -1,4 +1,5 @@
 import type { Messages } from './types'
+import { pl as tasksPl } from '../areas/tasks'
 
 /**
  * The Polish dictionary. Typed against `Messages` (see `types.ts`), so a missing, renamed or
@@ -260,4 +261,5 @@ export const pl: Messages = {
       'Panel boczny jest w kolejności, w jakiej go przeciągnięto. Reset przywraca kolejność od najniedawniej otwieranych. Wspólne dla każdej przeglądarki zalogowanej do tego cezar.',
     resetOrder: 'Przywróć kolejność',
   },
+  tasks: tasksPl,
 }
