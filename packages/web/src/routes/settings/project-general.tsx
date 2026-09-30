@@ -7,7 +7,7 @@ import type { Capabilities, ProjectListEntry } from '@open-mercato/cezar-api-cli
 import { Button } from '@/components/ui/button'
 import { useActiveProjectId } from '@/lib/project-router'
 import { ProjectFolderField } from './project-location'
-import { AddBootProjectButton, MaxParallelStepper, STATUS_LABEL } from './projects-section'
+import { AddBootProjectButton, MaxParallelStepper, STATUS_LABEL_KEYS } from './projects-section'
 import { RemoveProjectDialog, useProjectRemoval } from './remove-project'
 import { SettingsField } from './settings-field'
 
@@ -140,7 +140,7 @@ function ProjectFacts({ project, canRemove }: { project: ProjectListEntry; canRe
 
         <dt className="text-muted-foreground">{t('prefs.general.status')}</dt>
         <dd data-slot="project-general-status" className={project.status === 'missing' ? 'text-danger' : 'text-foreground'}>
-          {STATUS_LABEL[project.status]}
+          {t(STATUS_LABEL_KEYS[project.status])}
           {/* A registered folder that has been deleted or moved is the one status worth acting
               on, and "folder not found" alone does not say what to do about it. */}
           {project.status === 'missing'
