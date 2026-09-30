@@ -23,7 +23,16 @@ type LocaleContextValue = {
   tn: (key: PluralGroupPath<Messages>, count: number, params?: Params) => string
 }
 
-const LocaleContext = React.createContext<LocaleContextValue | null>(null)
+// Trees rendered without a provider (isolated component tests, embeds) read English rather than
+// crashing; the app always mounts <LocaleProvider> at the root (app.tsx).
+const FALLBACK_CONTEXT: LocaleContextValue = {
+  locale: 'en',
+  setLocale: () => {},
+  t: (key, params) => resolveMessage('en', key, params),
+  tn: (key, count, params) => resolvePlural('en', key, count, params),
+}
+
+const LocaleContext = React.createContext<LocaleContextValue>(FALLBACK_CONTEXT)
 
 /**
  * Owns the UI language preference — the same shape as `ThemeProvider`: seeds from
@@ -64,7 +73,5 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useLocale(): LocaleContextValue {
-  const context = React.useContext(LocaleContext)
-  if (!context) throw new Error('cezar: useLocale() must be called inside <LocaleProvider>')
-  return context
+  return React.useContext(LocaleContext)
 }

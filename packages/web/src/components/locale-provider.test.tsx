@@ -121,9 +121,9 @@ describe('LocaleProvider', () => {
 })
 
 describe('useLocale', () => {
-  it('throws outside a provider rather than silently rendering untranslated keys', () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+  it('falls back to English outside a provider', () => {
+    render(<Probe />)
 
-    expect(() => render(<Probe />)).toThrow(/useLocale\(\) must be called inside <LocaleProvider>/)
+    expect(seen.locale).toBe('en')
   })
 })
