@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { useQueryClient } from '@tanstack/react-query'
 import * as React from 'react'
 
@@ -30,6 +31,7 @@ import {
  *    per-browser) — the section then says plainly that this browser is blocking delivery.
  */
 export function NotificationsSection() {
+  const { t } = useLocale()
   const queryClient = useQueryClient()
   const uiState = useWorkspaceUiState()
 
@@ -91,11 +93,10 @@ export function NotificationsSection() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-sm font-semibold text-foreground">
-              <label htmlFor="notifications-enabled">Notify when an agent needs you</label>
+              <label htmlFor="notifications-enabled">{t('prefs.notifications.title')}</label>
             </h2>
             <p className="text-[13px] text-muted-foreground">
-              A browser notification when a task starts waiting, asks for review, or fails —
-              only while this tab is in the background. Off by default.
+              {t('prefs.notifications.body')}
             </p>
           </div>
           <Switch
@@ -109,15 +110,13 @@ export function NotificationsSection() {
 
         {unsupported ? (
           <p data-slot="notifications-unsupported" className="text-[13px] text-muted-foreground">
-            This browser does not support notifications, so the toggle is unavailable here.
+            {t('prefs.notifications.unsupported')}
           </p>
         ) : null}
 
         {!unsupported && enabled && permission === 'denied' ? (
           <p data-slot="notifications-denied" className="text-[13px] text-danger">
-            This browser is blocking notifications for the cockpit. The preference is saved, but
-            nothing will be delivered here until you allow notifications in the browser&apos;s
-            site settings.
+            {t('prefs.notifications.denied')}
           </p>
         ) : null}
       </section>

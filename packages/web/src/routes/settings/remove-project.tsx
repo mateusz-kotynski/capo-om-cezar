@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { useRemoveProject } from '@/api/queries'
 import type { ProjectListEntry } from '@open-mercato/cezar-api-client'
 import {
@@ -33,6 +34,7 @@ import { toast } from '@/components/ui/toaster'
  *  the server confirmed — the project's own settings page uses it to navigate off a URL that has
  *  just stopped resolving. */
 export function useProjectRemoval() {
+  const { t } = useLocale()
   const remove = useRemoveProject()
   return {
     isPending: remove.isPending,
@@ -41,7 +43,7 @@ export function useProjectRemoval() {
         // "Removed from the workspace", not "Deleted": the toast is the last word the user reads
         // about a button they may have pressed nervously.
         onSuccess: () => {
-          toast(`${project.name} removed from the workspace — its files are untouched`)
+          toast(t('prefs.removeProject.removed', { name: project.name }))
           onRemoved?.()
         },
         onError: (error: Error) => toast(error.message, { tone: 'danger' }),
@@ -59,28 +61,29 @@ export function RemoveProjectDialog({
   onOpenChange: (open: boolean) => void
   onConfirm: () => void
 }) {
+  const { t } = useLocale()
   return (
     <AlertDialog open={project !== null} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Remove {project?.name} from the workspace?</AlertDialogTitle>
+          <AlertDialogTitle>{t('prefs.removeProject.title', { name: project?.name ?? '' })}</AlertDialogTitle>
           <AlertDialogDescription>
-            This only unregisters the project — <strong>nothing on disk is deleted</strong>. The
-            folder, its git history and its task history all stay exactly where they are, and
-            adding it back later finds everything intact.
+            {t('prefs.removeProject.body1')}
+            <strong>{t('prefs.removeProject.bodyStrong')}</strong>
+            {t('prefs.removeProject.body2')}
             <span className="mt-1 block truncate font-mono text-[11px] text-foreground" title={project?.root}>
               {project?.root}
             </span>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Keep it</AlertDialogCancel>
+          <AlertDialogCancel>{t('thread.confirm.keep')}</AlertDialogCancel>
           <AlertDialogAction
             data-action="projects-confirm-remove"
             className="bg-danger text-danger-foreground hover:brightness-[0.96]"
             onClick={onConfirm}
           >
-            Remove from list
+            {t('prefs.removeProject.confirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

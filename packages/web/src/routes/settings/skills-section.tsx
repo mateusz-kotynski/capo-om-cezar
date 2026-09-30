@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { PackageCheckIcon } from 'lucide-react'
 
@@ -10,6 +11,7 @@ import { Switch } from '@/components/ui/switch'
 import { toast } from '@/components/ui/toaster'
 
 export function SkillsSection() {
+  const { t } = useLocale()
   const config = useWorkspaceConfig()
   const projects = useProjects()
   const projectId = projects.data?.bootProject ?? ''
@@ -18,7 +20,7 @@ export function SkillsSection() {
   if (config.isPending) {
     return (
       <p data-slot="skills-settings-loading" className="p-4 text-[13px] text-soft-foreground md:p-6">
-        Loading skill settings…
+        {t('prefs.skills.loading')}
       </p>
     )
   }
@@ -27,7 +29,7 @@ export function SkillsSection() {
       <CenteredState
         icon={<PackageCheckIcon />}
         tone="danger"
-        title="Skill settings did not load"
+        title={t('prefs.skills.loadFailed')}
         subtitle={config.error.message}
         heading="h2"
       />
@@ -45,6 +47,7 @@ function SkillsForm({
   update?: ReturnType<typeof useSkillsUpdate>['data']
   updateError: Error | null
 }) {
+  const { t, tn } = useLocale()
   const queryClient = useQueryClient()
   const save = useMutation({
     mutationFn: (patch: SetWorkspaceConfigInput) => putWorkspaceConfig(patch),
@@ -53,14 +56,14 @@ function SkillsForm({
   })
   const inherited = config.skillsAutoUpdate === null
   const status = (() => {
-    if (updateError) return 'Installation status is unavailable right now.'
-    if (!update) return 'Checking tracked Open Mercato installations…'
+    if (updateError) return t('prefs.skills.statusUnavailable')
+    if (!update) return t('prefs.skills.statusChecking')
     if (update.status === 'unavailable')
-      return update.scopes.find((scope) => scope.reason)?.reason ?? 'Automatic skill updates are unavailable.'
+      return update.scopes.find((scope) => scope.reason)?.reason ?? t('prefs.skills.updatesUnavailable')
     if (update.scopes.every((scope) => scope.skills.length === 0))
-      return 'No tracked Open Mercato installation found.'
+      return t('prefs.skills.noneFound')
     const count = new Set(update.scopes.flatMap((scope) => scope.skills)).size
-    return `${count} tracked Open Mercato skill${count === 1 ? '' : 's'} found.`
+    return tn('prefs.skills.found', count)
   })()
 
   return (
@@ -72,11 +75,10 @@ function SkillsForm({
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-sm font-semibold text-foreground">
-              <label htmlFor="skills-auto-update">Update Open Mercato skills automatically</label>
+              <label htmlFor="skills-auto-update">{t('prefs.skills.title')}</label>
             </h2>
             <p className="text-[13px] text-muted-foreground">
-              Checks installed Open Mercato skills in the background and applies available updates. Other
-              skills and untracked folders are never changed.
+              {t('prefs.skills.body')}
             </p>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
@@ -88,16 +90,16 @@ function SkillsForm({
               onCheckedChange={(checked) => save.mutate({ skillsAutoUpdate: checked })}
             />
             <span className="text-[11px] text-soft-foreground">
-              {config.effectiveSkillsAutoUpdate ? 'On' : 'Off'}
-              {inherited ? ' (default)' : ''}
+              {config.effectiveSkillsAutoUpdate ? t('prefs.skills.on') : t('prefs.skills.off')}
+              {inherited ? t('prefs.skills.defaultSuffix') : ''}
             </span>
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
           <span>
             {inherited
-              ? 'No override is saved. CEZ_SKILLS_AUTO_UPDATE supplies the inherited default when set; otherwise it is on.'
-              : 'An explicit workspace override is saved.'}
+              ? t('prefs.skills.inheritedNote')
+              : t('prefs.skills.overrideNote')}
           </span>
           <Button
             type="button"
@@ -107,7 +109,7 @@ function SkillsForm({
             disabled={inherited || save.isPending}
             onClick={() => save.mutate({ skillsAutoUpdate: null })}
           >
-            Use default
+            {t('prefs.skills.useDefault')}
           </Button>
         </div>
         <p

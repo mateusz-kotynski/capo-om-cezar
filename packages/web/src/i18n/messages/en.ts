@@ -1,4 +1,5 @@
 import type { Messages } from './types'
+import { en as prefsEn } from '../areas/prefs'
 import { en as forgeEn } from '../areas/forge'
 import { en as gitEn } from '../areas/git'
 import { en as composeEn } from '../areas/compose'
@@ -199,4 +200,5 @@ export const en: Messages = {
   compose: composeEn,
   git: gitEn,
   forge: forgeEn,
+  prefs: prefsEn,
 }
