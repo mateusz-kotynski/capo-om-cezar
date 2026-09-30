@@ -1,6 +1,7 @@
 import { LoaderCircleIcon } from 'lucide-react'
 
 import { CenteredState } from '@/components/centered-state'
+import { useLocale } from '@/components/locale-provider'
 
 /**
  * The compare view's loading state — like thread-loading.tsx, in its own module ON PURPOSE:
@@ -9,13 +10,14 @@ import { CenteredState } from '@/components/centered-state'
  * split (Streamdown for the Progress excerpts, Shiki for the diffs) quietly disappears.
  */
 export function CompareLoading() {
+  const { t } = useLocale()
   return (
     <div data-route="compare" className="flex min-h-full flex-col">
       <CenteredState
         icon={<LoaderCircleIcon className="motion-safe:animate-spin" />}
         tone="neutral"
-        title="Loading variants…"
-        subtitle="Fetching every variant's status, spend and diff summary."
+        title={t('compare.loadingTitle')}
+        subtitle={t('compare.loadingSubtitle')}
       />
     </div>
   )
