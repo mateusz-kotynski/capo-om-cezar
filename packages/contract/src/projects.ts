@@ -69,6 +69,9 @@ export const projectListEntrySchema = z.object({
    * directly.
    */
   tags: z.array(z.string()).optional(),
+  /** Registry id of the project this one is shown under (spec 2026-09-29-nested-repo-projects).
+   *  Omitted for a top-level project, and for one whose stored parent is no longer registered. */
+  parent: z.string().optional(),
 });
 export type ProjectListEntry = z.infer<typeof projectListEntrySchema>;
 
@@ -120,8 +123,8 @@ export const PROJECT_TAG_MAX_LENGTH = 32;
 export const PROJECT_TAGS_MAX = 20;
 
 /**
- * `PATCH /api/v1/projects/:projectId` body — the two per-project registry fields the cockpit
- * edits. Each key is optional and a body may carry either or both: a PATCH names the fields it
+ * `PATCH /api/v1/projects/:projectId` body — the per-project registry fields the cockpit edits.
+ * Each key is optional and a body may carry any combination of them: a PATCH names the fields it
  * changes, and an absent key must stay distinguishable from one set to `null` (which CLEARS). A
  * `{ maxParallel }`-only body — every pre-tags client sends exactly that — therefore still means
  * what it always did. An EMPTY body is still refused, as it was before tags existed: a request
@@ -135,6 +138,10 @@ export const PROJECT_TAGS_MAX = 20;
  * - `tags`: the whole list, replaced wholesale — there is no add-one/remove-one spelling,
  *   because the editor always knows the full set and a merge protocol would only add a way for
  *   two tabs to disagree. `null` and `[]` both clear it; the server normalizes before storing.
+ * - `parent` (spec 2026-09-29-nested-repo-projects): `null` makes the project top-level again;
+ *   an id nests it one level under that registry entry. The route refuses (400, nothing applied)
+ *   whatever `projectParentError` refuses — unknown, itself, a nested parent, or a project that
+ *   already has children.
  *
  * Deliberately NOT where the agent-account selection lives — that is
  * `PUT /api/v1/workspace/agent-profiles/selection`, stored beside the accounts it names.
@@ -147,10 +154,12 @@ export const updateProjectInputSchema = z
       .max(PROJECT_TAGS_MAX)
       .nullable()
       .optional(),
+    /** Nest under this registry id; `null` makes the project top-level again. */
+    parent: z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/).nullable().optional(),
   })
   .refine(
-    (body) => body.maxParallel !== undefined || body.tags !== undefined,
-    'specify maxParallel or tags',
+    (body) => body.maxParallel !== undefined || body.tags !== undefined || body.parent !== undefined,
+    'specify maxParallel, tags or parent',
   );
 export type UpdateProjectInput = z.infer<typeof updateProjectInputSchema>;
 

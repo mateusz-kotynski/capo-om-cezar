@@ -723,6 +723,23 @@ describe('workspace projects API', () => {
       }
       expect((await getProjects()).projects.map((p) => p.id)).toEqual([boot.id]);
     });
+
+    it('leaves a removed parent’s children registered and top-level', async () => {
+      const parent = await registerProject(otherRoot);
+      const childRoot = mkdtempSync(join(realpathSync(tmpdir()), 'cez-projects-child-'));
+      try {
+        const child = await registerProject(childRoot);
+        await mergeWriteWorkspaceConfig((config) => {
+          config.projects.find((p) => p.id === child.id)!.parent = parent.id;
+        });
+        expect((await del(parent.id)).status).toBe(200);
+        const listed = await registeredProjects();
+        expect(listed.map((p) => p.id)).toContain(child.id);
+        expect(listed.find((p) => p.id === child.id)?.parent).toBeUndefined();
+      } finally {
+        rmSync(childRoot, { recursive: true, force: true });
+      }
+    });
   });
 
   describe('PATCH /api/v1/projects/:projectId — per-project maxParallel (2026-07-22)', () => {
@@ -879,6 +896,38 @@ describe('workspace projects API', () => {
         expect(body.error, id).toContain('unknown project');
       }
       expect(readFileSync(workspaceConfigPath(), 'utf8')).toBe(before);
+    });
+
+    it('nests a project under another and un-nests it with null (spec 2026-09-29)', async () => {
+      const parent = await registerProject(otherRoot);
+      const childRoot = mkdtempSync(join(realpathSync(tmpdir()), 'cez-projects-child-'));
+      try {
+        const child = await registerProject(childRoot);
+        const set = await patch(child.id, { parent: parent.id });
+        expect(set.status).toBe(200);
+        expect(set.body.project.parent).toBe(parent.id);
+        expect((await getProjects()).projects.find((p) => p.id === child.id)?.parent).toBe(parent.id);
+
+        const cleared = await patch(child.id, { parent: null });
+        expect(cleared.status).toBe(200);
+        expect(cleared.body.project.parent).toBeUndefined();
+      } finally {
+        rmSync(childRoot, { recursive: true, force: true });
+      }
+    });
+
+    it('400s an invalid parent and changes nothing else in the same body', async () => {
+      const other = await registerProject(otherRoot);
+      const res = await apiRequest(makeApp(), `/api/v1/projects/${other.id}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ parent: other.id, maxParallel: 3 }),
+      });
+      expect(res.status).toBe(400);
+      expect(await res.json()).toEqual({ error: 'a project cannot be its own parent' });
+      const stored = (await loadWorkspaceConfig()).projects.find((p) => p.id === other.id)!;
+      expect(stored.parent).toBeUndefined();
+      expect(stored.maxParallel).toBeUndefined();
     });
 
   });

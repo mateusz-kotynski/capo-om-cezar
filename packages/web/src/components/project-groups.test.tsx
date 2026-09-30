@@ -681,4 +681,90 @@ describe('ProjectGroups', () => {
       expect(disclosure('shop')).toBeNull()
     })
   })
+
+  describe('nested repositories (spec 2026-09-29-nested-repo-projects)', () => {
+    const repoRow = (id: string) =>
+      document.querySelector(`[data-slot="project-repo"][data-project="${id}"]`) as HTMLElement | null
+    const nested = () => [
+      project(),
+      project({ id: 'shop', name: 'shop', lastOpenedAt: '2026-07-19T00:00:00.000Z' }),
+      project({ id: 'web', name: 'web', parent: 'cezar', forge: undefined, branch: 'master' }),
+      project({ id: 'api', name: 'api', parent: 'cezar', forge: 'gitlab', branch: 'master' }),
+    ]
+
+    it('draws children inside the parent group, sorted, collapsed, with no group of their own', async () => {
+      serve({ '/api/v1/p/cezar/runs': [] })
+      renderGroups(nested())
+
+      await waitFor(() => expect(repoRow('api')).not.toBeNull())
+      expect(group('api')).toBeNull()
+      expect(group('web')).toBeNull()
+      const rows = Array.from(group('cezar').querySelectorAll('[data-slot="project-repo"]'))
+      expect(rows.map((row) => row.getAttribute('data-project'))).toEqual(['api', 'web'])
+      const api = repoRow('api')!
+      expect(within(api).getByRole('button', { name: 'Expand api' }).getAttribute('aria-expanded')).toBe('false')
+      expect(api.querySelector('[data-slot="project-repo-header"]')?.getAttribute('href')).toBe('/p/api/git')
+      // Children never fetch runs: tasks run from the parent.
+      expect(fetchMock.mock.calls.some((call) => String(call[0]).includes('/p/api/'))).toBe(false)
+    })
+
+    it('an expanded child carries only Git and its forge, labelled by kind', async () => {
+      serve({ '/api/v1/p/cezar/runs': [] })
+      renderGroups(nested())
+
+      await waitFor(() => expect(repoRow('api')).not.toBeNull())
+      fireEvent.click(within(repoRow('api')!).getByRole('button', { name: 'Expand api' }))
+      const apiNav = within(repoRow('api')!).getByRole('navigation', { name: 'api navigation' })
+      expect(within(apiNav).getAllByRole('link').map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
+        ['Git', '/p/api/git'],
+        ['GitLab', '/p/api/github'],
+      ])
+      fireEvent.click(within(repoRow('web')!).getByRole('button', { name: 'Expand web' }))
+      const webNav = within(repoRow('web')!).getByRole('navigation', { name: 'web navigation' })
+      expect(within(webNav).getAllByRole('link').map((a) => a.textContent)).toEqual(['Git'])
+    })
+
+    it('standing in a child opens its parent and itself, lights its tab, and can still collapse it', async () => {
+      serve({ '/api/v1/p/cezar/runs': [] })
+      renderGroups(nested(), '/p/api/git')
+
+      await waitFor(() => expect(repoRow('api')).not.toBeNull())
+      expect(disclosure('cezar').getAttribute('aria-expanded')).toBe('true')
+      expect(group('cezar').hasAttribute('data-active')).toBe(false)
+      expect(repoRow('api')!.hasAttribute('data-active')).toBe(true)
+      const apiNav = within(repoRow('api')!).getByRole('navigation', { name: 'api navigation' })
+      expect(within(apiNav).getByRole('link', { current: 'page' }).textContent).toBe('Git')
+
+      fireEvent.click(within(repoRow('api')!).getByRole('button', { name: 'Collapse api' }))
+      expect(within(repoRow('api')!).queryByRole('navigation')).toBeNull()
+    })
+
+    it('draws a child whose parent is not listed as a group of its own', async () => {
+      serve({ '/api/v1/p/cezar/runs': [] })
+      renderGroups([project(), project({ id: 'lost', name: 'lost', parent: 'gone' })])
+      await waitFor(() => expect(group('lost')).not.toBeNull())
+      expect(repoRow('lost')).toBeNull()
+    })
+
+    it('draws a child whose parent folder is missing as a group of its own', async () => {
+      serve({ '/api/v1/p/cezar/runs': [] })
+      renderGroups([
+        project(),
+        project({ id: 'gone', name: 'gone', status: 'missing', lastOpenedAt: '2026-07-19T00:00:00.000Z' }),
+        project({ id: 'kid', name: 'kid', parent: 'gone' }),
+      ])
+      await waitFor(() => expect(group('kid')).not.toBeNull())
+      expect(repoRow('kid')).toBeNull()
+      expect(group('gone').getAttribute('data-status')).toBe('missing')
+    })
+
+    it('reorders only top-level groups', async () => {
+      serve({ '/api/v1/p/cezar/runs': [] })
+      renderGroups(nested())
+      await waitFor(() => expect(repoRow('api')).not.toBeNull())
+      const tops = Array.from(document.querySelectorAll('[data-slot="project-group"]'))
+      expect(tops.map((el) => el.getAttribute('data-project'))).toEqual(['cezar', 'shop'])
+      expect(grip('cezar')?.getAttribute('aria-label')).toContain('of 2')
+    })
+  })
 })

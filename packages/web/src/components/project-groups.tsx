@@ -24,6 +24,7 @@ import type { ProjectListEntry, RunRecord } from '@open-mercato/cezar-api-client
 import { useSidebarNavigate } from '@/components/app-shell'
 import { useListView } from '@/components/list-view'
 import { useLocale } from '@/components/locale-provider'
+import { ProjectRepos } from '@/components/project-repos'
 import { activeNavPath, visibleNavItems } from '@/components/nav-items'
 import { ReferenceStatusProvider } from '@/components/reference-status'
 import { QuickListBuckets } from '@/components/task-quick-list'
@@ -31,7 +32,12 @@ import { toast } from '@/components/ui/toaster'
 import { navItemLabel } from '@/i18n/ui-labels'
 import { Link, pathnameProjectId, scopeTo, stripProjectPrefix, useProjectMatch } from '@/lib/project-router'
 import { moveProjectId, orderProjects } from '@/lib/project-order'
-import { isProjectCollapsed, readStoredCollapsed, writeStoredCollapsed } from '@/lib/sidebar-collapse'
+import {
+  isProjectCollapsed,
+  readStoredCollapsed,
+  writeStoredCollapsed,
+  type SidebarCollapsed,
+} from '@/lib/sidebar-collapse'
 import { capBuckets, groupRuns, listCounts, type ListView } from '@/lib/task-groups'
 import { useProjectOrder } from '@/lib/use-project-order'
 import { taskReference } from '@/lib/tasks-table'
@@ -77,10 +83,12 @@ function useSidebarCollapse(activeProjectId: string | null) {
   }, [])
 
   const toggle = React.useCallback(
-    (projectId: string) => {
+    // `anchorId` is what an unstored entry's default is computed against — the groups use the
+    // active project, a nested repository its own scope (see `ProjectRepos`).
+    (projectId: string, anchorId: string | null = activeProjectId) => {
       write({
         ...latest.current,
-        [projectId]: !isProjectCollapsed(latest.current, projectId, activeProjectId),
+        [projectId]: !isProjectCollapsed(latest.current, projectId, anchorId),
       })
     },
     [activeProjectId, write],
@@ -140,10 +148,37 @@ export function ProjectGroups({
   // makes a project the one you are standing in, and painting the boot project as selected while
   // the user reads an all-projects table says the page is about that project when it is not.
   const scopedProjectId = pathnameProjectId(pathname)
+  // Nested repositories (spec 2026-09-29-nested-repo-projects) are drawn inside their parent's
+  // group, never as groups of their own — but only under a listed parent that is not `missing`.
+  // A missing parent renders as an inert row with no body, so nesting under it would hide a
+  // healthy child; and the server already reports `parent` only for a registered parent that is
+  // itself top-level (no chains, no cycles), so checking registration again means a stale list can
+  // never make a project vanish. Such a child (like an orphan) is simply a group.
+  const { topLevel, childrenOf } = React.useMemo(() => {
+    const ids = new Set(projects.filter((entry) => entry.status !== 'missing').map((entry) => entry.id))
+    const children = new Map<string, ProjectListEntry[]>()
+    const tops: ProjectListEntry[] = []
+    for (const entry of projects) {
+      if (entry.parent && ids.has(entry.parent)) {
+        children.set(entry.parent, [...(children.get(entry.parent) ?? []), entry])
+      } else {
+        tops.push(entry)
+      }
+    }
+    for (const list of children.values()) list.sort((a, b) => a.name.localeCompare(b.name))
+    return { topLevel: tops, childrenOf: children }
+  }, [projects])
+  // Standing in a nested repository keeps its parent's group open — only when it is actually
+  // nested, i.e. drawn inside a parent group rather than as a group of its own.
+  const groupScopeId =
+    topLevel.some((entry) => entry.id === scopedProjectId) ||
+    !projects.some((entry) => entry.id === scopedProjectId)
+      ? scopedProjectId
+      : (projects.find((entry) => entry.id === scopedProjectId)?.parent ?? scopedProjectId)
   // Collapse defaults are a different question ("which group opens when you have never touched
   // one?") and still want a project, so they keep the boot fallback: landing on a global page
   // must not fold the whole sidebar shut.
-  const collapseAnchorId = scopedProjectId ?? bootProjectId
+  const collapseAnchorId = groupScopeId ?? bootProjectId
   const { collapsed, toggle, expand } = useSidebarCollapse(collapseAnchorId)
 
   // One filter for the whole cockpit (`ListViewProvider`): switching the Tasks table to Archived
@@ -163,7 +198,7 @@ export function ProjectGroups({
   // `lib/project-order.ts`, so the same registry is never listed two ways.
   const { order, canReorder, setOrder } = useProjectOrder()
   const ordered = React.useMemo(() => {
-    const placed = orderProjects(projects, order)
+    const placed = orderProjects(topLevel, order)
     // An UNREGISTERED boot folder leads, ahead of BOTH rules above it: it has no `lastOpenedAt`
     // to sort by (it was never written down, so the recency sort would bury it last) and no
     // registry entry to be placed by hand. Defensive today — `/api/v1/projects` only lists that
@@ -173,7 +208,7 @@ export function ProjectGroups({
     const lead = placed.filter((project) => project.unregistered)
     if (lead.length === 0) return placed
     return [...lead, ...placed.filter((project) => !project.unregistered)]
-  }, [projects, order])
+  }, [topLevel, order])
   const orderedIds = React.useMemo(() => ordered.map((project) => project.id), [ordered])
 
   // dnd-kit, configured exactly as the workflow builder's step list (`routes/workflows`): the
@@ -252,6 +287,9 @@ export function ProjectGroups({
       sortable={sortable}
       position={orderedIds.indexOf(project.id) + 1}
       total={orderedIds.length}
+      repos={childrenOf.get(project.id) ?? []}
+      scopedProjectId={scopedProjectId}
+      collapsedMap={collapsed}
     />
   ))
 
@@ -358,6 +396,9 @@ function ProjectGroup({
   sortable,
   position,
   total,
+  repos,
+  scopedProjectId,
+  collapsedMap,
 }: {
   project: ProjectListEntry
   /** The boot project's runs cache lives under the `'default'` scope key (it mounts
@@ -365,7 +406,7 @@ function ProjectGroup({
   boot: boolean
   active: boolean
   collapsed: boolean
-  onToggle: (projectId: string) => void
+  onToggle: (projectId: string, anchorId?: string | null) => void
   /** Selecting this project (its name is a link into its own scope) — pins the group open, so
    *  the project you just moved into is never selected-but-shut. */
   onSelect: (projectId: string) => void
@@ -386,6 +427,10 @@ function ProjectGroup({
   /** 1-based, for the grip's label — a screen-reader user needs to know where the row starts. */
   position: number
   total: number
+  /** Registered projects nested under this one (spec 2026-09-29-nested-repo-projects). */
+  repos: ProjectListEntry[]
+  scopedProjectId: string | null
+  collapsedMap: SidebarCollapsed
 }) {
   const { t, tn } = useLocale()
   const missing = project.status === 'missing'
@@ -685,6 +730,16 @@ function ProjectGroup({
               )
             })}
           </nav>
+          {repos.length > 0 ? (
+            <ProjectRepos
+              repos={repos}
+              scopedProjectId={scopedProjectId}
+              activeTo={activeTo}
+              collapsed={collapsedMap}
+              onToggle={onToggle}
+              onNavigate={onNavigate}
+            />
+          ) : null}
 
           {/* This group's own project, explicitly: a collapsed sidebar can show six projects at
               once, and #42 means a different pull request in each of them. */}

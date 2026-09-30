@@ -54,7 +54,8 @@ Usage:
   cezar automation <add|create|check|run|list|…>  create and manage automations (GitHub polls, schedules) on a running cockpit
   cezar init                scaffold .ai/cezar/ (example workflow + skill)
   cezar projects            list the projects this cockpit serves
-                            (also: projects add [<dir>] · projects remove <id>)
+                            (also: projects add [<dir>] [--parent <id|dir>] · projects remove <id>
+                            · projects parent <id> [<id|dir>])
   cezar tracker-connections <list|remove ID>  inspect or delete local project credentials
   cezar server-install      interactive wizard to host cezar on a server
   cezar server-deploy       redeploy a new version (reload the service) + verify
@@ -114,6 +115,7 @@ async function main(): Promise<void> {
     options: {
       port: { type: 'string', short: 'p', default: '4321' },
       repo: { type: 'string' },
+      parent: { type: 'string' },
       workflow: { type: 'string' },
       model: { type: 'string' },
       'no-open': { type: 'boolean', default: false },
@@ -170,7 +172,11 @@ async function main(): Promise<void> {
       const bootProjectId = process.env.CEZ_SINGLE_PROJECT === '1' && isList
         ? await initWorkspace(repoRoot)
         : undefined;
-      process.exitCode = await runProjectsCommand(projectArgs, { defaultRoot: repoRoot, bootProjectId });
+      process.exitCode = await runProjectsCommand(projectArgs, {
+        defaultRoot: repoRoot,
+        bootProjectId,
+        parent: values.parent,
+      });
       return;
     case 'server-install':
       await serverCommand('install', repoRoot, values.platform, {
