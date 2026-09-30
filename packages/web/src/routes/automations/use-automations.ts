@@ -13,6 +13,7 @@ import {
 import { onWorkspaceEvent } from '@/api/global-events'
 import { queryScope } from '@open-mercato/cezar-api-client'
 import { useHealth } from '@/api/queries'
+import { useLocale, type TFn } from '@/components/locale-provider'
 import { toast } from '@/components/ui/toaster'
 import { cliOf } from '@/lib/automation-cli'
 import { useActiveProjectId } from '@/lib/project-router'
@@ -64,6 +65,7 @@ export interface AutomationActions {
 }
 
 export function useAutomationActions(data: AutomationsResponse | undefined): AutomationActions {
+  const { t } = useLocale()
   const queryClient = useQueryClient()
   const refresh = () => queryClient.invalidateQueries({ queryKey: automationsQueryKey() })
   const fail = (error: unknown) => toast(error instanceof Error ? error.message : String(error), { tone: 'danger' })
@@ -72,10 +74,10 @@ export function useAutomationActions(data: AutomationsResponse | undefined): Aut
     mutationFn: async (automation: AutomationListEntry) => {
       if (automation.kind === 'schedule') {
         await runAutomationNow(automation.id)
-        toast(`Started "${automation.name}" — the task is queued.`)
+        toast(t('automations.startedToast', { name: automation.name }))
       } else {
         await checkAutomation(automation.id, 'execute')
-        toast(`Checking events for "${automation.name}" now.`)
+        toast(t('automations.checkingToast', { name: automation.name }))
       }
     },
     onSuccess: () => void refresh(),
@@ -84,7 +86,7 @@ export function useAutomationActions(data: AutomationsResponse | undefined): Aut
   const preview = useMutation({
     mutationFn: async (automation: AutomationListEntry) => {
       await checkAutomation(automation.id, 'preview')
-      toast(`Preview queued for "${automation.name}" — no tasks will launch. See the execution log for results.`)
+      toast(t('automations.previewToast', { name: automation.name }))
     },
     onSuccess: () => void refresh(),
     onError: fail,
@@ -97,7 +99,7 @@ export function useAutomationActions(data: AutomationsResponse | undefined): Aut
   const duplicate = useMutation({
     mutationFn: (automation: AutomationListEntry) => {
       const body: CreateAutomationInput = {
-        name: `${automation.name} (copy)`,
+        name: t('automations.copySuffix', { name: automation.name }),
         ...(automation.description ? { description: automation.description } : {}),
         kind: automation.kind,
         ...(automation.kind === 'schedule'
@@ -110,7 +112,7 @@ export function useAutomationActions(data: AutomationsResponse | undefined): Aut
       return createAutomation(body)
     },
     onSuccess: (created) => {
-      toast(`Duplicated as "${created.automation.name}", paused.`)
+      toast(t('automations.duplicatedToast', { name: created.automation.name }))
       void refresh()
     },
     onError: fail,
@@ -138,7 +140,7 @@ export function useAutomationActions(data: AutomationsResponse | undefined): Aut
         filters: automation.filters,
         task: automation.task,
       })
-      await copyText(line)
+      await copyText(line, t)
     },
     busy: preview.isPending || run.isPending || toggle.isPending || duplicate.isPending || remove.isPending,
   }
@@ -147,11 +149,11 @@ export function useAutomationActions(data: AutomationsResponse | undefined): Aut
 }
 
 /** Clipboard write with the honest failure the spec asks for (non-secure contexts have none). */
-export async function copyText(text: string): Promise<void> {
+export async function copyText(text: string, t: TFn): Promise<void> {
   try {
     await navigator.clipboard.writeText(text)
-    toast('Copied to the clipboard.')
+    toast(t('automations.copied'))
   } catch {
-    toast('Copy failed — select the text to copy it.', { tone: 'danger' })
+    toast(t('automations.copyFailed'), { tone: 'danger' })
   }
 }

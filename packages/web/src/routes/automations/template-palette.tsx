@@ -6,16 +6,30 @@ import { queryScope } from '@open-mercato/cezar-api-client'
 import { getAutomationTemplates } from '@/api/client'
 import { BranchChip } from '@/components/branch-chip'
 import { GithubIcon } from '@/components/icons'
+import { useLocale } from '@/components/locale-provider'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { BUILTIN_AUTOMATION_TEMPLATES } from '@/lib/automation-templates'
 import { triggerLabel } from '@/lib/automation-format'
+import type { StringPath } from '@/i18n/format'
+import type { Messages } from '@/i18n/messages/types'
 import { useActiveProjectId } from '@/lib/project-router'
 import { cn } from '@/lib/utils'
 
 import { templatePick, type TemplatePick } from './editor-draft'
 
 type Tab = 'builtin' | 'mine'
+
+/** The built-in templates' second line, as dictionary keys (the template objects stay English:
+ *  a picked template's name and prompt become the user's own automation text). */
+const TEMPLATE_WHEN_KEYS: Record<string, StringPath<Messages>> = {
+  'Nightly dependency bump': 'automations.whenNightlyDeps',
+  'Triage new issues': 'automations.whenTriage',
+  'Weekly changelog draft': 'automations.whenChangelog',
+  'Stale PR nudge': 'automations.whenStalePr',
+  'Flaky test hunt': 'automations.whenFlaky',
+  'Security advisories': 'automations.whenSecurity',
+}
 
 interface PaletteItem extends TemplatePick {
   key: string
@@ -32,6 +46,7 @@ export const automationTemplatesQueryKey = (exclude: string | null) =>
  * automations. "Use this" hands the whole definition to the form and the palette closes.
  */
 export function TemplatePalette({ onPick }: { onPick: (template: TemplatePick) => void }) {
+  const { t } = useLocale()
   const [tab, setTab] = useState<Tab>('builtin')
   const projectId = useActiveProjectId()
   const others = useQuery({
@@ -41,31 +56,35 @@ export function TemplatePalette({ onPick }: { onPick: (template: TemplatePick) =
   })
 
   const items: PaletteItem[] = tab === 'builtin'
-    ? BUILTIN_AUTOMATION_TEMPLATES.map((template) => ({ ...template, key: template.name }))
+    ? BUILTIN_AUTOMATION_TEMPLATES.map((template) => ({
+        ...template,
+        key: template.name,
+        when: TEMPLATE_WHEN_KEYS[template.name] ? t(TEMPLATE_WHEN_KEYS[template.name]!) : template.when,
+      }))
     : (others.data?.templates ?? []).map((template) => ({
         ...templatePick(template),
         key: `${template.project.id}:${template.id}`,
-        when: triggerLabel(template),
+        when: triggerLabel(template, t),
         project: template.project.name,
       }))
 
   return (
     <Card flush data-slot="template-palette" className="pb-3">
       <div className="flex items-end gap-3 border-b border-border px-4 pt-2.5">
-        <div role="tablist" aria-label="Template source" className="flex shrink-0">
-          <PaletteTab active={tab === 'builtin'} onClick={() => setTab('builtin')}>Built-in</PaletteTab>
-          <PaletteTab active={tab === 'mine'} onClick={() => setTab('mine')}>From your other projects</PaletteTab>
+        <div role="tablist" aria-label={t('automations.templateSource')} className="flex shrink-0">
+          <PaletteTab active={tab === 'builtin'} onClick={() => setTab('builtin')}>{t('automations.builtIn')}</PaletteTab>
+          <PaletteTab active={tab === 'mine'} onClick={() => setTab('mine')}>{t('automations.fromOtherProjects')}</PaletteTab>
         </div>
         <span className="ml-auto min-w-0 overflow-hidden pb-2 text-xs text-ellipsis whitespace-nowrap text-soft-foreground">
-          {tab === 'builtin' ? 'Ship with cezar' : 'Registered in ~/.cezar/config.json'}
+          {tab === 'builtin' ? t('automations.shipWithCezar') : t('automations.registeredIn')}
         </span>
       </div>
       {tab === 'mine' && others.isPending ? (
-        <p className="px-4 pt-3 text-xs text-soft-foreground">Loading…</p>
+        <p className="px-4 pt-3 text-xs text-soft-foreground">{t('automations.loadingShort')}</p>
       ) : tab === 'mine' && others.isError ? (
         <p role="alert" className="px-4 pt-3 text-xs text-danger">{others.error.message}</p>
       ) : items.length === 0 ? (
-        <p className="px-4 pt-3 text-xs text-soft-foreground">No automations in your other projects yet.</p>
+        <p className="px-4 pt-3 text-xs text-soft-foreground">{t('automations.noOtherAutomations')}</p>
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-2.5 px-4 pt-3">
           {items.map((item) => (
@@ -87,10 +106,10 @@ export function TemplatePalette({ onPick }: { onPick: (template: TemplatePick) =
                 variant="outline"
                 size="sm"
                 className="mt-0.5 self-start"
-                aria-label={`Use this: ${item.name}`}
+                aria-label={t('automations.useThisNamed', { name: item.name })}
                 onClick={() => onPick(item)}
               >
-                Use this
+                {t('automations.useThis')}
               </Button>
             </div>
           ))}

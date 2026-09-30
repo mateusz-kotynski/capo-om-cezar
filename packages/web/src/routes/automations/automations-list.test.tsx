@@ -2,6 +2,9 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { LocaleProvider } from '@/components/locale-provider'
+import { LOCALE_STORAGE_KEY } from '@/lib/locale'
+
 import { AutomationsList } from './automations-list'
 import { NOW, mockActions, response, stubResizeObserver } from './automations-list.fixtures'
 import type { AutomationsView } from './automations-route'
@@ -113,5 +116,33 @@ describe('AutomationsList', () => {
     renderList({ view: 'day' })
     expect(document.querySelector('[data-slot="day-view"]')).not.toBeNull()
     expect(document.querySelector('[data-slot="day-title"]')?.textContent).toBe('Wed 16 Sep')
+  })
+})
+
+describe('AutomationsList in Polish', () => {
+  beforeEach(() => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'pl')
+  })
+  afterEach(() => {
+    localStorage.removeItem(LOCALE_STORAGE_KEY)
+    document.documentElement.removeAttribute('lang')
+  })
+
+  it('words the header, status trio, table headers and stats strip in Polish; names stay as they are', () => {
+    render(
+      <LocaleProvider>
+        <MemoryRouter initialEntries={['/automations']}>
+          <AutomationsList data={response()} actions={mockActions()} view="list" onViewChange={vi.fn()} />
+        </MemoryRouter>
+      </LocaleProvider>,
+    )
+
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Automatyzacje')
+    expect(screen.getByRole('button', { name: /Nowa automatyzacja|Tydzień/ })).toBeTruthy()
+    expect(status()?.textContent).toMatch(/Scheduler/)
+    const headers = [...document.querySelectorAll('[data-slot="automations-table"] th')].map((th) => th.textContent)
+    expect(headers).toContain('Automatyzacja')
+    expect(headers).toContain('Wyzwalacz')
+    expect(document.querySelector('[data-slot="stats-strip"]')?.textContent).toContain('Ten tydzień')
   })
 })

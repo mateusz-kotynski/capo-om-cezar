@@ -3,6 +3,7 @@ import { useState } from 'react'
 import type { AutomationsResponse } from '@open-mercato/cezar-api-client'
 
 import { CenteredState } from '@/components/centered-state'
+import { useLocale, type TFn } from '@/components/locale-provider'
 import { Segmented, type SegmentedOption } from '@/components/segmented'
 import { StatusDot } from '@/components/status-dot'
 import { Button } from '@/components/ui/button'
@@ -16,11 +17,11 @@ import { StatsStrip } from './stats-strip'
 import type { AutomationActions } from './use-automations'
 import { WeekView } from './week-view'
 
-function viewOptions(count: number | undefined): SegmentedOption<AutomationsView>[] {
+function viewOptions(count: number | undefined, t: TFn): SegmentedOption<AutomationsView>[] {
   return [
-    { value: 'list', label: 'List', ...(count === undefined ? {} : { count }) },
-    { value: 'week', label: 'Week' },
-    { value: 'day', label: 'Day' },
+    { value: 'list', label: t('automations.viewList'), ...(count === undefined ? {} : { count }) },
+    { value: 'week', label: t('automations.viewWeek') },
+    { value: 'day', label: t('automations.viewDay') },
   ]
 }
 
@@ -43,6 +44,7 @@ export function AutomationsList({
   view: AutomationsView
   onViewChange: (view: AutomationsView) => void
 }) {
+  const { t } = useLocale()
   const [railOpen, setRailOpen] = useState(false)
   const now = Date.now()
   const upcoming = data ? nextRuns(data.automations, now, data.timeZone, 12) : []
@@ -51,12 +53,12 @@ export function AutomationsList({
   return (
     <div data-route="automations" className="flex min-h-full flex-col">
       <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-5">
-        <h1 className="text-base font-semibold">Automations</h1>
+        <h1 className="text-base font-semibold">{t('nav.automations')}</h1>
         <Segmented<AutomationsView>
           slot="automations-view"
-          label="View"
+          label={t('automations.viewLabel')}
           value={view}
-          options={viewOptions(data?.automations.length)}
+          options={viewOptions(data?.automations.length, t)}
           onChange={onViewChange}
         />
         <div className="flex-1" />
@@ -66,9 +68,9 @@ export function AutomationsList({
             className="inline-flex min-w-0 items-center gap-2 overflow-hidden text-[12.5px] text-ellipsis whitespace-nowrap text-muted-foreground max-[1280px]:hidden"
           >
             <StatusDot tone={data.scheduler.state === 'scheduled' ? 'success' : 'neutral'} />
-            {data.scheduler.state === 'scheduled' ? 'Scheduler running' : 'Scheduler idle'}
+            {data.scheduler.state === 'scheduled' ? t('automations.schedulerRunning') : t('automations.schedulerIdle')}
             <span className="text-soft-foreground">·</span>
-            {data.available ? 'GitHub available' : `GitHub unavailable${data.reason ? ` · ${data.reason}` : ''}`}
+            {data.available ? t('automations.githubAvailable') : `${t('automations.githubUnavailable')}${data.reason ? ` · ${data.reason}` : ''}`}
             <span className="text-soft-foreground">·</span>
             <span className="font-mono text-xs">{data.timeZone}</span>
           </span>
@@ -76,7 +78,7 @@ export function AutomationsList({
         <Button asChild className="shrink-0">
           <Link to="/automations/new">
             <PlusIcon className="size-[15px]" />
-            New automation
+            {t('automations.newAutomation')}
           </Link>
         </Button>
       </header>
@@ -87,20 +89,20 @@ export function AutomationsList({
         </div>
       ) : !data ? (
         <div className="p-5">
-          <PageState text="Loading automations…" />
+          <PageState text={t('automations.loading')} />
         </div>
       ) : data.automations.length === 0 ? (
         <CenteredState
           icon={<ZapIcon />}
           tone="neutral"
-          title="No automations yet"
-          subtitle="Create one paused, preview it, then enable it."
+          title={t('automations.emptyTitle')}
+          subtitle={t('automations.emptySubtitle')}
           heading="h2"
           actions={
             <Button asChild>
               <Link to="/automations/new">
                 <PlusIcon className="size-[15px]" />
-                New automation
+                {t('automations.newAutomation')}
               </Link>
             </Button>
           }

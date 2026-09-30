@@ -92,7 +92,7 @@ export function DashboardAutomations() {
                 ? t('dashboard.nextTimeUnavailable')
                 : at <= now
                   ? t('dashboard.dueAwaiting')
-                  : relativeIn(at, now)
+                  : relativeIn(at, now, t)
             const action = a.kind !== 'schedule' ? t('dashboard.nextCheck') : t('dashboard.nextRun')
             return (
               <div
@@ -112,7 +112,7 @@ export function DashboardAutomations() {
                 {at !== null && (
                   <p className="mt-1 text-xs text-muted-foreground">
                     <time dateTime={new Date(at).toISOString()}>
-                      {dayTime(at, project.data!.timeZone)} · {project.data!.timeZone}
+                      {dayTime(at, project.data!.timeZone, t)} · {project.data!.timeZone}
                     </time>
                   </p>
                 )}

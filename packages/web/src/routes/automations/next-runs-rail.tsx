@@ -1,6 +1,7 @@
 import { CalendarClockIcon } from 'lucide-react'
 import { occurrencesBetween, zonedParts, type AutomationListEntry } from '@open-mercato/cezar-api-client'
 
+import { useLocale } from '@/components/locale-provider'
 import { StatusDot } from '@/components/status-dot'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { dayName, hm, relativeIn } from '@/lib/automation-format'
@@ -51,6 +52,7 @@ export function NextRunsRail({
   timeZone: string
   now: number
 }) {
+  const { t, tn } = useLocale()
   const navigate = useNavigate()
   const today = zonedParts(now, timeZone)
   return (
@@ -64,16 +66,16 @@ export function NextRunsRail({
         <SheetHeader className="px-4 pt-4 pb-2">
           <SheetTitle className="inline-flex items-center gap-2 text-sm">
             <CalendarClockIcon className="size-4" />
-            Next runs
+            {t('automations.nextRuns')}
           </SheetTitle>
-          <SheetDescription className="sr-only">Upcoming scheduled runs, soonest first.</SheetDescription>
+          <SheetDescription className="sr-only">{t('automations.nextRunsDescription')}</SheetDescription>
         </SheetHeader>
         <div className="overflow-y-auto">
           {upcoming.map((run, index) => {
             const parts = zonedParts(run.at, timeZone)
             const isToday =
               parts !== null && today !== null && parts.year === today.year && parts.month === today.month && parts.day === today.day
-            const time = parts ? `${isToday ? '' : `${dayName(parts.weekday)} `}${hm(parts.hour, parts.minute)}` : ''
+            const time = parts ? `${isToday ? '' : `${dayName(parts.weekday, t)} `}${hm(parts.hour, parts.minute)}` : ''
             return (
               <button
                 key={`${run.automation.id}-${index}`}
@@ -88,19 +90,19 @@ export function NextRunsRail({
               >
                 <span className="font-mono text-xs font-medium whitespace-nowrap text-muted-foreground tabular-nums">{time}</span>
                 <span className="overflow-hidden text-[13px] font-medium text-ellipsis whitespace-nowrap">{run.automation.name}</span>
-                <span className="text-[11px] whitespace-nowrap text-soft-foreground">{relativeIn(run.at, now)}</span>
+                <span className="text-[11px] whitespace-nowrap text-soft-foreground">{relativeIn(run.at, now, t)}</span>
               </button>
             )
           })}
           {upcoming.length === 0 ? (
-            <p className="px-4 py-2 text-[12.5px] text-soft-foreground">No scheduled runs in the next two weeks.</p>
+            <p className="px-4 py-2 text-[12.5px] text-soft-foreground">{t('automations.noScheduledRuns')}</p>
           ) : null}
           <div
             data-slot="next-runs-footer"
             className="mt-1.5 flex items-center gap-2 border-t border-border px-3.5 pt-2.5 pb-1 text-xs text-muted-foreground"
           >
             <StatusDot tone="pending" pulse />
-            {pollCount} GitHub polls running continuously
+            {tn('automations.pollsRunning', pollCount)}
           </div>
         </div>
       </SheetContent>
