@@ -7,6 +7,7 @@ import type { en as gitEn } from '../areas/git'
 import type { en as composeEn } from '../areas/compose'
 import type { en as threadEn } from '../areas/thread'
 import type { en as tasksEn } from '../areas/tasks'
+import type { en as inboxEn } from '../areas/inbox'
 
 /**
  * The one typed shape both `en.ts` and `pl.ts` are written against (`export const en: Messages`
@@ -150,4 +151,5 @@ export interface Messages {
   prefs: typeof prefsEn
   dialogs: typeof dialogsEn
   shell: typeof shellEn
+  inbox: typeof inboxEn
 }

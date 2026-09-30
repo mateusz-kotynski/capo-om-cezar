@@ -7,6 +7,7 @@ import { en as gitEn } from '../areas/git'
 import { en as composeEn } from '../areas/compose'
 import { en as threadEn } from '../areas/thread'
 import { en as tasksEn } from '../areas/tasks'
+import { en as inboxEn } from '../areas/inbox'
 
 /**
  * The English dictionary — also the reference translators work from. See `types.ts` for why
@@ -181,4 +182,5 @@ export const en: Messages = {
   prefs: prefsEn,
   dialogs: dialogsEn,
   shell: shellEn,
+  inbox: inboxEn,
 }

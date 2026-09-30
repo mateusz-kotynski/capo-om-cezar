@@ -7,6 +7,7 @@ import { pl as gitPl } from '../areas/git'
 import { pl as composePl } from '../areas/compose'
 import { pl as threadPl } from '../areas/thread'
 import { pl as tasksPl } from '../areas/tasks'
+import { pl as inboxPl } from '../areas/inbox'
 
 /**
  * The Polish dictionary. Typed against `Messages` (see `types.ts`), so a missing, renamed or
@@ -185,4 +186,5 @@ export const pl: Messages = {
   prefs: prefsPl,
   dialogs: dialogsPl,
   shell: shellPl,
+  inbox: inboxPl,
 }
