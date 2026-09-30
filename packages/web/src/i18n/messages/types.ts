@@ -7,6 +7,7 @@ import type { en as gitEn } from '../areas/git'
 import type { en as composeEn } from '../areas/compose'
 import type { en as threadEn } from '../areas/thread'
 import type { en as tasksEn } from '../areas/tasks'
+import type { en as trackerEn } from '../areas/tracker'
 import type { en as workflowsEn } from '../areas/workflows'
 import type { en as skillsEn } from '../areas/skills'
 import type { en as automationsEn } from '../areas/automations'
@@ -160,4 +161,5 @@ export interface Messages {
   automations: typeof automationsEn
   skills: typeof skillsEn
   workflows: typeof workflowsEn
+  tracker: typeof trackerEn
 }

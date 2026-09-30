@@ -7,6 +7,7 @@ import { en as gitEn } from '../areas/git'
 import { en as composeEn } from '../areas/compose'
 import { en as threadEn } from '../areas/thread'
 import { en as tasksEn } from '../areas/tasks'
+import { en as trackerEn } from '../areas/tracker'
 import { en as workflowsEn } from '../areas/workflows'
 import { en as skillsEn } from '../areas/skills'
 import { en as automationsEn } from '../areas/automations'
@@ -191,4 +192,5 @@ export const en: Messages = {
   automations: automationsEn,
   skills: skillsEn,
   workflows: workflowsEn,
+  tracker: trackerEn,
 }
