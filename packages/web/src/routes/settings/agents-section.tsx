@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { BotIcon } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
@@ -48,6 +49,7 @@ import { ProviderSettings } from './provider-settings'
 const SYSTEM_PROMPT_MAX = 20_000
 
 export function AgentsSection() {
+  const { t } = useLocale()
   const config = useConfig()
   // One row per runner here, so every runner's own host catalog is needed at once (#794) —
   // unlike the composer, which only ever renders the runner the user picked.
@@ -57,7 +59,7 @@ export function AgentsSection() {
   if (config.isPending) {
     return (
       <p data-slot="agents-loading" className="p-4 text-[13px] text-soft-foreground md:p-6">
-        Loading agent settings…
+        {t('prefs.agents.loading')}
       </p>
     )
   }
@@ -66,7 +68,7 @@ export function AgentsSection() {
       <CenteredState
         icon={<BotIcon />}
         tone="danger"
-        title="Agent settings did not load"
+        title={t('prefs.agents.loadFailed')}
         subtitle={config.error.message}
         heading="h2"
       />
@@ -84,6 +86,7 @@ function AgentsForm({
   catalogs: ReturnType<typeof useRunnerModelCatalogs>
   providerStatus: ReturnType<typeof useProviderStatus>
 }) {
+  const { t, locale } = useLocale()
   const repo = useRepo()
   const queryClient = useQueryClient()
 
@@ -112,7 +115,7 @@ function AgentsForm({
       { systemPrompt: trimmedPrompt === '' ? null : trimmedPrompt },
       {
         onSuccess: () =>
-          toast(trimmedPrompt === '' ? 'System prompt cleared' : 'System prompt saved'),
+          toast(trimmedPrompt === '' ? t('prefs.agents.promptCleared') : t('prefs.agents.promptSaved')),
       },
     )
 
@@ -131,11 +134,11 @@ function AgentsForm({
       />
 
       <Field
-        title="Default models"
+        title={t('prefs.agents.modelsTitle')}
         hint={
           config.modelsLocked
-            ? 'Models are locked to the defaults configured in the native coding-agent settings.'
-            : 'The model preselected in the composer for each runner. Auto lets the runner decide per task.'
+            ? t('prefs.agents.modelsLocked')
+            : t('prefs.agents.modelsHint')
         }
       >
         <div className="flex max-w-md flex-col gap-2">
@@ -147,14 +150,14 @@ function AgentsForm({
               provider?.enabled === true &&
               provider.status === 'connected'
             const providerReason = providerStatus.isPending
-              ? 'Checking provider authentication…'
+              ? t('prefs.agents.checkingAuth')
               : providerStatus.isError
-                ? 'Provider authentication could not be verified.'
+                ? t('prefs.agents.authFailed')
                 : provider?.enabled === false
-                  ? 'This provider is disabled. Enable it above or choose another provider.'
+                  ? t('prefs.agents.providerDisabled')
                 : providerConnected
                   ? undefined
-                  : 'Connect this provider before selecting it.'
+                  : t('prefs.agents.connectFirst')
             const catalog = catalogs[runner.id]
             const catalogStatus = modelCatalogStatus(runner.id, catalog.data, catalog.isError)
             const modelOptions = modelsForRunner(runner.id, catalog.data, [
@@ -164,23 +167,23 @@ function AgentsForm({
             const configuredModelLabel =
               modelOptions.find((model) => model.id === configuredModel)?.label ??
               configuredModel ??
-              'auto (default)'
+              t('prefs.agents.autoDefault')
             return (
               <label key={runner.id} className="flex items-center gap-3">
                 <span className="w-24 shrink-0 font-mono text-xs text-muted-foreground">{runner.label}</span>
                 {config.modelsLocked ? (
                   <output
-                    aria-label={`Default model for ${runner.label}`}
+                    aria-label={t('prefs.agents.modelFor', { runner: runner.label })}
                     data-slot="agents-model"
                     data-runner={runner.id}
-                    title="Model selection is locked to native coding-agent settings."
+                    title={t('prefs.agents.modelLockedTitle')}
                     className="block w-full rounded-md border border-input bg-card px-3 py-1.5 text-sm shadow-xs"
                   >
                     {configuredModelLabel}
                   </output>
                 ) : (
                   <select
-                    aria-label={`Default model for ${runner.label}`}
+                    aria-label={t('prefs.agents.modelFor', { runner: runner.label })}
                     data-slot="agents-model"
                     data-runner={runner.id}
                     value={configuredModel}
@@ -197,7 +200,7 @@ function AgentsForm({
                   >
                     {modelOptions.map((model) => (
                       <option key={model.id} value={model.id}>
-                        {model.id === '' ? 'auto (default)' : model.label}
+                        {model.id === '' ? t('prefs.agents.autoDefault') : model.label}
                       </option>
                     ))}
                     {catalogStatus ? <option disabled>{catalogStatus}</option> : null}
@@ -210,15 +213,15 @@ function AgentsForm({
       </Field>
 
       <Field
-        title="System prompt"
-        hint="Extra instructions appended to every run, whichever runner executes it. This is the only place it is edited."
+        title={t('prefs.agents.promptTitle')}
+        hint={t('prefs.agents.promptHint')}
       >
         <Textarea
-          aria-label="System prompt"
+          aria-label={t('prefs.agents.promptTitle')}
           data-slot="agents-system-prompt"
           value={prompt}
           onChange={(event) => setPrompt(event.target.value)}
-          placeholder="Extra rules for every agent run — conventions, tone, review requirements…"
+          placeholder={t('prefs.agents.promptPlaceholder')}
           className="min-h-32 max-w-xl"
         />
         <div className="flex max-w-xl items-center gap-3">
@@ -230,83 +233,85 @@ function AgentsForm({
             disabled={promptSaved || promptOverLimit || save.isPending}
             onClick={savePrompt}
           >
-            Save
+            {t('common.save')}
           </Button>
           {promptOverLimit ? (
             <p data-slot="agents-prompt-limit" className="text-[11px] text-danger">
-              {trimmedPrompt.length.toLocaleString()} characters — the limit is{' '}
-              {SYSTEM_PROMPT_MAX.toLocaleString()}.
+              {t('prefs.agents.promptOverLimit', {
+                count: trimmedPrompt.length.toLocaleString(locale),
+                max: SYSTEM_PROMPT_MAX.toLocaleString(locale),
+              })}
             </p>
           ) : (
             <p className="text-[11px] text-soft-foreground">
-              Leave empty and save to clear. Applied to new runs only.
+              {t('prefs.agents.promptNote')}
             </p>
           )}
         </div>
       </Field>
 
       <Field
-        title="Live title updates"
-        hint="Refresh a task's short title through the namer model as the run progresses. A manual rename always wins and stops updates for that task."
+        title={t('prefs.agents.liveTitle')}
+        hint={t('prefs.agents.liveTitleHint')}
       >
         <label className="flex w-fit items-center gap-3">
           <Switch
-            aria-label="Live title updates"
+            aria-label={t('prefs.agents.liveTitle')}
             data-slot="agents-live-title-updates"
             checked={config.liveTitleUpdates ?? true}
             disabled={save.isPending}
             onCheckedChange={(checked) =>
               save.mutate(
                 { liveTitleUpdates: checked },
-                { onSuccess: () => toast(checked ? 'Live title updates on' : 'Live title updates off') },
+                { onSuccess: () => toast(checked ? t('prefs.agents.liveTitleOn') : t('prefs.agents.liveTitleOff')) },
               )
             }
           />
           <span className="text-[13px] text-muted-foreground">
-            {(config.liveTitleUpdates ?? true) ? 'On' : 'Off'}
-            {config.liveTitleUpdates === null && ' (default)'}
+            {(config.liveTitleUpdates ?? true) ? t('prefs.agents.on') : t('prefs.agents.off')}
+            {config.liveTitleUpdates === null && t('prefs.agents.defaultSuffix')}
           </span>
         </label>
       </Field>
 
       <Field
-        title="Review changes before finishing"
-        hint="When on, a task with changes pauses so you can Accept, Send back, or open a Draft PR. Autonomous tasks always skip this and finish on their own. Default: off — tasks finish without asking."
+        title={t('prefs.agents.reviewTitle')}
+        hint={t('prefs.agents.reviewHint')}
       >
         <label className="flex w-fit items-center gap-3">
           <Switch
-            aria-label="Review changes before finishing"
+            aria-label={t('prefs.agents.reviewTitle')}
             data-slot="agents-review-gate"
             checked={config.reviewGate ?? false}
             disabled={save.isPending}
             onCheckedChange={(checked) =>
               save.mutate(
                 { reviewGate: checked },
-                { onSuccess: () => toast(checked ? 'Review gate on' : 'Review gate off') },
+                { onSuccess: () => toast(checked ? t('prefs.agents.reviewOn') : t('prefs.agents.reviewOff')) },
               )
             }
           />
           <span className="text-[13px] text-muted-foreground">
-            {(config.reviewGate ?? false) ? 'On' : 'Off'}
-            {config.reviewGate === null && ' (default)'}
+            {(config.reviewGate ?? false) ? t('prefs.agents.on') : t('prefs.agents.off')}
+            {config.reviewGate === null && t('prefs.agents.defaultSuffix')}
           </span>
         </label>
       </Field>
 
       <Field
-        title="Base branch"
-        hint="New task worktrees branch from this and draft PRs target it. Also settable from the Git view."
+        title={t('prefs.agents.baseTitle')}
+        hint={t('prefs.agents.baseHint')}
       >
         {repo.data?.info ? (
           <select
-            aria-label="Base branch"
+            aria-label={t('prefs.agents.baseTitle')}
             data-slot="agents-base-branch"
             value={config.baseBranch ?? ''}
             disabled={save.isPending}
             onChange={(event) => save.mutate({ baseBranch: event.target.value || null })}
             className="block w-full max-w-md rounded-md border border-input bg-card px-3 py-1.5 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
           >
-            <option value="">follow checked-out branch (default)</option>
+            <option value="">{t('prefs.agents.followDefault')}</option>
             {repo.data.branches.map((name) => (
               <option key={name} value={name}>
                 {name}
@@ -315,7 +320,7 @@ function AgentsForm({
           </select>
         ) : (
           <p data-slot="agents-base-branch-unavailable" className="text-[13px] text-soft-foreground">
-            {repo.isPending ? 'Loading branches…' : 'Not a git repository — tasks run in place, no branching.'}
+            {repo.isPending ? t('prefs.agents.loadingBranches') : t('prefs.agents.notGit')}
           </p>
         )}
       </Field>
@@ -354,6 +359,7 @@ function DefaultAgentField({
   saving: boolean
   onPick: (runner: Runner) => void
 }) {
+  const { t, locale } = useLocale()
   const profiles = useAgentProfiles()
   const projects = useProjects()
   const scope = useProjectScope()
@@ -374,11 +380,11 @@ function DefaultAgentField({
 
   return (
     <Field
-      title={hasAccounts ? 'Default agent' : 'Default runner'}
+      title={hasAccounts ? t('prefs.agents.defaultAgent') : t('prefs.agents.defaultRunner')}
       hint={
         hasAccounts
-          ? 'Preselected for new tasks in THIS repo, and used by the chain planner. Each task can still pick another agent or account. The account is stored on this machine only — it is never committed, so a teammate keeps their own.'
-          : 'Preselected for new tasks in THIS repo, and used by the chain planner. Each task can still pick another runner.'
+          ? t('prefs.agents.defaultAgentHintAccounts')
+          : t('prefs.agents.defaultAgentHint')
       }
     >
       <DefaultAgentPicker
@@ -406,13 +412,12 @@ function DefaultAgentField({
       !providerStatus.isError &&
       providerStatusFor(providerStatus.data, defaultRunner)?.enabled === false ? (
         <p className="text-[13px] text-muted-foreground">
-          This provider is disabled. Enable it above or choose another provider.
+          {t('prefs.agents.providerDisabled')}
         </p>
       ) : null}
       {hasAccounts ? (
         <p className="max-w-md text-[13px] text-muted-foreground">
-          Tasks already started under another account can’t be resumed here — their sessions live in
-          that account’s folder.
+          {t('prefs.agents.otherAccount')}
         </p>
       ) : null}
     </Field>
