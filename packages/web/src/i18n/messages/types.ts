@@ -7,6 +7,8 @@ import type { en as gitEn } from '../areas/git'
 import type { en as composeEn } from '../areas/compose'
 import type { en as threadEn } from '../areas/thread'
 import type { en as tasksEn } from '../areas/tasks'
+import type { en as toolsEn } from '../areas/tools'
+import type { en as referenceEn } from '../areas/reference'
 import type { en as transcriptEn } from '../areas/transcript'
 import type { en as planReviewEn } from '../areas/planReview'
 import type { en as compareEn } from '../areas/compare'
@@ -168,4 +170,6 @@ export interface Messages {
   compare: typeof compareEn
   planReview: typeof planReviewEn
   transcript: typeof transcriptEn
+  reference: typeof referenceEn
+  tools: typeof toolsEn
 }

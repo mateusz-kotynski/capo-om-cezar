@@ -7,6 +7,8 @@ import { pl as gitPl } from '../areas/git'
 import { pl as composePl } from '../areas/compose'
 import { pl as threadPl } from '../areas/thread'
 import { pl as tasksPl } from '../areas/tasks'
+import { pl as toolsPl } from '../areas/tools'
+import { pl as referencePl } from '../areas/reference'
 import { pl as transcriptPl } from '../areas/transcript'
 import { pl as planReviewPl } from '../areas/planReview'
 import { pl as comparePl } from '../areas/compare'
@@ -203,4 +205,6 @@ export const pl: Messages = {
   compare: comparePl,
   planReview: planReviewPl,
   transcript: transcriptPl,
+  reference: referencePl,
+  tools: toolsPl,
 }

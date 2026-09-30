@@ -1,4 +1,6 @@
 import { ChevronDownIcon, SettingsIcon } from 'lucide-react'
+import { useLocale, type TFn } from '@/components/locale-provider'
+import { resolveMessage } from '@/i18n/format'
 import { Link } from '@/lib/project-router'
 
 import type { BackendCheck, HealthResponse, Runner } from '@open-mercato/cezar-api-client'
@@ -40,27 +42,29 @@ const isRunner = (check: BackendCheck): boolean => Object.hasOwn(RUNNER_NAMES, c
  * creation") is a choice not taken, not a problem: the per-row red dot already says so.
  * Exported for the tests — the wording is a small contract of its own.
  */
-export function toolsBlocker(health: HealthResponse): string | null {
+const englishT: TFn = (key, params) => resolveMessage('en', key, params)
+
+export function toolsBlocker(health: HealthResponse, t: TFn = englishT): string | null {
   const runners = health.checks.filter(isRunner)
   if (runners.length && !runners.some((check) => check.available)) {
-    return 'no agent CLI found — install one to run tasks'
+    return t('tools.noAgentCli')
   }
   // Absent from `checks[]` (an older server) means unprobed, not broken: nothing to claim.
   const preferred = runners.find((check) => check.name === health.defaultRunner)
   if (preferred && !preferred.available) {
-    return `default runner (${health.defaultRunner}) not found`
+    return t('tools.defaultRunnerMissing', { runner: health.defaultRunner ?? '' })
   }
   return null
 }
 
 /** The trigger's hover tooltip: the cezar version, then the blocker if there is one — else
  *  the optional tools still worth knowing about. Exported for the tests. */
-export function toolsTooltip(health: HealthResponse): string {
-  const base = `cezar v${health.version}`
-  const blocker = toolsBlocker(health)
-  if (blocker) return `${base} · ${blocker}`
+export function toolsTooltip(health: HealthResponse, t: TFn = englishT): string {
+  const base = t('tools.version', { version: health.version })
+  const blocker = toolsBlocker(health, t)
+  if (blocker) return t('tools.withBlocker', { base, blocker })
   const missing = health.checks.filter((check) => !check.available).map((check) => check.name)
-  return missing.length ? `${base} · optional: ${missing.join(', ')} not installed` : base
+  return missing.length ? t('tools.optionalMissing', { base, names: missing.join(', ') }) : base
 }
 
 /**
@@ -68,21 +72,22 @@ export function toolsTooltip(health: HealthResponse): string {
  * degradation table says the hint lives. Null while the forge works: a working forge needs
  * no explaining. Exported for the tests — the two sentences are a small contract.
  */
-export function forgeNote(health: HealthResponse): string | null {
+export function forgeNote(health: HealthResponse, t: TFn = englishT): string | null {
   if (health.forge?.available) return null
   if (!health.forge) {
-    return 'No GitHub remote detected — the GitHub tab is hidden. Every plain-git feature still works.'
+    return t('tools.noForgeRemote')
   }
   const name = health.forge.kind === 'gitlab' ? 'GitLab' : 'GitHub'
-  return `${name} is unreachable — ${health.forge.reason ?? 'unknown reason'}. The ${name} tab is hidden until it comes back.`
+  return t('tools.forgeUnreachable', { name, reason: health.forge.reason ?? t('tools.unknownReason') })
 }
 
 export function ToolsMenu({ health }: { health: HealthResponse | undefined }) {
+  const { t } = useLocale()
   if (!health) return null
 
   // Green when cez can actually work: at least one agent CLI is present and the default runner
   // is among them. `pending` (amber), not `danger`, otherwise — per-row dots are where red lives.
-  const blocker = toolsBlocker(health)
+  const blocker = toolsBlocker(health, t)
 
   return (
     <DropdownMenu>
@@ -90,11 +95,11 @@ export function ToolsMenu({ health }: { health: HealthResponse | undefined }) {
         <button
           type="button"
           data-slot="tools-menu-trigger"
-          title={toolsTooltip(health)}
+          title={toolsTooltip(health, t)}
           className="flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <StatusDot tone={blocker ? 'pending' : 'success'} />
-          Tools
+          {t('tools.trigger')}
           <ChevronDownIcon className="size-[11px]" aria-hidden="true" />
         </button>
       </DropdownMenuTrigger>
@@ -107,16 +112,16 @@ export function ToolsMenu({ health }: { health: HealthResponse | undefined }) {
         className="w-[240px]"
       >
         <DropdownMenuLabel className="text-[11px] font-semibold tracking-[.04em] text-soft-foreground uppercase">
-          Installed tools
+          {t('tools.installed')}
         </DropdownMenuLabel>
         {health.checks.map((check) =>
           check.available ? <AvailableToolRow key={check.name} check={check} /> : <UnavailableToolRow key={check.name} check={check} />
         )}
-        {forgeNote(health) ? (
+        {forgeNote(health, t) ? (
           <>
             <DropdownMenuSeparator />
             <p data-slot="forge-note" className="px-2 py-1.5 text-[11px] leading-snug text-muted-foreground">
-              {forgeNote(health)}
+              {forgeNote(health, t)}
             </p>
           </>
         ) : null}
@@ -128,7 +133,7 @@ export function ToolsMenu({ health }: { health: HealthResponse | undefined }) {
             className="gap-2 text-[12.5px] text-muted-foreground"
           >
             <SettingsIcon className="size-3.5" aria-hidden="true" />
-            Tool settings
+            {t('tools.toolSettings')}
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -139,6 +144,7 @@ export function ToolsMenu({ health }: { health: HealthResponse | undefined }) {
 /** A present tool: dot, mono name, right-aligned version. Informational, not interactive —
  *  there is nothing to do to a tool that works. */
 function AvailableToolRow({ check }: { check: BackendCheck }) {
+  const { t } = useLocale()
   return (
     <div
       data-slot="tool-row"
@@ -152,7 +158,7 @@ function AvailableToolRow({ check }: { check: BackendCheck }) {
         data-slot="tool-version"
         className="ml-auto font-mono text-[11.5px] font-medium text-muted-foreground tabular-nums"
       >
-        {check.version ?? 'not found'}
+        {check.version ?? t('tools.notFound')}
       </span>
     </div>
   )
@@ -164,6 +170,7 @@ function AvailableToolRow({ check }: { check: BackendCheck }) {
  * Agents. The whole row is the link, so the DropdownMenuItem closes the menu on navigation.
  */
 function UnavailableToolRow({ check }: { check: BackendCheck }) {
+  const { t } = useLocale()
   return (
     <DropdownMenuItem asChild>
       <Link
@@ -180,7 +187,7 @@ function UnavailableToolRow({ check }: { check: BackendCheck }) {
             data-slot="tool-version"
             className="ml-auto font-mono text-[11.5px] font-medium text-muted-foreground"
           >
-            not found
+            {t('tools.notFound')}
           </span>
         </span>
         <span className="flex items-end justify-between gap-3 pl-[15px]">
@@ -190,7 +197,7 @@ function UnavailableToolRow({ check }: { check: BackendCheck }) {
             </span>
           ) : null}
           <span data-slot="tool-setup" className="ml-auto shrink-0 text-[11.5px] font-semibold text-violet">
-            Set up →
+            {t('tools.setUp')}
           </span>
         </span>
       </Link>

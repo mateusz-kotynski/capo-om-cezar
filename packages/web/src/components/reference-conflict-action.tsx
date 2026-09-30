@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { ApiRun } from '@open-mercato/cezar-api-client'
 
 import { useProjectRun } from '@/api/queries'
+import { useLocale } from '@/components/locale-provider'
 import { ReferenceChip, useCloseReferenceCard } from '@/components/reference-chip'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/components/ui/toaster'
@@ -35,6 +36,7 @@ export function ResolveConflictsButton({
   // Whichever seam this run's state allows — a live message, or a continue for a task parked at
   // review. Offering a prompt that only worked on a running task would offer it exactly when it
   // could not be taken: a conflicting PR is usually attached to a task that has already finished.
+  const { t } = useLocale()
   const delivery = useAskAnswer(run, projectId)
   const close = useCloseReferenceCard()
   const [busy, setBusy] = useState(false)
@@ -57,8 +59,8 @@ export function ResolveConflictsButton({
       if (failure) toast(failure, { tone: 'danger' })
       else {
         toast(
-          `${reopened ? 'Task reopened' : 'Sent to the task'} — resolving conflicts${
-            prNumber ? ` in PR #${prNumber}` : ''
+          `${reopened ? t('reference.reopenedResolving') : t('reference.sentResolving')}${
+            prNumber ? t('reference.inPr', { number: prNumber }) : ''
           }`,
         )
         close()
@@ -81,7 +83,7 @@ export function ResolveConflictsButton({
         onClick={() => void press()}
         className="h-7 w-full text-xs"
       >
-        {pending ? 'Sending…' : 'Resolve conflicts'}
+        {pending ? t('reference.sending') : t('reference.resolveConflicts')}
       </Button>
       {/* Only the REFUSAL is spelled out. What the button will do is the button's own words —
           quoting the prompt underneath said the same thing twice, at four times the length. */}

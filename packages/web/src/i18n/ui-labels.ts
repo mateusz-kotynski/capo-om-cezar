@@ -1,5 +1,7 @@
 import type { NavItem } from '@/components/nav-items'
 import type { TaskColumnId } from '@/lib/task-columns'
+import type { ReferenceStatus } from '@open-mercato/cezar-api-client'
+import { REFERENCE_CONFLICT, referenceStatusPresentation, type ReferenceStatusPresentation } from '@/lib/reference-status'
 import type { SettingsSection } from '@/routes/settings/registry'
 
 import type { Messages } from './messages/types'
@@ -94,6 +96,35 @@ const RUN_STATUS_KEYS: Record<string, StringPath<Messages>> = {
 export function runStatusLabel(t: T, status: string): string {
   const key = RUN_STATUS_KEYS[status]
   return key ? t(key) : status
+}
+
+const REFERENCE_KEYS = {
+  draft: ['reference.draftLabel', 'reference.draftHint'],
+  'review-required': ['reference.reviewRequiredLabel', 'reference.reviewRequiredHint'],
+  'changes-requested': ['reference.changesRequestedLabel', 'reference.changesRequestedHint'],
+  'checks-pending': ['reference.checksPendingLabel', 'reference.checksPendingHint'],
+  'checks-failing': ['reference.checksFailingLabel', 'reference.checksFailingHint'],
+  ready: ['reference.readyLabel', 'reference.readyHint'],
+  merged: ['reference.mergedLabel', 'reference.mergedHint'],
+  closed: ['reference.closedLabel', 'reference.closedHint'],
+  open: ['reference.openLabel', 'reference.openHint'],
+  completed: ['reference.completedLabel', 'reference.completedHint'],
+  'not-planned': ['reference.notPlannedLabel', 'reference.notPlannedHint'],
+} as const satisfies Record<ReferenceStatus, readonly [StringPath<Messages>, StringPath<Messages>]>
+
+/** A reference status (or the merge conflict) with its label and hint in the UI language; the
+ *  tone stays the pure module's. Unknown statuses answer undefined, like the pure lookup. */
+export function referencePresentation(
+  t: T,
+  status: ReferenceStatus | 'conflict' | undefined,
+): ReferenceStatusPresentation | undefined {
+  if (status === 'conflict') {
+    return { ...REFERENCE_CONFLICT, label: t('reference.conflictLabel'), hint: t('reference.conflictHint') }
+  }
+  const base = referenceStatusPresentation(status)
+  if (!base || status === undefined) return undefined
+  const [label, hint] = REFERENCE_KEYS[status]
+  return { ...base, label: t(label), hint: t(hint) }
 }
 
 /** Settings section titles/descriptions (`routes/settings/registry.tsx`) translated the same
