@@ -7,6 +7,7 @@ import { pl as gitPl } from '../areas/git'
 import { pl as composePl } from '../areas/compose'
 import { pl as threadPl } from '../areas/thread'
 import { pl as tasksPl } from '../areas/tasks'
+import { pl as workflowsPl } from '../areas/workflows'
 import { pl as skillsPl } from '../areas/skills'
 import { pl as automationsPl } from '../areas/automations'
 import { pl as dashboardPl } from '../areas/dashboard'
@@ -193,4 +194,5 @@ export const pl: Messages = {
   dashboard: dashboardPl,
   automations: automationsPl,
   skills: skillsPl,
+  workflows: workflowsPl,
 }

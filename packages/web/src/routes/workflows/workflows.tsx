@@ -35,6 +35,8 @@ import { ApiError, createWorkflow, deleteWorkflow, parseWorkflow, postPlan } fro
 import { queryKeys, useSkills, useUiState, useWorkflows } from '@/api/queries'
 import type { Skill, WorkflowDef, WorkflowStepDef } from '@open-mercato/cezar-api-client'
 import { CenteredState } from '@/components/centered-state'
+import { useLocale } from '@/components/locale-provider'
+import { RichText } from '@/components/rich-text'
 import { SkillEmptyHintCompact } from '@/components/skill-empty-hint'
 import {
   AlertDialog,
@@ -60,7 +62,7 @@ import {
   removeStep,
   saveBody,
   skillStep,
-  stepCountLabel,
+  skillStack,
   workflowSlug,
   workflowYaml,
 } from '@/lib/workflow-builder'
@@ -121,6 +123,7 @@ export function WorkflowsRoute() {
 }
 
 function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
+  const { t, tn } = useLocale()
   const workflowsQuery = useWorkflows()
   const skillsQuery = useSkills()
   const uiStateQuery = useUiState()
@@ -169,7 +172,7 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
       setImportOpen(false)
       setImportText('')
       setImportError('')
-      toast(`Imported "${parsed.name}" — review, then Save.`)
+      toast(t('workflows.imported', { name: parsed.name }))
     },
     onError: (error) => setImportError(error.message),
   })
@@ -190,8 +193,8 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
       setAutoText('')
       toast(
         plan.fallback
-          ? 'Planner unavailable — added a single step. Edit, then Save.'
-          : `Built "${plan.name ?? draft?.name ?? 'workflow'}" — review, tweak, then Save.`,
+          ? t('workflows.plannerUnavailable')
+          : t('workflows.built', { name: plan.name ?? draft?.name ?? t('workflows.workflowFallback') }),
         plan.fallback ? { tone: 'danger' } : undefined,
       )
     },
@@ -206,7 +209,7 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
       }),
     onSuccess: (saved) => {
       setConfirmOverwrite(false)
-      toast(`Saved — ${saved.path.split('/').pop() ?? saved.path}`)
+      toast(t('workflows.saved', { file: saved.path.split('/').pop() ?? saved.path }))
       // The chips + the Delete button now reflect the file (and the /new picker lists it).
       void queryClient.invalidateQueries({ queryKey: queryKeys.workflows })
     },
@@ -220,7 +223,7 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
     mutationFn: (workflowName: string) => deleteWorkflow(workflowName),
     onSuccess: (_, workflowName) => {
       setConfirmDelete(false)
-      toast(`Deleted "${workflowName}".`)
+      toast(t('workflows.deleted', { name: workflowName }))
       setDraft(emptyDraft())
       void queryClient.invalidateQueries({ queryKey: queryKeys.workflows })
     },
@@ -243,7 +246,7 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
         <CenteredState
           icon={<TriangleAlertIcon />}
           tone="danger"
-          title="Could not load workflows"
+          title={t('workflows.loadFailed')}
           subtitle={workflowsQuery.error.message}
         />
       </div>
@@ -260,7 +263,7 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
    *  server's 8-step limit answers a toast, never a silent no-op. */
   const addSkill = (skill: string, at = steps.length) => {
     if (steps.length >= WB_MAX_STEPS) {
-      toast(`A workflow holds at most ${WB_MAX_STEPS} steps.`, { tone: 'danger' })
+      toast(t('workflows.maxSteps', { max: WB_MAX_STEPS }), { tone: 'danger' })
       return
     }
     setSteps(insertStep(steps, skillStep(skill, steps), at))
@@ -311,7 +314,7 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
       return
     }
     if (steps.length === 0) {
-      toast('Add at least one step first.', { tone: 'danger' })
+      toast(t('workflows.addStepFirst'), { tone: 'danger' })
       return
     }
     save.mutate(false)
@@ -333,9 +336,9 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
     <div data-route="workflows" className="flex min-h-full flex-col">
       {/* Desktop header — below `md` the shell's top bar already says "Workflows". */}
       <header className="sticky top-0 z-10 hidden h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-5 md:flex">
-        <h1 className="text-base font-semibold">Workflows</h1>
+        <h1 className="text-base font-semibold">{t('nav.workflows')}</h1>
         <p className="text-[13px] text-muted-foreground">
-          Portable skill chains — the agent applies them top to bottom.
+          {t('workflows.subtitle')}
         </p>
       </header>
 
@@ -358,14 +361,14 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
                 <Input
                   ref={nameInput}
                   data-slot="wb-name"
-                  aria-label="Workflow name"
+                  aria-label={t('workflows.nameAria')}
                   spellCheck={false}
                   value={draft.name}
                   onChange={(event) => setDraft({ ...draft, name: event.target.value })}
                   className="h-8 max-w-56 font-mono text-[13px] font-semibold"
                 />
                 <span data-slot="wb-count" className="shrink-0 font-mono text-xs text-soft-foreground">
-                  {stepCountLabel(steps)}
+                  {tn(skillStack(steps) ? 'workflows.skillCount' : 'workflows.stepCount', steps.length)}
                 </span>
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
@@ -375,11 +378,11 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
                     variant="danger-ghost"
                     size="sm"
                     data-slot="wb-delete"
-                    title="Delete the saved workflow file"
+                    title={t('workflows.deleteTitle')}
                     onClick={() => setConfirmDelete(true)}
                   >
                     <Trash2Icon aria-hidden="true" className="size-3" />
-                    Delete
+                    {t('workflows.delete')}
                   </Button>
                 ) : null}
                 <Button
@@ -388,14 +391,14 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
                   size="sm"
                   data-slot="wb-auto"
                   aria-expanded={autoOpen}
-                  title="Describe a chain — the agent builds it"
+                  title={t('workflows.autoTitle')}
                   onClick={() => {
                     setImportOpen(false)
                     setAutoOpen((open) => !open)
                   }}
                 >
                   <WandSparklesIcon aria-hidden="true" className="size-3" />
-                  Auto
+                  {t('workflows.auto')}
                 </Button>
                 <Button
                   type="button"
@@ -409,18 +412,18 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
                   }}
                 >
                   <UploadIcon aria-hidden="true" className="size-3" />
-                  Import
+                  {t('workflows.import')}
                 </Button>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   data-slot="wb-export"
-                  title="Download workflow.yaml"
+                  title={t('workflows.exportTitle')}
                   onClick={exportYaml}
                 >
                   <DownloadIcon aria-hidden="true" className="size-3" />
-                  Export
+                  {t('workflows.export')}
                 </Button>
                 <Button
                   type="button"
@@ -431,7 +434,7 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
                   onClick={runSave}
                 >
                   <CheckIcon aria-hidden="true" className="size-3" />
-                  Save
+                  {t('workflows.save')}
                 </Button>
               </div>
             </div>
@@ -439,7 +442,7 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
             {/* Load chips: every known workflow, plus "+ new" — the legacy edit row. */}
             <div data-slot="wb-load" className="mt-3 flex flex-wrap items-center gap-1.5">
               <span className="mr-0.5 text-[11px] font-medium tracking-wide text-soft-foreground uppercase">
-                edit
+                {t('workflows.edit')}
               </span>
               {workflows.map((workflow) => (
                 <button
@@ -461,29 +464,28 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
               <button
                 type="button"
                 data-slot="wb-new"
-                title="Start an empty workflow"
+                title={t('workflows.newTitle')}
                 onClick={() => setDraft(emptyDraft())}
                 className="rounded-full border border-dashed border-border px-2.5 py-1 font-mono text-[11.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
-                + new
+                {t('workflows.newLabel')}
               </button>
             </div>
 
             {autoOpen ? (
               <div data-slot="wb-auto-panel" className="mt-4 rounded-lg border border-border bg-card p-3 shadow-xs">
                 <div className="text-[11px] font-medium tracking-wide text-soft-foreground uppercase">
-                  Build a chain from a prompt
+                  {t('workflows.autoPanelTitle')}
                 </div>
                 <p className="mt-1 text-xs leading-relaxed text-soft-foreground">
-                  Describe what the chain should do. An agent proposes a title and an ordered set of
-                  skill / check steps — land it on the canvas, then tweak and Save.
+                  {t('workflows.autoPanelBody')}
                 </p>
                 <Textarea
                   data-slot="wb-auto-text"
-                  aria-label="Describe the chain to build"
+                  aria-label={t('workflows.autoAria')}
                   rows={3}
                   autoFocus
-                  placeholder="e.g. Fix the bug, run the tests, then review the diff for regressions."
+                  placeholder={t('workflows.autoPlaceholder')}
                   value={autoText}
                   onChange={(event) => setAutoText(event.target.value)}
                   onKeyDown={(event) => {
@@ -504,7 +506,7 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
                     onClick={runAuto}
                   >
                     <WandSparklesIcon aria-hidden="true" className="size-3" />
-                    {autoPlan.isPending ? 'Building…' : 'Build chain'}
+                    {autoPlan.isPending ? t('workflows.building') : t('workflows.buildChain')}
                   </Button>
                   <Button
                     type="button"
@@ -516,7 +518,7 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
                       setAutoText('')
                     }}
                   >
-                    Cancel
+                    {t('workflows.cancel')}
                   </Button>
                 </div>
               </div>
@@ -525,11 +527,11 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
             {importOpen ? (
               <div data-slot="wb-import-panel" className="mt-4 rounded-lg border border-border bg-card p-3 shadow-xs">
                 <div className="text-[11px] font-medium tracking-wide text-soft-foreground uppercase">
-                  Import workflow YAML
+                  {t('workflows.importPanelTitle')}
                 </div>
                 <Textarea
                   data-slot="wb-import-text"
-                  aria-label="Workflow YAML to import"
+                  aria-label={t('workflows.importAria')}
                   rows={6}
                   spellCheck={false}
                   placeholder={'name: my-flow\nskills:\n  - test-conventions\n  - commit-style'}
@@ -551,7 +553,7 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
                     disabled={importMutation.isPending}
                     onClick={runImport}
                   >
-                    Import
+                    {t('workflows.import')}
                   </Button>
                   <Button
                     type="button"
@@ -564,7 +566,7 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
                       setImportError('')
                     }}
                   >
-                    Cancel
+                    {t('workflows.cancel')}
                   </Button>
                 </div>
               </div>
@@ -582,14 +584,14 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
 
           {/* ---- palette + YAML preview ------------------------------------------------- */}
           <aside data-slot="wb-aside" className="w-full shrink-0 md:w-[320px]">
-            <div className="text-[11px] font-medium tracking-wide text-soft-foreground uppercase">Skills</div>
+            <div className="text-[11px] font-medium tracking-wide text-soft-foreground uppercase">{t('workflows.skills')}</div>
             <p className="mt-1 text-xs leading-relaxed text-soft-foreground">
-              Drag into the flow. Order is execution order — the agent applies them top to bottom.
+              {t('workflows.paletteHint')}
             </p>
             <Input
               data-slot="wb-filter"
-              placeholder="Filter skills…"
-              aria-label="Filter skills"
+              placeholder={t('workflows.filterPlaceholder')}
+              aria-label={t('workflows.filterAria')}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               className="mt-2.5 h-8 text-[13px]"
@@ -616,7 +618,7 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
               {yaml}
             </pre>
             <p className="mt-2 text-[11.5px] leading-relaxed text-soft-foreground">
-              Portable — export this file and import it in any repo running cezar.
+              {t('workflows.yamlPortable')}
             </p>
           </aside>
         </div>
@@ -638,15 +640,15 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
       <AlertDialog open={confirmOverwrite} onOpenChange={(open) => !open && setConfirmOverwrite(false)}>
         <AlertDialogContent data-slot="wb-overwrite-dialog">
           <AlertDialogHeader>
-            <AlertDialogTitle>&ldquo;{trimmedName}&rdquo; already exists</AlertDialogTitle>
+            <AlertDialogTitle>{t('workflows.overwriteTitle', { name: trimmedName })}</AlertDialogTitle>
             <AlertDialogDescription>
-              Saving overwrites the existing workflow file. There is no undo.
+              {t('workflows.overwriteBody')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep the file</AlertDialogCancel>
+            <AlertDialogCancel>{t('workflows.keepFile')}</AlertDialogCancel>
             <AlertDialogAction data-slot="wb-overwrite-confirm" onClick={() => save.mutate(true)}>
-              Overwrite
+              {t('workflows.overwrite')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -655,20 +657,22 @@ function WorkflowsBuilder({ routeName }: { routeName: string | undefined }) {
       <AlertDialog open={confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(false)}>
         <AlertDialogContent data-slot="wb-delete-dialog">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete workflow &ldquo;{trimmedName}&rdquo;?</AlertDialogTitle>
+            <AlertDialogTitle>{t('workflows.deleteDialogTitle', { name: trimmedName })}</AlertDialogTitle>
             <AlertDialogDescription>
-              Removes {savedFile?.path?.split('/').pop() ?? 'the saved file'} from{' '}
-              <span className="font-mono">.ai/cezar/workflows/</span>. There is no undo.
+              <RichText
+                text={t('workflows.deleteDialogBody', { file: savedFile?.path?.split('/').pop() ?? t('workflows.theSavedFile') })}
+                tags={{ mono: (c) => <span className="font-mono">{c}</span> }}
+              />
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep it</AlertDialogCancel>
+            <AlertDialogCancel>{t('workflows.keepIt')}</AlertDialogCancel>
             <AlertDialogAction
               data-slot="wb-delete-confirm"
               className="bg-danger text-danger-foreground hover:brightness-[0.96]"
               onClick={() => del.mutate(trimmedName)}
             >
-              Delete
+              {t('workflows.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -696,6 +700,7 @@ function Canvas({
   activeStepId: string | null
   onRemove: (index: number) => void
 }) {
+  const { t } = useLocale()
   const { setNodeRef, isOver } = useDroppable({ id: CANVAS_ID })
   // Append target: the pointer is over the canvas padding (below the last card), not a card.
   const appendActive = dragging && overId === CANVAS_ID
@@ -716,7 +721,7 @@ function Canvas({
             isOver ? 'text-primary' : 'text-muted-foreground',
           )}
         >
-          Drop a skill here — or Import a workflow.yaml
+          {t('workflows.dropHint')}
         </p>
       ) : (
         <SortableContext items={steps.map((s) => s.id)} strategy={verticalListSortingStrategy}>
@@ -746,7 +751,7 @@ function Canvas({
           />
           <div className="flex items-center justify-center gap-1.5 pt-1.5 pb-1 text-[11px] text-muted-foreground">
             <ArrowDownIcon aria-hidden="true" className="size-3" />
-            runs top to bottom
+            {t('workflows.runsTopToBottom')}
           </div>
         </SortableContext>
       )}
@@ -831,16 +836,18 @@ function StepCardBody({
   gripProps?: Record<string, unknown>
   overlay?: boolean
 }) {
+  const { t } = useLocale()
   const known = skills.find((skill) => skill.name === step.skill)
   const isCheck = Boolean(step.command)
   const title = isCheck || !step.skill ? (step.name ?? step.id) : step.skill
   const description = isCheck
-    ? `$ ${step.command}${step.onFail ? ` — on fail retry from "${step.onFail.retry}" (×${step.onFail.max ?? 2})` : ''}`
+    ? `$ ${step.command}${step.onFail ? t('workflows.onFail', { retry: step.onFail.retry, max: step.onFail.max ?? 2 }) : ''}`
     : step.skill
       ? (known?.description ??
-        'Not in this repo or the team skills — the step runs on its plain prompt.')
+        t('workflows.unknownSkill'))
       : (step.prompt ?? '')
   const badge = isCheck ? 'check' : step.skill ? (known ? null : 'unknown') : 'prompt'
+  const badgeText = badge === 'check' ? t('workflows.badgeCheck') : badge === 'unknown' ? t('workflows.badgeUnknown') : t('workflows.badgePrompt')
 
   return (
     <div
@@ -857,7 +864,7 @@ function StepCardBody({
       <button
         type="button"
         data-slot="wb-step-grip"
-        aria-label={`Reorder step ${index + 1}: ${title}`}
+        aria-label={t('workflows.reorderAria', { index: index + 1, title })}
         className="shrink-0 cursor-grab rounded text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
         {...gripProps}
       >
@@ -887,15 +894,15 @@ function StepCardBody({
             badge === 'prompt' && 'border-border text-soft-foreground',
           )}
         >
-          {badge}
+          {badgeText}
         </span>
       ) : null}
       {onRemove ? (
         <button
           type="button"
           data-slot="wb-step-remove"
-          aria-label={`Remove step ${index + 1}: ${title}`}
-          title="Remove from flow"
+          aria-label={t('workflows.removeAria', { index: index + 1, title })}
+          title={t('workflows.removeTitle')}
           onClick={onRemove}
           className="shrink-0 rounded p-0.5 text-soft-foreground transition-colors outline-none hover:text-danger focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
@@ -919,10 +926,11 @@ function Palette({
   inFlow: ReadonlySet<string>
   onAdd: (skill: string) => void
 }) {
+  const { t } = useLocale()
   if (error !== null) {
     return (
       <p data-slot="wb-palette" className="mt-2.5 text-xs text-danger">
-        Could not load skills: {error}
+        {t('workflows.paletteError', { error })}
       </p>
     )
   }
@@ -943,7 +951,7 @@ function Palette({
         ))
       ) : (
         <p className="py-1 text-xs leading-relaxed text-soft-foreground">
-          {skills.length > 0 ? 'No skills match.' : <SkillEmptyHintCompact />}
+          {skills.length > 0 ? t('workflows.noneMatch') : <SkillEmptyHintCompact />}
         </p>
       )}
     </div>
@@ -961,6 +969,7 @@ function PaletteSkill({
   inFlow: boolean
   onAdd: (skill: string) => void
 }) {
+  const { t } = useLocale()
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `palette:${skill.name}`,
     data: { type: 'palette', skill: skill.name } satisfies DragItem,
@@ -994,8 +1003,8 @@ function PaletteSkill({
       <button
         type="button"
         data-slot="wb-skill-add"
-        aria-label={`Add ${skill.name} to the flow`}
-        title="Add to the flow"
+        aria-label={t('workflows.addAria', { name: skill.name })}
+        title={t('workflows.addTitle')}
         onClick={() => onAdd(skill.name)}
         className="shrink-0 rounded p-0.5 text-soft-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
       >
@@ -1007,6 +1016,7 @@ function PaletteSkill({
 
 /** Copy flips to "✓ Copied" for a beat — the legacy `wbCopy` affordance. */
 function CopyYamlButton({ yaml }: { yaml: string }) {
+  const { t } = useLocale()
   const [copied, setCopied] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(
@@ -1019,7 +1029,7 @@ function CopyYamlButton({ yaml }: { yaml: string }) {
     <button
       type="button"
       data-slot="wb-copy"
-      title="Copy the YAML"
+      title={t('workflows.copyTitle')}
       onClick={() => {
         void navigator.clipboard?.writeText(yaml).catch(() => {})
         setCopied(true)
@@ -1031,12 +1041,12 @@ function CopyYamlButton({ yaml }: { yaml: string }) {
       {copied ? (
         <>
           <CheckIcon aria-hidden="true" className="size-3 text-success" />
-          Copied
+          {t('workflows.copied')}
         </>
       ) : (
         <>
           <CopyIcon aria-hidden="true" className="size-3" />
-          Copy
+          {t('workflows.copy')}
         </>
       )}
     </button>
