@@ -149,9 +149,9 @@ export function ProjectGroups({
   // Nested repositories (spec 2026-09-29-nested-repo-projects) are drawn inside their parent's
   // group, never as groups of their own — but only under a listed parent that is not `missing`.
   // A missing parent renders as an inert row with no body, so nesting under it would hide a
-  // healthy child; and the server already drops a parent that is no longer registered, so
-  // checking again means a stale list can never make a project vanish. Such a child (like an
-  // orphan) is simply a group.
+  // healthy child; and the server already reports `parent` only for a registered parent that is
+  // itself top-level (no chains, no cycles), so checking registration again means a stale list can
+  // never make a project vanish. Such a child (like an orphan) is simply a group.
   const { topLevel, childrenOf } = React.useMemo(() => {
     const ids = new Set(projects.filter((entry) => entry.status !== 'missing').map((entry) => entry.id))
     const children = new Map<string, ProjectListEntry[]>()

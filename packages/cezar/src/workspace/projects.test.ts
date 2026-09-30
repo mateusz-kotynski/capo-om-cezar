@@ -537,6 +537,29 @@ describe('workspace projects', () => {
       expect((await listProjects()).find((p) => p.id === api.id)?.parent).toBeUndefined();
     });
 
+    it('reads a chain x->c->p as c under p and x top-level', async () => {
+      const { product, api, web } = await three();
+      await mergeWriteWorkspaceConfig((config) => {
+        config.projects.find((p) => p.id === api.id)!.parent = product.id;
+        config.projects.find((p) => p.id === web.id)!.parent = api.id;
+      });
+      const listed = await listProjects();
+      expect(listed.find((p) => p.id === api.id)?.parent).toBe(product.id);
+      expect(listed.find((p) => p.id === web.id)?.parent).toBeUndefined();
+      expect(listed.find((p) => p.id === product.id)?.parent).toBeUndefined();
+    });
+
+    it('reads both members of a parent cycle as top-level', async () => {
+      const { api, web } = await three();
+      await mergeWriteWorkspaceConfig((config) => {
+        config.projects.find((p) => p.id === api.id)!.parent = web.id;
+        config.projects.find((p) => p.id === web.id)!.parent = api.id;
+      });
+      const listed = await listProjects();
+      expect(listed.find((p) => p.id === api.id)?.parent).toBeUndefined();
+      expect(listed.find((p) => p.id === web.id)?.parent).toBeUndefined();
+    });
+
     it('degrades a malformed stored parent to top-level on load', async () => {
       const { api } = await three();
       await mergeWriteWorkspaceConfig((config) => {

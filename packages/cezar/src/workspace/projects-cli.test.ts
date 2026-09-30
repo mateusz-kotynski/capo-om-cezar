@@ -38,6 +38,9 @@ describe('cezar projects CLI', () => {
 
   const run = (...args: string[]): Promise<number> =>
     runProjectsCommand(args, { defaultRoot: repos, env: {}, io });
+  // `--parent` is consumed by the top-level parser and arrives as an option, not in argv.
+  const runWithParent = (parent: string | undefined, ...args: string[]): Promise<number> =>
+    runProjectsCommand(args, { defaultRoot: repos, env: {}, io, parent });
 
   const makeDir = (...segments: string[]): string => {
     const dir = join(repos, ...segments);
@@ -296,7 +299,7 @@ describe('cezar projects CLI', () => {
       // fixture uses `svc` to keep the id assertion below exact.
       const svc = makeRepo('product', 'svc');
       expect(await run('add', product)).toBe(0);
-      expect(await run('add', svc, '--parent', product)).toBe(0);
+      expect(await runWithParent(product, 'add', svc)).toBe(0);
       expect(io.out.at(-1)).toMatch(/^ {2}\+ svc {2}.*svc {2}↳ product$/);
       const stored = (await loadWorkspaceConfig()).projects.find((p) => p.id === 'svc');
       expect(stored?.parent).toBe('product');
@@ -307,20 +310,39 @@ describe('cezar projects CLI', () => {
       const svc = makeRepo('product', 'svc');
       await run('add', product);
       await run('add', svc);
-      expect(await run('add', '--parent', 'product', svc)).toBe(0);
+      expect(await runWithParent('product', 'add', svc)).toBe(0);
       expect(io.out.at(-1)).toContain('(already registered)');
       expect((await loadWorkspaceConfig()).projects.find((p) => p.id === 'svc')?.parent).toBe('product');
     });
 
     it('add --parent with an unknown parent fails before registering anything', async () => {
       const api = makeRepo('api');
-      expect(await run('add', api, '--parent', 'ghost')).toBe(1);
+      expect(await runWithParent('ghost', 'add', api)).toBe(1);
       expect(io.err.at(-1)).toBe('unknown parent project: ghost');
       expect((await loadWorkspaceConfig()).projects).toEqual([]);
     });
 
     it('add --parent without a value is a usage error', async () => {
-      expect(await run('add', makeRepo('api'), '--parent')).toBe(1);
+      expect(await runWithParent('', 'add', makeRepo('api'))).toBe(1);
+      expect(io.err.join('\n')).toContain('cezar projects [list]');
+    });
+
+    it('--parent on any subcommand but add is a usage error', async () => {
+      await run('add', makeRepo('product'));
+      expect(await runWithParent('product', 'list')).toBe(1);
+      expect(await runWithParent('product', 'remove', 'product')).toBe(1);
+      expect(io.err.join('\n')).toContain('--parent applies to `projects add` only');
+      expect((await loadWorkspaceConfig()).projects).toHaveLength(1);
+    });
+
+    it('list keeps the id column width when nothing is nested', async () => {
+      await run('add', makeRepo('product'));
+      await run('add', makeRepo('zeta'));
+      io.out.length = 0;
+      await run('list');
+      const rows = io.out.filter((line) => line.includes(repos));
+      expect(rows[0]).toMatch(/^ {2}✓ product {2}main {2}/);
+      expect(rows[1]).toMatch(/^ {2}✓ zeta {5}main {2}/);
     });
 
     it('parent sets, refuses and clears', async () => {

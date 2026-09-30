@@ -13,7 +13,6 @@ import { TrackerConnections } from '../server/tracker/connections.ts';
 import {
   mergeWriteWorkspaceConfig,
   loadWorkspaceConfig,
-  PROJECT_ID_RE,
   type WorkspaceProject,
 } from './config.ts';
 
@@ -233,10 +232,28 @@ export function normalizeProjectTags(tags: readonly string[] | null | undefined)
 }
 
 /**
+ * The parent `id` is drawn under, or undefined when it reads as top-level. Nesting is one level
+ * and readers only draw children under top-level entries, so a stored `parent` counts only when
+ * the named parent is registered AND is itself effectively top-level (its own `parent` is absent
+ * or names an unregistered id). A chain x->c->p reads c under p and x top-level; a cycle a->b->a
+ * reads both top-level. Deterministic, and nothing ever vanishes from a listing.
+ */
+export function effectiveParent(
+  projects: readonly Pick<WorkspaceProject, 'id' | 'parent'>[],
+  id: string,
+): string | undefined {
+  const byId = new Map(projects.map((project) => [project.id, project]));
+  const parent = byId.get(id)?.parent;
+  const target = parent ? byId.get(parent) : undefined;
+  if (!parent || !target || parent === id) return undefined;
+  return target.parent && byId.has(target.parent) && target.parent !== target.id ? undefined : parent;
+}
+
+/**
  * Why `id` cannot be nested under `parentId`, or null when it can (spec
  * 2026-09-29-nested-repo-projects). One level only: the parent must be top-level, and a project
- * that already has children cannot be nested itself. A parent's own `parent` that names no
- * registered project is dangling and counts as top-level, exactly as `listProjects` reports it.
+ * that already has children cannot be nested itself. A parent that `listProjects` reports as top-level
+ * (see `effectiveParent`) counts as top-level here too.
  */
 export function projectParentError(
   projects: readonly Pick<WorkspaceProject, 'id' | 'parent'>[],
@@ -246,8 +263,9 @@ export function projectParentError(
   if (parentId === id) return 'a project cannot be its own parent';
   const parent = projects.find((project) => project.id === parentId);
   if (!parent) return `unknown parent project: ${parentId}`;
-  if (parent.parent && projects.some((project) => project.id === parent.parent)) {
-    return `${parentId} is itself nested under ${parent.parent}; nesting is one level`;
+  const grandparent = effectiveParent(projects, parentId);
+  if (grandparent) {
+    return `${parentId} is itself nested under ${grandparent}; nesting is one level`;
   }
   if (projects.some((project) => project.parent === id)) {
     return `${id} has nested projects; it cannot be nested itself`;
@@ -406,15 +424,13 @@ export interface ProjectListSelector {
 
 export async function listProjects(selector?: ProjectListSelector): Promise<ProjectListEntry[]> {
   const config = await loadWorkspaceConfig();
-  const ids = new Set(config.projects.map((project) => project.id));
   const projects = selector
     ? config.projects.filter((project) => project.id === selector.projectId)
     : config.projects;
   return Promise.all(
-    projects.map(async ({ parent, ...project }) => ({
+    projects.map(async ({ parent: _stored, ...project }) => ({
       ...project,
-      // A parent that is no longer registered reads as top-level, so the child stays reachable.
-      ...(parent && ids.has(parent) ? { parent } : {}),
+      ...(effectiveParent(config.projects, project.id) ? { parent: effectiveParent(config.projects, project.id) } : {}),
       ...(await probeRoot(project.root)),
     })),
   );

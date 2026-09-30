@@ -185,6 +185,24 @@ if (args.join(' ') === 'auth status --json') {
     assert.match(projects.stdout, /fixture-repo/);
     assert.match(projects.stdout, /1 project\(s\)/);
 
+    // `projects add --parent` must survive the real top-level argument parser (the flag was once
+    // rejected there while the unit tests, calling the command directly, stayed green).
+    const nestHome = join(root, 'nest-home');
+    const nestEnv = { ...process.env, CEZ_HOME: nestHome };
+    const nestExec = { cwd: consumerDir, env: nestEnv, timeout: 30_000, maxBuffer: 10 * 1024 * 1024 } as const;
+    const nestProduct = join(root, 'nest-product');
+    const nestChild = join(nestProduct, 'svc');
+    await mkdir(nestChild, { recursive: true });
+    await execFile(process.execPath, [cliPath, 'projects', 'add', nestProduct], nestExec);
+    const nested = await execFile(process.execPath, [cliPath, 'projects', 'add', nestChild, '--parent', nestProduct], nestExec);
+    assert.match(nested.stdout, /\+ svc .*↳ nest-product/);
+    const nestedList = await execFile(process.execPath, [cliPath, 'projects', 'list'], nestExec);
+    assert.match(nestedList.stdout, /nest-product[\s\S]*↳ svc/);
+    await assert.rejects(
+      execFile(process.execPath, [cliPath, 'projects', 'list', '--parent', 'nest-product'], nestExec),
+      (err: { code?: number }) => err.code === 1,
+    );
+
     // server-install / server-uninstall dry-run round-trip. A separate CEZ_HOME
     // isolates ~/.cezar/server.json from the project-registry fixture above;
     // CEZ_DRY_RUN performs no real sudo.

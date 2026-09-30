@@ -57,11 +57,23 @@ const SINGLE_PROJECT_EDIT_ERROR = 'single-project mode is enabled; editing proje
  */
 export async function runProjectsCommand(
   args: string[],
-  opts: { defaultRoot: string; bootProjectId?: string; env?: NodeJS.ProcessEnv; io?: ProjectsCommandIo },
+  opts: {
+    defaultRoot: string;
+    bootProjectId?: string;
+    /** `--parent <id|dir>`, already consumed by the top-level argument parser; `add` only. */
+    parent?: string;
+    env?: NodeJS.ProcessEnv;
+    io?: ProjectsCommandIo;
+  },
 ): Promise<number> {
   const io = opts.io ?? defaultIo;
   const singleProject = (opts.env ?? process.env).CEZ_SINGLE_PROJECT === '1';
   const [sub = 'list', ...rest] = args;
+  if (opts.parent !== undefined && sub !== 'add') {
+    io.error('--parent applies to `projects add` only (use `projects parent <id> <parent>` to nest an existing project)');
+    io.error(USAGE);
+    return 1;
+  }
   switch (sub) {
     case 'list':
       return listCommand(io, singleProject, opts.bootProjectId);
@@ -70,14 +82,11 @@ export async function runProjectsCommand(
         io.error(SINGLE_PROJECT_ADD_ERROR);
         return 1;
       }
-      const flag = rest.indexOf('--parent');
-      const parentRef = flag === -1 ? undefined : rest[flag + 1];
-      if (flag !== -1 && !parentRef) {
+      if (opts.parent !== undefined && !opts.parent) {
         io.error(USAGE);
         return 1;
       }
-      const positional = flag === -1 ? rest : rest.filter((_, i) => i !== flag && i !== flag + 1);
-      return addCommand(positional[0] ? resolve(positional[0]) : opts.defaultRoot, io, parentRef);
+      return addCommand(rest[0] ? resolve(rest[0]) : opts.defaultRoot, io, opts.parent);
     }
     case 'remove':
     case 'rm':
@@ -149,17 +158,20 @@ async function listCommand(
     io.log('  start the cockpit in a repo (npx cezar) or add one: cezar projects add <dir>\n');
     return 0;
   }
-  const idWidth = Math.max(...projects.map((p) => p.id.length));
+  const rows = nestedRows(projects);
+  // The `↳ ` marker widens the id column by 2, but only when some row is a child: with no
+  // nesting the output stays byte-identical to what it was before nesting existed.
+  const idWidth = Math.max(...projects.map((p) => p.id.length)) + (rows.some((row) => row.child) ? 2 : 0);
   const labelWidth = Math.max(...projects.map((p) => statusLabel(p).length));
   io.log('');
-  for (const { project, child } of nestedRows(projects)) {
+  for (const { project, child } of rows) {
     const label = statusLabel(project).padEnd(labelWidth);
     // Tags trail the path rather than taking a column of their own: most projects have none,
     // and a mostly-empty column would cost every row width to say nothing.
     const tags = project.tags?.length ? `  [${project.tags.join(' ')}]` : '';
     // A child is marked in the id column itself, so the columns after it still line up.
     const id = child ? `↳ ${project.id}` : project.id;
-    io.log(`  ${statusMark(project.status)} ${id.padEnd(idWidth + 2)}  ${label}  ${project.root}${tags}`);
+    io.log(`  ${statusMark(project.status)} ${id.padEnd(idWidth)}  ${label}  ${project.root}${tags}`);
   }
   io.log(`\n  ${projects.length} project(s) — registry: ${workspaceConfigPath()}\n`);
   return 0;
