@@ -96,7 +96,6 @@ export const en = {
     body1: 'This only unregisters the project — ',
     bodyStrong: 'nothing on disk is deleted',
     body2: '. The folder, its git history and its task history all stay exactly where they are, and adding it back later finds everything intact.',
-    keep: 'Keep it',
     confirm: 'Remove from list',
   },
   general: {
@@ -597,7 +596,6 @@ export const pl: typeof en = {
     body1: 'To tylko wyrejestrowuje projekt — ',
     bodyStrong: 'nic na dysku nie jest usuwane',
     body2: '. Folder, jego historia gita i historia zadań zostają dokładnie tam, gdzie są, a ponowne dodanie znajdzie wszystko w całości.',
-    keep: 'Zostaw',
     confirm: 'Usuń z listy',
   },
   general: {

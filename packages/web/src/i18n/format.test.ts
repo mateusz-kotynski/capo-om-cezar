@@ -59,8 +59,11 @@ describe('resolveMessage (t)', () => {
   })
 
   it('interpolates params into the resolved template', () => {
-    expect(resolveMessage('en', 'tasksPage.emptySearchSubtitle', { query: 'auth' })).toBe(
-      'No tasks match "auth".',
+    expect(resolveMessage('en', 'tasks.overview.searchMissSubtitle', { query: 'auth' })).toBe(
+      'No tasks match “auth”.',
+    )
+    expect(resolveMessage('pl', 'tasks.overview.searchMissSubtitle', { query: 'auth' })).toBe(
+      'Żadne zadanie nie pasuje do „auth”.',
     )
   })
 

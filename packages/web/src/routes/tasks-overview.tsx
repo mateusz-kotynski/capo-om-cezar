@@ -232,6 +232,8 @@ export function TasksOverview({
             {/* ≥md: the table. */}
             <div
               data-slot="tasks-table"
+              role="region"
+              aria-label={tn('tasksPage.count', visible.length)}
               className="hidden overflow-x-auto rounded-lg border border-border bg-card shadow-xs md:block"
             >
               <TooltipProvider>

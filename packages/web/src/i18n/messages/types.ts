@@ -28,22 +28,7 @@ export interface Messages {
     cancel: string
     save: string
     delete: string
-    remove: string
-    confirm: string
-    close: string
-    retry: string
-    tryAgain: string
-    refresh: string
-    copy: string
-    search: string
-    add: string
-    edit: string
-    rename: string
-    loading: string
-    unknown: string
-    none: string
     folderNotFound: string
-    somethingWentWrong: string
     nothingMatches: string
   }
   nav: {
@@ -85,7 +70,6 @@ export interface Messages {
     toggleTheme: string
   }
   tasksPage: {
-    title: string
     active: string
     archived: string
     markAllRead: string
@@ -93,23 +77,13 @@ export interface Messages {
     searchPlaceholder: string
     searchAriaLabel: string
     compare: string
-    taskColumn: string
-    branchColumn: string
     renameAria: string
-    unreadAria: string
-    unreadTitle: string
     newTaskFabAria: string
-    queueInQueue: string
-    foldColumn: string
-    expandColumn: string
+    count: PluralForms
     emptySearchTitle: string
-    emptySearchSubtitle: string
     emptyArchiveTitle: string
-    emptyArchiveSubtitle: string
     emptyNoTasksTitle: string
     emptyNoTasksSubtitle: string
-    count: PluralForms
-    variantsFinished: PluralForms
   }
   settings: {
     sectionsAriaLabel: string
