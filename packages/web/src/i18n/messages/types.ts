@@ -1,4 +1,5 @@
 import type { PluralForms } from '../plural-forms'
+import type { en as threadEn } from '../areas/thread'
 import type { en as tasksEn } from '../areas/tasks'
 
 /**
@@ -226,4 +227,5 @@ export interface Messages {
     resetOrder: string
   }
   tasks: typeof tasksEn
+  thread: typeof threadEn
 }

@@ -1,3 +1,4 @@
+import { useLocale } from '@/components/locale-provider'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArchiveIcon,
@@ -153,6 +154,7 @@ function RunHeaderView({
   onMarkedUnread,
   continuationEngine,
 }: RunHeaderProps) {
+  const { t } = useLocale()
   const attention = deriveAttention(run)
   const flags = runActionFlags(run)
   const hint = resumeHint(run)
@@ -212,7 +214,7 @@ function RunHeaderView({
               variant="ghost"
               size="icon-sm"
               className="md:hidden"
-              aria-label={detailsOpen ? 'Hide run details' : 'Show run details'}
+              aria-label={detailsOpen ? t('thread.actions.hideDetails') : t('thread.actions.showDetails')}
               aria-controls={detailsId}
               aria-expanded={detailsOpen}
               onClick={toggleDetails}
@@ -254,35 +256,35 @@ function RunHeaderView({
 
         <div data-slot="run-tabs" className="mt-1.5 flex items-end gap-1 md:mt-2.5">
           <TabLink to={`/tasks/${run.id}`} active={tab === 'session'}>
-            Session
+            {t('thread.tabs.session')}
           </TabLink>
           <TabLink to={`/tasks/${run.id}/changes`} active={tab === 'changes'}>
-            Changes
+            {t('thread.tabs.changes')}
           </TabLink>
           <TabLink to={`/tasks/${run.id}/commits`} active={tab === 'commits'}>
-            Commits
+            {t('thread.tabs.commits')}
           </TabLink>
           <TabLink to={`/tasks/${run.id}/files`} active={tab === 'files'}>
-            Files
+            {t('thread.tabs.files')}
           </TabLink>
 
           <div data-slot="run-actions" className="ml-auto hidden items-center gap-1 pb-1 md:flex">
             {flags.finish ? (
-              <Button variant="outline" size="sm" title={finishTitle(run.status)} onClick={() => actions.finish.mutate()}>
+              <Button variant="outline" size="sm" title={t(run.status === 'review' ? 'thread.actions.finishReview' : 'thread.actions.finishClose')} onClick={() => actions.finish.mutate()}>
                 <CheckIcon aria-hidden="true" />
-                Finish
+                {t('thread.actions.finish')}
               </Button>
             ) : null}
             {flags.continueRun ? (
               <Button
                 variant="outline"
                 size="sm"
-                title={actions.continuation.reason ?? 'Reopen the session'}
+                title={actions.continuation.reason ?? t('thread.actions.reopenSession')}
                 disabled={actions.continueRun.isPending || !actions.continuation.canContinue}
                 onClick={() => actions.continueRun.mutate()}
               >
                 <PlayIcon aria-hidden="true" />
-                Continue
+                {t('thread.actions.continue')}
               </Button>
             ) : null}
             {/* Terminal is folded into the Open in… menu to save room in the actions row. */}
@@ -290,23 +292,23 @@ function RunHeaderView({
             <Button
               variant="ghost"
               size="sm"
-              title="Handoff notes — what the agent did and what's left"
+              title={t('thread.actions.notesTitle')}
               aria-expanded={notesOpen}
               onClick={() => setNotesOpen((open) => !open)}
             >
               <FileTextIcon aria-hidden="true" />
-              Notes
+              {t('thread.actions.notes')}
             </Button>
             {flags.markUnread ? (
               <Button
                 variant="ghost"
                 size="sm"
-                title="Put this task back in the unread list"
+                title={t('thread.actions.markUnreadTitle')}
                 disabled={actions.markUnread.isPending}
                 onClick={() => actions.markUnread.mutate()}
               >
                 <MailIcon aria-hidden="true" />
-                Mark unread
+                {t('thread.actions.markUnread')}
               </Button>
             ) : null}
             {flags.pin ? (
@@ -317,32 +319,32 @@ function RunHeaderView({
                 aria-pressed={Boolean(run.pinned)}
                 title={
                   run.pinned
-                    ? 'Unpin from the top of this project’s task list'
-                    : 'Pin to the top of this project’s task list'
+                    ? t('thread.actions.unpinTitle')
+                    : t('thread.actions.pinTitle')
                 }
                 disabled={actions.pin.isPending}
                 onClick={() => actions.pin.mutate()}
               >
                 {run.pinned ? <PinOffIcon aria-hidden="true" /> : <PinIcon aria-hidden="true" />}
-                {run.pinned ? 'Unpin' : 'Pin'}
+                {run.pinned ? t('thread.actions.unpin') : t('thread.actions.pin')}
               </Button>
             ) : null}
             {flags.archive ? (
               <Button variant="ghost" size="sm" onClick={() => actions.archive.mutate()}>
                 {run.archived ? <ArchiveRestoreIcon aria-hidden="true" /> : <ArchiveIcon aria-hidden="true" />}
-                {run.archived ? 'Unarchive' : 'Archive'}
+                {run.archived ? t('thread.actions.unarchive') : t('thread.actions.archive')}
               </Button>
             ) : null}
             {flags.cancel ? (
               <Button variant="danger-ghost" size="sm" onClick={() => actions.setConfirming('cancel')}>
                 <CircleStopIcon aria-hidden="true" />
-                Cancel
+                {t('thread.actions.cancel')}
               </Button>
             ) : null}
             {flags.deleteRun ? (
               <Button variant="danger-ghost" size="sm" onClick={() => actions.setConfirming('delete')}>
                 <Trash2Icon aria-hidden="true" />
-                Delete
+                {t('thread.actions.delete')}
               </Button>
             ) : null}
           </div>
@@ -381,6 +383,7 @@ function OpenInMenuForRun({
   canResume: boolean
   onResume: () => void
 }) {
+  const { t } = useLocale()
   const targets = useOpenTargets()
   const providers = useProviderStatus()
   const open = useMutation({
@@ -419,20 +422,20 @@ function OpenInMenuForRun({
     if (!path) return
     void navigator.clipboard
       .writeText(path)
-      .then(() => toast('Worktree path copied'))
-      .catch(() => toast(`Path: ${path}`))
+      .then(() => toast(t('thread.toast.worktreePathCopied')))
+      .catch(() => toast(t('thread.toast.pathIs', { path })))
   }
 
   return (
     <OpenInMenu
       choices={choices}
       onPick={(target) => open.mutate(target)}
-      title="Resume in a terminal, or open the worktree locally"
+      title={t('thread.menu.openIn')}
       leading={
         canResumeHere ? (
           <DropdownMenuItem data-target="terminal-resume" onSelect={onResume}>
             <SquareTerminalIcon aria-hidden="true" />
-            Terminal (resume session)
+            {t('thread.menu.terminalResume')}
           </DropdownMenuItem>
         ) : null
       }
@@ -442,7 +445,7 @@ function OpenInMenuForRun({
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={copyPath}>
               <CopyIcon aria-hidden="true" />
-              Copy worktree path
+              {t('thread.menu.copyWorktreePath')}
             </DropdownMenuItem>
           </>
         ) : null
@@ -454,6 +457,7 @@ function OpenInMenuForRun({
 /** The mutations + confirm state, bundled so the desktop bar and the mobile kebab drive the
  *  exact same behavior. Every failure surfaces the server's own words as a danger toast. */
 function useRunActions(run: ApiRun, onMarkedUnread?: () => void) {
+  const { t } = useLocale()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [confirming, setConfirming] = useState<'cancel' | 'delete' | null>(null)
@@ -526,7 +530,7 @@ function useRunActions(run: ApiRun, onMarkedUnread?: () => void) {
       // The legacy 409 fallback: no terminal emulator → the server sends the manual command;
       // put it on the clipboard so "no terminal" still ends with the user one paste away.
       if (error instanceof ApiError && error.command) {
-        void copyToClipboard(error.command, 'No terminal found — command copied to clipboard.')
+        void copyToClipboard(error.command, t('thread.toast.noTerminal'), (text) => t('thread.toast.runManually', { text }))
         return
       }
       onError(error)
@@ -550,13 +554,17 @@ function useRunActions(run: ApiRun, onMarkedUnread?: () => void) {
 
 type RunActions = ReturnType<typeof useRunActions>
 
-async function copyToClipboard(text: string, doneMessage: string): Promise<void> {
+async function copyToClipboard(
+  text: string,
+  doneMessage: string,
+  failMessage: (text: string) => string,
+): Promise<void> {
   try {
     await navigator.clipboard.writeText(text)
     toast(doneMessage)
   } catch {
     // No clipboard access (permissions, http) — show the command itself; it is the payload.
-    toast(`Run manually: ${text}`)
+    toast(failMessage(text))
   }
 }
 
@@ -567,6 +575,7 @@ async function copyToClipboard(text: string, doneMessage: string): Promise<void>
  * The rename machine itself is shared with the Tasks table (`components/editable-title.tsx`).
  */
 function EditableTitle({ run }: { run: ApiRun }) {
+  const { t } = useLocale()
   const patch = usePatchRun(run.id)
   const title = runTitle(run)
   const draft = useDraft(run.id, 'title')
@@ -608,7 +617,7 @@ function EditableTitle({ run }: { run: ApiRun }) {
       </h1>
       <button
         type="button"
-        aria-label="Rename task"
+        aria-label={t('thread.actions.renameTask')}
         onClick={editor.begin}
         className="shrink-0 rounded-sm p-1 text-soft-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted hover:text-foreground focus-visible:opacity-100 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
       >
@@ -620,6 +629,7 @@ function EditableTitle({ run }: { run: ApiRun }) {
 
 /** Copyable task branch with confirmation kept local so hovering it does not re-render MetaRow. */
 function CopyBranchChip({ branch }: { branch: string }) {
+  const { t } = useLocale()
   const [copied, setCopied] = useState(false)
   const [tooltipOpen, setTooltipOpen] = useState(false)
   const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -633,7 +643,7 @@ function CopyBranchChip({ branch }: { branch: string }) {
 
   const copy = () => {
     if (!navigator.clipboard) {
-      toast(`Branch: ${branch}`)
+      toast(t('thread.toast.branchIs', { branch }))
       return
     }
     void navigator.clipboard
@@ -647,7 +657,7 @@ function CopyBranchChip({ branch }: { branch: string }) {
           setTooltipOpen(false)
         }, 1_500)
       })
-      .catch(() => toast(`Branch: ${branch}`))
+      .catch(() => toast(t('thread.toast.branchIs', { branch })))
   }
 
   return (
@@ -664,16 +674,16 @@ function CopyBranchChip({ branch }: { branch: string }) {
               type="button"
               data-slot="branch-chip"
               className="cursor-copy rounded-sm border border-border bg-card px-1.5 py-px font-mono text-[11px] font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              aria-label={`Copy branch name ${branch}`}
+              aria-label={t('thread.branch.copyAria', { branch })}
               onClick={copy}
             >
               {branch}
               <span className="sr-only" role="status">
-                {copied ? 'Branch name copied' : ''}
+                {copied ? t('thread.branch.copied') : ''}
               </span>
             </button>
           </TooltipTrigger>
-          <TooltipContent>{copied ? 'Copied' : 'Copy branch name'}</TooltipContent>
+          <TooltipContent>{copied ? t('thread.branch.copiedTip') : t('thread.branch.copyTip')}</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   )
@@ -700,6 +710,7 @@ function MetaRow({
    *  plain text, because the route it used to link to is disabled. */
   automationsAvailable: boolean
 }) {
+  const { t } = useLocale()
   // #526: the issue chip may be synthesized from the CEZ:ISSUE marker, and the only repository
   // such a link may name is the one on screen — never the transcript's.
   const repoBase = useProjectRepoBase()
@@ -792,16 +803,16 @@ function MetaRow({
           to={`/automations/${encodeURIComponent(run.automation.automationId)}/log`}
           className="rounded-sm border border-border bg-card px-1.5 py-px text-[11px] font-medium hover:text-foreground"
         >
-          Automation
+          {t('thread.meta.automation')}
         </Link>
       ) : (
         <span
           key="automation"
           data-slot="automation-origin"
-          title="Automations are off on this server (CEZ_AUTOMATIONS)"
+          title={t('thread.meta.automationsOff')}
           className="rounded-sm border border-border bg-card px-1.5 py-px text-[11px] font-medium"
         >
-          Automation
+          {t('thread.meta.automation')}
         </span>
       ),
     )
@@ -984,6 +995,7 @@ function MonitoringSchedule({ run }: { run: ApiRun }) {
  *  question only a user debugging "which provider actually served this?" asks, so it belongs
  *  behind the same disclosure as the account rather than in the truncating summary line. */
 function AgentBadge({ run, continuationEngine }: { run: ApiRun; continuationEngine?: ReactNode }) {
+  const { t } = useLocale()
   // The record keeps only what the caller ASKED for: `POST /api/runs` persists the raw optional
   // `runner` (`src/runs/store.ts`), while the run actually executes as
   // `input.runner ?? config.defaultRunner` (`src/workflows/run.ts`). Mirror that resolution —
@@ -1060,14 +1072,14 @@ function AgentBadge({ run, continuationEngine }: { run: ApiRun; continuationEngi
             data-slot="agent-badge-identity"
             className="font-mono text-[11px] font-normal text-muted-foreground"
           >
-            identity: {identity}
+            {t('thread.meta.identity', { identity })}
           </DropdownMenuLabel>
         ) : null}
         {continuationEngine ? (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuLabel className="pb-1 text-[11px] font-normal text-muted-foreground">
-              Next continuation
+              {t('thread.meta.nextContinuation')}
             </DropdownMenuLabel>
             <div
               data-slot="agent-badge-engine-picker"
@@ -1097,18 +1109,19 @@ function ActionsKebab({
   actions: RunActions
   onToggleNotes: () => void
 }) {
+  const { t } = useLocale()
   const flags = runActionFlags(run)
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon-sm" aria-label="Run actions" className="md:hidden">
+        <Button variant="ghost" size="icon-sm" aria-label={t('thread.actions.runActions')} className="md:hidden">
           <EllipsisVerticalIcon aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" data-slot="run-actions-menu">
         {flags.finish ? (
           <DropdownMenuItem onSelect={() => actions.finish.mutate()}>
-            <CheckIcon aria-hidden="true" /> Finish
+            <CheckIcon aria-hidden="true" /> {t('thread.actions.finish')}
           </DropdownMenuItem>
         ) : null}
         {flags.continueRun ? (
@@ -1117,23 +1130,23 @@ function ActionsKebab({
             title={actions.continuation.reason}
             onSelect={() => actions.continueRun.mutate()}
           >
-            <PlayIcon aria-hidden="true" /> Continue
+            <PlayIcon aria-hidden="true" /> {t('thread.actions.continue')}
           </DropdownMenuItem>
         ) : null}
         {flags.terminal ? (
           <DropdownMenuItem onSelect={() => actions.terminal.mutate()}>
-            <SquareTerminalIcon aria-hidden="true" /> Terminal
+            <SquareTerminalIcon aria-hidden="true" /> {t('thread.actions.terminal')}
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuItem onSelect={onToggleNotes}>
-          <FileTextIcon aria-hidden="true" /> Notes
+          <FileTextIcon aria-hidden="true" /> {t('thread.actions.notes')}
         </DropdownMenuItem>
         {flags.markUnread ? (
           <DropdownMenuItem
             disabled={actions.markUnread.isPending}
             onSelect={() => actions.markUnread.mutate()}
           >
-            <MailIcon aria-hidden="true" /> Mark unread
+            <MailIcon aria-hidden="true" /> {t('thread.actions.markUnread')}
           </DropdownMenuItem>
         ) : null}
         {flags.pin ? (
@@ -1146,24 +1159,24 @@ function ActionsKebab({
             onSelect={() => actions.pin.mutate()}
           >
             {run.pinned ? <PinOffIcon aria-hidden="true" /> : <PinIcon aria-hidden="true" />}
-            {run.pinned ? 'Unpin' : 'Pin'}
+            {run.pinned ? t('thread.actions.unpin') : t('thread.actions.pin')}
           </DropdownMenuItem>
         ) : null}
         {flags.archive ? (
           <DropdownMenuItem onSelect={() => actions.archive.mutate()}>
             {run.archived ? <ArchiveRestoreIcon aria-hidden="true" /> : <ArchiveIcon aria-hidden="true" />}
-            {run.archived ? 'Unarchive' : 'Archive'}
+            {run.archived ? t('thread.actions.unarchive') : t('thread.actions.archive')}
           </DropdownMenuItem>
         ) : null}
         {flags.cancel || flags.deleteRun ? <DropdownMenuSeparator /> : null}
         {flags.cancel ? (
           <DropdownMenuItem variant="destructive" onSelect={() => actions.setConfirming('cancel')}>
-            <CircleStopIcon aria-hidden="true" /> Cancel
+            <CircleStopIcon aria-hidden="true" /> {t('thread.actions.cancel')}
           </DropdownMenuItem>
         ) : null}
         {flags.deleteRun ? (
           <DropdownMenuItem variant="destructive" onSelect={() => actions.setConfirming('delete')}>
-            <Trash2Icon aria-hidden="true" /> Delete
+            <Trash2Icon aria-hidden="true" /> {t('thread.actions.delete')}
           </DropdownMenuItem>
         ) : null}
       </DropdownMenuContent>
@@ -1173,28 +1186,28 @@ function ActionsKebab({
 
 /** The destructive confirms — one dialog, two scripts. Never a native confirm(). */
 function ConfirmDialog({ run, actions }: { run: ApiRun; actions: RunActions }) {
+  const { t } = useLocale()
   const confirming = actions.confirming
   return (
     <AlertDialog open={confirming !== null} onOpenChange={(open) => !open && actions.setConfirming(null)}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{confirming === 'delete' ? 'Delete this task?' : 'Cancel this task?'}</AlertDialogTitle>
+          <AlertDialogTitle>{confirming === 'delete' ? t('thread.confirm.deleteTitle') : t('thread.confirm.cancelTitle')}</AlertDialogTitle>
           <AlertDialogDescription>
             {confirming === 'delete' ? (
               <>
-                This removes the run, its transcript, its worktree and its branch. There is no
-                undo.
+                {t('thread.confirm.deleteBody')}
                 <span className="mt-1 block truncate font-medium text-foreground" title={runTitle(run)}>
                   {runTitle(run)}
                 </span>
               </>
             ) : (
-              'The agent is stopped and the run completes as cancelled. The worktree stays.'
+              t('thread.confirm.cancelBody')
             )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Keep it</AlertDialogCancel>
+          <AlertDialogCancel>{t('thread.confirm.keep')}</AlertDialogCancel>
           <AlertDialogAction
             className="bg-danger text-danger-foreground hover:brightness-[0.96]"
             onClick={() => {
@@ -1203,7 +1216,7 @@ function ConfirmDialog({ run, actions }: { run: ApiRun; actions: RunActions }) {
               actions.setConfirming(null)
             }}
           >
-            {confirming === 'delete' ? 'Delete' : 'Cancel the run'}
+            {confirming === 'delete' ? t('thread.actions.delete') : t('thread.confirm.cancelRun')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -1215,22 +1228,26 @@ function ConfirmDialog({ run, actions }: { run: ApiRun; actions: RunActions }) {
  *  copyable. Local-machine phrasing; hosted mode (R5, `capabilities.localHandoff`) will swap the
  *  cd-prefix for a bare resume command. */
 function ResumeHintLine({ hint }: { hint: string }) {
+  const { t } = useLocale()
   return (
     <button
       type="button"
       data-slot="resume-hint"
-      title="Copy the command"
-      onClick={() => void copyToClipboard(hint, 'Command copied to clipboard.')}
+      title={t('thread.meta.copyCommand')}
+      onClick={() =>
+        void copyToClipboard(hint, t('thread.toast.commandCopied'), (text) => t('thread.toast.runManually', { text }))
+      }
       className="mb-2 flex w-full min-w-0 items-center gap-1.5 rounded-sm px-1 py-0.5 text-left font-mono text-[11px] text-soft-foreground hover:bg-muted hover:text-foreground"
     >
       <CopyIcon className="size-3 shrink-0" aria-hidden="true" />
-      <span className="truncate">take over interactively: {hint}</span>
+      <span className="truncate">{t('thread.meta.takeOver', { hint })}</span>
     </button>
   )
 }
 
 /** The handoff journal (spec 007) as rendered markdown — fetched only while open. */
 function NotesPanel({ runId }: { runId: string }) {
+  const { t } = useLocale()
   const handoff = useRunHandoff(runId)
   return (
     <div
@@ -1238,14 +1255,14 @@ function NotesPanel({ runId }: { runId: string }) {
       className="mb-3 max-h-72 overflow-y-auto rounded-md border border-border bg-card px-4 py-3"
     >
       {handoff.isPending ? (
-        <p className="text-xs text-soft-foreground">Loading notes…</p>
+        <p className="text-xs text-soft-foreground">{t('thread.notes.loading')}</p>
       ) : handoff.isError ? (
         <p className="text-xs text-danger">{handoff.error.message}</p>
       ) : handoff.data.trim().length > 0 ? (
         <Markdown>{handoff.data}</Markdown>
       ) : (
         <p className="text-xs text-soft-foreground">
-          No notes yet — the handoff file is seeded when the task starts.
+          {t('thread.notes.empty')}
         </p>
       )}
     </div>

@@ -1,4 +1,5 @@
 import type { Messages } from './types'
+import { en as threadEn } from '../areas/thread'
 import { en as tasksEn } from '../areas/tasks'
 
 /**
@@ -258,4 +259,5 @@ export const en: Messages = {
     resetOrder: 'Reset order',
   },
   tasks: tasksEn,
+  thread: threadEn,
 }
