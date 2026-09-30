@@ -19,7 +19,7 @@ export const en = {
     cleanSubtitle: 'No uncommitted changes in the main working tree. Edits show up here as they happen.',
     taskNoneTitle: 'No changes yet',
     taskNoneSubtitle: 'The worktree matches its base branch. Changes appear here as the agent works.',
-    repointed: 'HEAD is on {head}, not this task's branch {task} — showing only what this task changed there.',
+    repointed: "HEAD is on {head}, not this task's branch {task} — showing only what this task changed there.",
   },
   commits: {
     loading: 'Loading commits…',
