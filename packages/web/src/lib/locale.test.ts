@@ -5,8 +5,10 @@ import {
   LOCALE_STORAGE_KEY,
   applyLocale,
   detectBrowserLocale,
+  formatLocale,
   normalizeLocale,
   readStoredLocale,
+  setActiveLocale,
   writeStoredLocale,
 } from './locale'
 
@@ -100,5 +102,16 @@ describe('applyLocale', () => {
     expect(root.lang).toBe('pl')
     applyLocale(root, 'en')
     expect(root.lang).toBe('en')
+  })
+})
+
+describe('formatLocale', () => {
+  it('pins Polish formatting once Polish is active, and follows the browser for English', () => {
+    setActiveLocale('pl')
+    expect(formatLocale()).toBe('pl')
+    expect(new Intl.DateTimeFormat(formatLocale(), { day: 'numeric', month: 'long' }).format(new Date(2026, 0, 15))).toBe('15 stycznia')
+
+    setActiveLocale('en')
+    expect(formatLocale()).toBeUndefined()
   })
 })
