@@ -1,3 +1,4 @@
+import { formatLocale } from '@/lib/locale'
 import { useSheetState, useSheetPosition, newSheetSelection, useSheetTrigger } from './sheet-state'
 import { useDashboardTruth } from '@/api/dashboard-truth'
 import { MetricContent, metricSurface, widgetHeading } from './presentation'
@@ -166,7 +167,7 @@ export function Overview({
               </Button>
             </p>
             <p className="text-xs text-muted-foreground">
-              <time dateTime={data.asOf} title={new Date(data.asOf).toLocaleString()}>
+              <time dateTime={data.asOf} title={new Date(data.asOf).toLocaleString(formatLocale())}>
                 Updated {shortAge(data.asOf)} ago
               </time>
             </p>
@@ -384,7 +385,7 @@ function OutcomeTasks({
         <>
           <p ref={summary} tabIndex={-1} className="text-xs text-muted-foreground">
             {query.data.page.total} tasks · Snapshot from{' '}
-            <time dateTime={query.data.asOf} title={new Date(query.data.asOf).toLocaleString()}>
+            <time dateTime={query.data.asOf} title={new Date(query.data.asOf).toLocaleString(formatLocale())}>
               {shortAge(query.data.asOf)} ago
             </time>
           </p>
@@ -457,7 +458,7 @@ function OutcomeTask({
         {label} · {row.archived ? 'Archived · ' : ''}
         <time
           dateTime={row.finishedAt ?? row.createdAt}
-          title={new Date(row.finishedAt ?? row.createdAt).toLocaleString()}
+          title={new Date(row.finishedAt ?? row.createdAt).toLocaleString(formatLocale())}
         >
           {row.finishedAt ? 'Finished' : 'Created'}{' '}
           {shortAge(row.finishedAt ?? row.createdAt)} ago

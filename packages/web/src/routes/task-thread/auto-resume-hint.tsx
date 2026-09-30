@@ -1,3 +1,4 @@
+import { formatLocale } from '@/lib/locale'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link as GlobalLink } from 'react-router'
 
@@ -49,7 +50,7 @@ export function AutoResumeHint({ run }: { run: ApiRun }) {
   if (run.status !== 'failed' || !run.autoResumeAt) return null
   const at = new Date(run.autoResumeAt)
   if (!Number.isFinite(at.getTime())) return null
-  const label = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'long' }).format(at)
+  const label = new Intl.DateTimeFormat(formatLocale(), { dateStyle: 'medium', timeStyle: 'long' }).format(at)
   return (
     <div
       data-slot="auto-resume-hint"

@@ -1,3 +1,4 @@
+import { formatLocale } from '@/lib/locale'
 import { Freshness } from './presentation'
 import { useDashboardFilter } from './url-filter'
 import { Table2, ChevronDown } from 'lucide-react'
@@ -32,7 +33,7 @@ const formatValue = (value: number | null | undefined, metric: Metric) =>
   formatAmount(value, metric === 'cost')
 
 function formatDate(date: string) {
-  return new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+  return new Date(`${date}T00:00:00`).toLocaleDateString(formatLocale(), {
     month: 'short',
     day: 'numeric',
   })

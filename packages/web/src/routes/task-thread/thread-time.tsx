@@ -18,17 +18,26 @@
 
 import { useEffect, useState } from 'react'
 
-/** One formatter per shape, built once: hundreds of thread rows format on every paint. */
-const CLOCK = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' })
-const EXACT = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'medium' })
-const DAY = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
-const DAY_WITH_YEAR = new Intl.DateTimeFormat(undefined, {
-  weekday: 'short',
-  year: 'numeric',
-  month: 'short',
-  day: 'numeric',
-})
-const FULL_DAY = new Intl.DateTimeFormat(undefined, { dateStyle: 'full' })
+import { formatLocale } from '@/lib/locale'
+
+/** One formatter per shape and locale, built once: hundreds of thread rows format on every paint. */
+const FORMATTERS = new Map<string, Intl.DateTimeFormat>()
+function formatter(shape: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const locale = formatLocale()
+  const key = `${locale ?? ''}|${shape}`
+  let cached = FORMATTERS.get(key)
+  if (!cached) {
+    cached = new Intl.DateTimeFormat(locale, options)
+    FORMATTERS.set(key, cached)
+  }
+  return cached
+}
+const CLOCK = () => formatter('clock', { hour: 'numeric', minute: '2-digit' })
+const EXACT = () => formatter('exact', { dateStyle: 'medium', timeStyle: 'medium' })
+const DAY = () => formatter('day', { weekday: 'short', month: 'short', day: 'numeric' })
+const DAY_WITH_YEAR = () =>
+  formatter('dayYear', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
+const FULL_DAY = () => formatter('fullDay', { dateStyle: 'full' })
 
 /** The one gate every export goes through: a `Date` worth formatting, or nothing. The same test
  *  runs one layer earlier, at `stamp()` in `thread-state.ts`, which keeps the raw string instead:
@@ -42,13 +51,13 @@ function parse(ts: string | undefined): Date | undefined {
 /** Short local time for an inline stamp — `14:32` / `2:32 PM`, per the reader's locale. */
 export function clockLabel(ts: string | undefined): string | undefined {
   const at = parse(ts)
-  return at === undefined ? undefined : CLOCK.format(at)
+  return at === undefined ? undefined : CLOCK().format(at)
 }
 
 /** The full instant, for the `title` the inline time hides behind. */
 export function exactLabel(ts: string | undefined): string | undefined {
   const at = parse(ts)
-  return at === undefined ? undefined : EXACT.format(at)
+  return at === undefined ? undefined : EXACT().format(at)
 }
 
 const keyOf = (at: Date): string =>
@@ -77,7 +86,7 @@ export function dayLabel(ts: string | undefined, now: Date = new Date()): string
   const key = keyOf(at)
   if (key === keyOf(now)) return 'Today'
   if (key === keyOf(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1))) return 'Yesterday'
-  return (at.getFullYear() === now.getFullYear() ? DAY : DAY_WITH_YEAR).format(at)
+  return (at.getFullYear() === now.getFullYear() ? DAY : DAY_WITH_YEAR)().format(at)
 }
 
 /**
@@ -172,7 +181,7 @@ export function DaySeparator({ ts }: { ts: string }) {
   const label = dayLabel(ts)
   const at = parse(ts)
   if (label === undefined || at === undefined) return null
-  const exact = FULL_DAY.format(at)
+  const exact = FULL_DAY().format(at)
   const relative = label === 'Today' || label === 'Yesterday'
   return (
     <div

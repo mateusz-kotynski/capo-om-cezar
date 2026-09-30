@@ -1,3 +1,4 @@
+import { formatLocale } from '@/lib/locale'
 import type { ReactNode } from 'react'
 import { shortAge } from '@/lib/format'
 
@@ -32,7 +33,7 @@ export function MetricContent({
 }
 export function Freshness({ at }: { at: string }) {
   return (
-    <time dateTime={at} title={new Date(at).toLocaleString()}>
+    <time dateTime={at} title={new Date(at).toLocaleString(formatLocale())}>
       Updated {shortAge(at)} ago
     </time>
   )

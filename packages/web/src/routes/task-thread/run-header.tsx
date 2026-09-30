@@ -1,3 +1,4 @@
+import { formatLocale } from '@/lib/locale'
 import { useLocale } from '@/components/locale-provider'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -968,7 +969,7 @@ function MonitoringSchedule({ run }: { run: ApiRun }) {
       </p>
     )
   }
-  const label = new Intl.DateTimeFormat(undefined, {
+  const label = new Intl.DateTimeFormat(formatLocale(), {
     dateStyle: 'medium',
     timeStyle: 'long',
   }).format(validWakeAt)

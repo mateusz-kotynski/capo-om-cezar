@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import { applyLocale, readStoredLocale, writeStoredLocale, type Locale } from '@/lib/locale'
+import { applyLocale, readStoredLocale, setActiveLocale, writeStoredLocale, type Locale } from '@/lib/locale'
 import {
   resolveMessage,
   resolvePlural,
@@ -45,7 +45,11 @@ const LocaleContext = React.createContext<LocaleContextValue>(FALLBACK_CONTEXT)
  * `<html lang>` itself should still be right from the first paint for assistive tech).
  */
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = React.useState<Locale>(readStoredLocale)
+  const [locale, setLocaleState] = React.useState<Locale>(() => {
+    const initial = readStoredLocale()
+    setActiveLocale(initial)
+    return initial
+  })
 
   // Layout effect, not effect: `lang` should land before the browser paints the mounted tree,
   // matching the theme provider's own rationale for `applyResolvedTheme`.
@@ -54,6 +58,8 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   }, [locale])
 
   const setLocale = React.useCallback((next: Locale) => {
+    // Before the state update so formatters read by this render already see the new language.
+    setActiveLocale(next)
     setLocaleState(next)
     writeStoredLocale(next)
   }, [])

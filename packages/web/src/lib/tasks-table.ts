@@ -1,3 +1,4 @@
+import { formatLocale } from '@/lib/locale'
 import type { ProcessUsage, RunRecord, RunStatus } from '@open-mercato/cezar-api-client'
 import { groupTitle, runTitle, type ListView } from '@/lib/task-groups'
 
@@ -61,12 +62,12 @@ export function scheduledResume(
   const at = new Date(run.autoResumeAt)
   if (!Number.isFinite(at.getTime())) return undefined
   const sameDay = at.toDateString() === now.toDateString()
-  const time = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(at)
+  const time = new Intl.DateTimeFormat(formatLocale(), { hour: 'numeric', minute: '2-digit' }).format(at)
   return {
     label: sameDay
       ? time
-      : `${new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(at)} ${time}`,
-    title: `Resumes automatically at ${new Intl.DateTimeFormat(undefined, {
+      : `${new Intl.DateTimeFormat(formatLocale(), { month: 'short', day: 'numeric' }).format(at)} ${time}`,
+    title: `Resumes automatically at ${new Intl.DateTimeFormat(formatLocale(), {
       dateStyle: 'medium',
       timeStyle: 'long',
     }).format(at)}`,

@@ -61,3 +61,24 @@ export function writeStoredLocale(locale: Locale): void {
 export function applyLocale(root: HTMLElement, locale: Locale): void {
   root.lang = locale
 }
+
+/* ---- date / number formatting locale ------------------------------------------------------
+ * Formatting helpers that live outside React (module-level `Intl` formatters, pure `lib/`
+ * functions) cannot call `useLocale()`. `LocaleProvider` publishes the chosen language here
+ * instead; `formatLocale()` is the one thing they read.
+ *
+ * English deliberately maps to `undefined` — "the browser's own regional formatting", which is
+ * exactly what every one of these call sites did before the language setting existed, so an
+ * English cockpit formats dates and numbers byte-for-byte as it always did (24h clocks, en-GB
+ * day-first dates, ...). Polish pins `pl`.
+ */
+let activeLocale: Locale | null = null
+
+export function setActiveLocale(locale: Locale): void {
+  activeLocale = locale
+}
+
+/** The BCP 47 tag for `Intl.*` / `toLocale*String` (see the block comment above). */
+export function formatLocale(): string | undefined {
+  return (activeLocale ?? readStoredLocale()) === 'pl' ? 'pl' : undefined
+}
