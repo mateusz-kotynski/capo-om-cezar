@@ -88,7 +88,7 @@ function AutomationRow({
   showCost: boolean
   now: number
 }) {
-  const { t } = useLocale()
+  const { t, tn } = useLocale()
   const navigate = useNavigate()
   const github = automation.kind === 'github'
   const capabilityPaused = github && !available
@@ -121,7 +121,7 @@ function AutomationRow({
           {dispatch ? (
             <span
               data-slot="dispatch-badge"
-              title={t('automations.dispatchBadge', { count: dispatch.maxSubtasks ?? 1 })}
+              title={tn('automations.dispatchBadge', dispatch.maxSubtasks ?? 1)}
               className="inline-flex shrink-0 items-center gap-[3px] rounded-full bg-muted px-1.5 py-px text-[10.5px] font-medium text-muted-foreground"
             >
               <GitForkIcon className="size-2.5" />×{dispatch.maxSubtasks ?? 1}

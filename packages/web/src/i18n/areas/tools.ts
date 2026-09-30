@@ -23,7 +23,7 @@ export const pl: typeof en = {
   version: 'cezar v{version}',
   withBlocker: '{base} · {blocker}',
   optionalMissing: '{base} · opcjonalne: nie zainstalowano {names}',
-  noForgeRemote: 'Nie wykryto remote’a GitHub — karta GitHub jest ukryta. Wszystkie zwykłe funkcje gita nadal działają.',
+  noForgeRemote: 'Nie wykryto remote’a na GitHubie — karta GitHub jest ukryta. Wszystkie zwykłe funkcje gita nadal działają.',
   forgeUnreachable: '{name} jest nieosiągalny — {reason}. Karta {name} jest ukryta, dopóki nie wróci.',
   unknownReason: 'nieznany powód',
   trigger: 'Narzędzia',

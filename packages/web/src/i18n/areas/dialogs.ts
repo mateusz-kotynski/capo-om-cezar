@@ -89,7 +89,7 @@ export const en = {
 
 export const pl: typeof en = {
   addProject: {
-    title: 'Otwórz lokalny folder',
+    title: 'Otwórz folder lokalny',
     description: 'Wybierz folder, w którym ma działać cezar. Repozytoria git są oznaczone; działa każdy folder.',
     emptyHint: 'Brak podfolderów — „Dodaj projekt” zarejestruje ten folder.',
     git: 'git',

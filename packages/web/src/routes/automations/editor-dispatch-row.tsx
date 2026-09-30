@@ -27,7 +27,7 @@ export function EditorDispatchRow({
   reviewChild: boolean
   onChange: (patch: { dispatch?: boolean; maxSubtasks?: number; reviewChild?: boolean }) => void
 }) {
-  const { t } = useLocale()
+  const { t, tn } = useLocale()
   if (!available) return null
   const options = DISPATCH_SUBTASK_OPTIONS.includes(maxSubtasks as (typeof DISPATCH_SUBTASK_OPTIONS)[number])
     ? DISPATCH_SUBTASK_OPTIONS
@@ -59,7 +59,7 @@ export function EditorDispatchRow({
                 ))}
               </SelectContent>
             </Select>
-            {t('automations.subtasks')}
+            {tn('automations.subtasks', maxSubtasks)}
           </span>
           <span className="text-soft-foreground">·</span>
           <Label className="text-[13px] font-normal text-muted-foreground">

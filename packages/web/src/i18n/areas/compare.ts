@@ -51,7 +51,7 @@ export const pl: typeof en = {
   confirmBody: {
     one: 'Zmiany wariantu {variant} trafiają do bramki przeglądu. Drugi wariant zostaje anulowany, jeśli jeszcze trwa, zarchiwizowany, a jego worktree i gałąź usunięte. Nie da się tego cofnąć.',
     few: 'Zmiany wariantu {variant} trafiają do bramki przeglądu. Pozostałe {count} warianty zostają anulowane, jeśli jeszcze trwają, zarchiwizowane, a ich worktree i gałęzie usunięte. Nie da się tego cofnąć.',
-    many: 'Zmiany wariantu {variant} trafiają do bramki przeglądu. Pozostałych {count} wariantów zostaje anulowanych, jeśli jeszcze trwają, zarchiwizowanych, a ich worktree i gałęzie usuniętych. Nie da się tego cofnąć.',
+    many: 'Zmiany wariantu {variant} trafiają do bramki przeglądu. Pozostałych {count} wariantów zostaje anulowanych, jeśli jeszcze trwają, zarchiwizowanych, a ich worktree i gałęzie usunięte. Nie da się tego cofnąć.',
     other: 'Zmiany wariantu {variant} trafiają do bramki przeglądu. Pozostałe {count} wariantu zostają anulowane, jeśli jeszcze trwają, zarchiwizowane, a ich worktree i gałęzie usunięte. Nie da się tego cofnąć.',
   },
   keepComparing: 'Porównuj dalej',

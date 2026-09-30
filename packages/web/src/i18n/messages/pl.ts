@@ -123,7 +123,7 @@ export const pl: Messages = {
     crossLinkProjectScoped: 'Agenci, worktree, bookmarklety i szablony promptów są ustawiane per projekt.',
     crossLinkGlobal: 'Wygląd, powiadomienia, zasoby hosta i rejestr projektów znajdują się w: <link>{title}</link>.',
     sections: {
-      tracker: { title: 'Tracker zgłoszeń', description: 'Połącz ten projekt z Jira lub Linear.' },
+      tracker: { title: 'Tracker issue', description: 'Połącz ten projekt z Jira lub Linear.' },
       agents: { title: 'Agenci', description: 'Domyślny runner, modele i prompt systemowy.' },
       'agent-config': {
         title: 'Konfiguracja agenta',

@@ -363,7 +363,7 @@ export const pl: typeof en = {
   running: 'W toku',
   countAria: '{label}: {total}',
   technicalDetails: 'Szczegóły techniczne',
-  monitoringIncluded: 'Monitorowanych: {count} (wliczone w W toku)',
+  monitoringIncluded: 'Monitorowanych: {count} (wliczone w „W toku”)',
   agentProcesses: 'Procesy agentów',
   cpu: 'CPU',
   rss: 'RSS',

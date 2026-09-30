@@ -14,6 +14,20 @@ const tPl = (key: Parameters<typeof resolveMessage>[1], params?: Record<string, 
 const health = (over: Partial<HealthResponse>): HealthResponse =>
   ({ version: '1.2.3', checks: [], defaultRunner: 'claude', forge: null, ...over }) as HealthResponse
 
+const POLISH_LABELS = {
+  draft: 'Draft',
+  'review-required': 'Czeka na przegląd',
+  'changes-requested': 'Wymagane zmiany',
+  'checks-pending': 'Checki w toku',
+  'checks-failing': 'Checki niezaliczone',
+  ready: 'Gotowy do scalenia',
+  merged: 'Scalony',
+  closed: 'Zamknięty',
+  open: 'Otwarte',
+  completed: 'Zamknięte jako ukończone',
+  'not-planned': 'Zamknięte jako niezaplanowane',
+} as const
+
 describe('reference presentation', () => {
   it('is English-identical to the pure table for every status and translates in Polish', () => {
     for (const [status, base] of Object.entries(REFERENCE_STATUS)) {
@@ -21,7 +35,7 @@ describe('reference presentation', () => {
       expect(en, status).toEqual(base)
       const pl = referencePresentation(tPl, status as keyof typeof REFERENCE_STATUS)
       expect(pl?.tone).toBe(base.tone)
-      expect(pl?.label).not.toBe(base.label === 'Draft' || base.label === 'Open' ? '' : base.label)
+      expect(pl?.label, status).toBe(POLISH_LABELS[status as keyof typeof REFERENCE_STATUS])
     }
     expect(referencePresentation(tPl, 'conflict')?.label).toBe('Konflikty scalania')
     expect(referencePresentation(tPl, undefined)).toBeUndefined()

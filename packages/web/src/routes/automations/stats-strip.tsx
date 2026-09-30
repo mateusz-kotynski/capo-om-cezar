@@ -35,10 +35,10 @@ export function StatsStrip({
   return (
     <div data-slot="stats-strip" className="flex flex-wrap items-center gap-4 text-[12.5px] text-muted-foreground">
       <span className="text-[11px] font-semibold tracking-[.05em] text-soft-foreground uppercase">{t('automations.thisWeek')}</span>
-      <Stat label={t('automations.statRuns')} value={String(stats.runs)} />
-      {AUTOMATION_COST_VISIBLE && stats.costUsd !== undefined ? <Stat label={t('automations.statSpent')} value={usd(stats.costUsd)} /> : null}
-      <Stat label={t('automations.statFailed')} value={String(stats.failed)} danger={stats.failed > 0} />
-      <Stat label={t('automations.statAgentTime')} value={agentTime(stats.agentSeconds, t)} />
+      <Stat id="runs" label={tn('automations.statRuns', stats.runs)} value={String(stats.runs)} />
+      {AUTOMATION_COST_VISIBLE && stats.costUsd !== undefined ? <Stat id="spent" label={t('automations.statSpent')} value={usd(stats.costUsd)} /> : null}
+      <Stat id="failed" label={tn('automations.statFailed', stats.failed)} value={String(stats.failed)} danger={stats.failed > 0} />
+      <Stat id="agent time" label={t('automations.statAgentTime')} value={agentTime(stats.agentSeconds, t)} />
       <span data-slot="stats-polls" className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap">
         <StatusDot tone="pending" pulse />
         {tn('automations.pollsContinuous', pollCount)}
@@ -59,9 +59,9 @@ export function StatsStrip({
   )
 }
 
-function Stat({ label, value, danger = false }: { label: string; value: string; danger?: boolean }) {
+function Stat({ id, label, value, danger = false }: { id: string; label: string; value: string; danger?: boolean }) {
   return (
-    <span data-slot="stat" data-label={label} className="inline-flex shrink-0 items-baseline gap-[5px] whitespace-nowrap">
+    <span data-slot="stat" data-label={id} className="inline-flex shrink-0 items-baseline gap-[5px] whitespace-nowrap">
       <b className={cn('font-mono text-sm font-semibold tabular-nums', danger ? 'text-danger' : 'text-foreground')}>{value}</b>
       {label}
     </span>

@@ -2,6 +2,8 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { NIGHTLY, NOW, STALE_PR, TIME_ZONE } from './automations-list.fixtures'
+import { LocaleProvider } from '@/components/locale-provider'
+import { LOCALE_STORAGE_KEY } from '@/lib/locale'
 import { StatsStrip } from './stats-strip'
 
 afterEach(cleanup)
@@ -93,5 +95,28 @@ describe('StatsStrip', () => {
 
     // 10:24 UTC is 12:24 in Warsaw in September.
     expect(document.querySelector('[data-slot="stats-next"] b')?.textContent).toBe('12:24')
+  })
+})
+
+describe('StatsStrip in Polish', () => {
+  afterEach(() => {
+    cleanup()
+    localStorage.removeItem(LOCALE_STORAGE_KEY)
+    document.documentElement.removeAttribute('lang')
+  })
+
+  it.each([
+    [1, 'uruchomienie', 'nieudane'],
+    [2, 'uruchomienia', 'nieudane'],
+    [5, 'uruchomień', 'nieudanych'],
+  ])('pluralises %i and keeps the data-label hook language-independent', (n, runs, failed) => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'pl')
+    render(
+      <LocaleProvider>
+        <StatsStrip stats={{ ...STATS, runs: n, failed: n }} pollCount={1} upcoming={UPCOMING} timeZone={TIME_ZONE} railOpen={false} onOpenRail={() => {}} />
+      </LocaleProvider>,
+    )
+    expect(stat('runs')?.textContent).toBe(`${n}${runs}`)
+    expect(stat('failed')?.textContent).toBe(`${n}${failed}`)
   })
 })

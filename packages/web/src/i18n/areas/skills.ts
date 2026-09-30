@@ -93,7 +93,7 @@ export const pl: typeof en = {
   previewDescription: 'Podgląd skilla tylko do odczytu',
   openInCatalog: 'Otwórz w katalogu skilli',
   emptyHint:
-    'Nie ma jeszcze skilli. Wrzuć pliki Markdown do <dirs>.</dirs> (lustra agentów, np. <path>.claude/skills/</path>, też działają) — opcjonalny frontmatter: <path>name</path>, <path>description</path>. Skille globalne (<path>~/.agents/skills</path>) i z repozytorium zespołu też się tu pojawiają — spróbuj Odśwież.',
+    'Nie ma jeszcze skilli. Wrzuć pliki Markdown do <dirs>.</dirs> (lustra agentów, np. <path>.claude/skills/</path>, też działają) — opcjonalny frontmatter: <path>name</path>, <path>description</path>. Skille globalne (<path>~/.agents/skills</path>) i z repozytorium zespołu też się tu pojawiają — kliknij „Odśwież”.',
   emptyHintCompact: 'Nie ma jeszcze skilli — wrzuć pliki Markdown do <dirs>.</dirs> (albo do globalnego źródła skilli lub repozytorium zespołu).',
   listSeparator: ', ',
   listLastSeparator: ' lub ',

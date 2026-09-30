@@ -19,7 +19,11 @@ export function RichText({ text, tags }: { text: string; tags: RichTextTags }): 
   let index = 0
   for (const match of text.matchAll(TAG)) {
     const render = Object.hasOwn(tags, match[1]!) ? tags[match[1]!] : undefined
-    if (!render) continue
+    if (!render) {
+      // A slot the caller does not handle would render as literal text — say so in dev.
+      if (import.meta.env?.DEV) console.warn(`RichText: no handler for <${match[1]}> in "${text.slice(0, 60)}"`)
+      continue
+    }
     if (match.index > last) parts.push(text.slice(last, match.index))
     parts.push(<React.Fragment key={index++}>{render(match[2]!)}</React.Fragment>)
     last = match.index + match[0].length
