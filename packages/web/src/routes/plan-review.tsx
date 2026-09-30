@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { useLocale } from '@/components/locale-provider'
 import {
   Dialog,
   DialogClose,
@@ -73,6 +74,7 @@ export function PlanReview({
   onStart,
   onDiscard,
 }: PlanReviewProps) {
+  const { t } = useLocale()
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [overIndex, setOverIndex] = useState<number | null>(null)
 
@@ -103,10 +105,10 @@ export function PlanReview({
         <DialogHeader className="gap-1 border-b border-border px-5 pt-4 pb-3.5 text-left sm:text-left">
           <div className="flex items-start justify-between gap-3">
             <DialogTitle className="text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
-              Proposed chain
+              {t('planReview.title')}
             </DialogTitle>
             <DialogClose
-              aria-label="Discard the plan"
+              aria-label={t('planReview.discardAria')}
               className="-mt-1 -mr-1 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               <XIcon aria-hidden="true" className="size-4" />
@@ -121,7 +123,7 @@ export function PlanReview({
           </DialogDescription>
           {plan.fallback ? (
             <p data-slot="plan-fallback" className="text-xs text-soft-foreground italic">
-              planner unavailable — single-step plan
+              {t('planReview.fallback')}
             </p>
           ) : plan.rationale !== '' ? (
             <p data-slot="plan-rationale" className="text-xs text-muted-foreground">
@@ -133,7 +135,7 @@ export function PlanReview({
         <ol data-slot="plan-steps" className="flex-1 space-y-2 overflow-y-auto px-5 py-4">
           {empty ? (
             <li className="py-6 text-center text-sm text-muted-foreground">
-              (no steps left — discard and plan again)
+              {t('planReview.noSteps')}
             </li>
           ) : (
             plan.steps.map((step, index) => (
@@ -171,7 +173,7 @@ export function PlanReview({
                     {step.skill ? (
                       <span
                         data-slot="plan-badge-skill"
-                        title="skill"
+                        title={t('planReview.skillTitle')}
                         className="shrink-0 rounded-full bg-violet/15 px-1.5 py-px font-mono text-[10.5px] font-medium text-violet"
                       >
                         {step.skill}
@@ -182,7 +184,7 @@ export function PlanReview({
                         data-slot="plan-badge-check"
                         className="shrink-0 rounded-full bg-muted px-1.5 py-px text-[10.5px] font-medium text-muted-foreground"
                       >
-                        check
+                        {t('planReview.badgeCheck')}
                       </span>
                     ) : null}
                   </div>
@@ -196,7 +198,7 @@ export function PlanReview({
                     variant="ghost"
                     size="icon-sm"
                     data-slot="plan-step-up"
-                    aria-label={`Move step ${index + 1} up`}
+                    aria-label={t('planReview.moveUp', { index: index + 1 })}
                     disabled={index === 0}
                     className="size-7 text-muted-foreground"
                     onClick={() => onStepsChange(moveStep(plan.steps, index, index - 1))}
@@ -208,7 +210,7 @@ export function PlanReview({
                     variant="ghost"
                     size="icon-sm"
                     data-slot="plan-step-down"
-                    aria-label={`Move step ${index + 1} down`}
+                    aria-label={t('planReview.moveDown', { index: index + 1 })}
                     disabled={index === plan.steps.length - 1}
                     className="size-7 text-muted-foreground"
                     onClick={() => onStepsChange(moveStep(plan.steps, index, index + 1))}
@@ -220,7 +222,7 @@ export function PlanReview({
                     variant="ghost"
                     size="icon-sm"
                     data-slot="plan-step-remove"
-                    aria-label={`Remove step ${index + 1}`}
+                    aria-label={t('planReview.remove', { index: index + 1 })}
                     className="size-7 text-muted-foreground hover:text-danger"
                     onClick={() => onStepsChange(removeStep(plan.steps, index))}
                   >
@@ -253,11 +255,11 @@ export function PlanReview({
             onClick={onStart}
           >
             <PlayIcon aria-hidden="true" className="size-3.5" />
-            {starting ? 'Starting…' : 'Start'}
+            {starting ? t('planReview.starting') : t('planReview.start')}
           </Button>
           <SaveAsChain steps={plan.steps} disabled={empty} />
           <Button type="button" variant="ghost" className="ml-auto" onClick={onDiscard}>
-            Discard
+            {t('planReview.discard')}
           </Button>
         </div>
       </DialogContent>
@@ -271,6 +273,7 @@ export function PlanReview({
  * The review stays open afterwards — saving and starting are independent decisions.
  */
 function SaveAsChain({ steps, disabled }: { steps: WorkflowStepDef[]; disabled: boolean }) {
+  const { t } = useLocale()
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
@@ -287,7 +290,7 @@ function SaveAsChain({ steps, disabled }: { steps: WorkflowStepDef[]; disabled: 
         steps,
         ...(overwrite ? { overwrite: true } : {}),
       })
-      toast(`Saved — ${saved.path.split('/').pop() ?? saved.path}`)
+      toast(t('planReview.saved', { file: saved.path.split('/').pop() ?? saved.path }))
       // The picker on /new lists workflows from this cache — the new chain must appear.
       void queryClient.invalidateQueries({ queryKey: queryKeys.workflows })
       setConfirmOverwrite(false)
@@ -313,15 +316,15 @@ function SaveAsChain({ steps, disabled }: { steps: WorkflowStepDef[]; disabled: 
         disabled={disabled}
         onClick={() => setOpen(true)}
       >
-        Save as chain
+        {t('planReview.saveAsChain')}
       </Button>
 
       <Dialog open={open} onOpenChange={(next) => (next ? setOpen(true) : setOpen(false))}>
         <DialogContent data-slot="plan-save-dialog" className="sm:max-w-sm" showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>Save as chain</DialogTitle>
+            <DialogTitle>{t('planReview.saveAsChain')}</DialogTitle>
             <DialogDescription>
-              Saves these steps as a reusable workflow — it joins the picker like any other chain.
+              {t('planReview.saveDescription')}
             </DialogDescription>
           </DialogHeader>
           <form
@@ -333,17 +336,17 @@ function SaveAsChain({ steps, disabled }: { steps: WorkflowStepDef[]; disabled: 
             <Input
               value={name}
               onChange={(event) => setName(event.target.value)}
-              aria-label="Chain name"
-              placeholder="e.g. fix-and-verify-v2"
+              aria-label={t('planReview.chainNameAria')}
+              placeholder={t('planReview.chainNamePlaceholder')}
               maxLength={80}
               autoFocus
             />
             <DialogFooter className="mt-4">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                Cancel
+                {t('planReview.cancel')}
               </Button>
               <Button type="submit" disabled={name.trim() === '' || saving}>
-                {saving ? 'Saving…' : 'Save'}
+                {saving ? t('planReview.saving') : t('planReview.save')}
               </Button>
             </DialogFooter>
           </form>
@@ -356,15 +359,14 @@ function SaveAsChain({ steps, disabled }: { steps: WorkflowStepDef[]; disabled: 
       >
         <AlertDialogContent data-slot="plan-overwrite-dialog">
           <AlertDialogHeader>
-            <AlertDialogTitle>Overwrite “{name.trim()}”?</AlertDialogTitle>
+            <AlertDialogTitle>{t('planReview.overwriteTitle', { name: name.trim() })}</AlertDialogTitle>
             <AlertDialogDescription>
-              A chain with this name already exists. Overwriting replaces its steps with this
-              plan.
+              {t('planReview.overwriteBody')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep the existing chain</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void save(true)}>Overwrite</AlertDialogAction>
+            <AlertDialogCancel>{t('planReview.keepExisting')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void save(true)}>{t('planReview.overwrite')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
