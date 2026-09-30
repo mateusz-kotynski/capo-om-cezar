@@ -1,4 +1,5 @@
 import type { PluralForms } from '../plural-forms'
+import type { en as forgeEn } from '../areas/forge'
 import type { en as gitEn } from '../areas/git'
 import type { en as composeEn } from '../areas/compose'
 import type { en as threadEn } from '../areas/thread'
@@ -107,72 +108,6 @@ export interface Messages {
     count: PluralForms
     variantsFinished: PluralForms
   }
-  taskThread: {
-    session: string
-    changes: string
-    commits: string
-    files: string
-    finish: string
-    continueRun: string
-    notes: string
-    showDetails: string
-    hideDetails: string
-  }
-  composer: {
-    header: string
-    placeholder: string
-    ariaLabel: string
-    replyPlaceholder: string
-    replyAriaLabel: string
-    sendDefault: string
-    sendStart: string
-    sendPlan: string
-    checkingProviders: string
-    providerAuthError: string
-    connectProvider: string
-    loadingSourcesRetry: string
-    startingTask: string
-    launchedFromBookmarklet: string
-    worktree: string
-    autonomous: string
-    followups: string
-    start: string
-    planFirst: string
-    planning: string
-    configureProviders: string
-    attachFiles: string
-    dictation: string
-    listening: string
-    loadingSkills: string
-    noMatchingSkills: string
-    noFilesYet: string
-    removeAttachment: string
-    suggestion1: string
-    suggestion2: string
-    suggestion3: string
-  }
-  gitPage: {
-    couldNotLoad: string
-    notGitTitle: string
-    notGitSubtitle: string
-    changes: string
-    commits: string
-    branches: string
-  }
-  forge: {
-    couldNotLoad: string
-    unavailableHere: string
-    issuesTab: string
-    pullRequestsTab: string
-    setUpAutomations: string
-    refresh: string
-    syncedAgo: string
-    labels: string
-    labelsCount: string
-    noLabels: string
-    nothingSelected: string
-    notFound: string
-  }
   settings: {
     sectionsAriaLabel: string
     general: string
@@ -232,4 +167,5 @@ export interface Messages {
   thread: typeof threadEn
   compose: typeof composeEn
   git: typeof gitEn
+  forge: typeof forgeEn
 }
