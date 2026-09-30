@@ -741,6 +741,18 @@ describe('ProjectGroups', () => {
       expect(repoRow('lost')).toBeNull()
     })
 
+    it('draws a child whose parent folder is missing as a group of its own', async () => {
+      serve({ '/api/v1/p/cezar/runs': [] })
+      renderGroups([
+        project(),
+        project({ id: 'gone', name: 'gone', status: 'missing', lastOpenedAt: '2026-07-19T00:00:00.000Z' }),
+        project({ id: 'kid', name: 'kid', parent: 'gone' }),
+      ])
+      await waitFor(() => expect(group('kid')).not.toBeNull())
+      expect(repoRow('kid')).toBeNull()
+      expect(group('gone').getAttribute('data-status')).toBe('missing')
+    })
+
     it('reorders only top-level groups', async () => {
       serve({ '/api/v1/p/cezar/runs': [] })
       renderGroups(nested())

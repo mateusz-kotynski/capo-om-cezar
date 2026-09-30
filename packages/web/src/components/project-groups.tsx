@@ -147,11 +147,13 @@ export function ProjectGroups({
   // the user reads an all-projects table says the page is about that project when it is not.
   const scopedProjectId = pathnameProjectId(pathname)
   // Nested repositories (spec 2026-09-29-nested-repo-projects) are drawn inside their parent's
-  // group, never as groups of their own. The server already drops a parent that is no longer
-  // registered; checking again here means a stale list can never make a project vanish — an
-  // orphan is simply a group.
+  // group, never as groups of their own — but only under a listed parent that is not `missing`.
+  // A missing parent renders as an inert row with no body, so nesting under it would hide a
+  // healthy child; and the server already drops a parent that is no longer registered, so
+  // checking again means a stale list can never make a project vanish. Such a child (like an
+  // orphan) is simply a group.
   const { topLevel, childrenOf } = React.useMemo(() => {
-    const ids = new Set(projects.map((entry) => entry.id))
+    const ids = new Set(projects.filter((entry) => entry.status !== 'missing').map((entry) => entry.id))
     const children = new Map<string, ProjectListEntry[]>()
     const tops: ProjectListEntry[] = []
     for (const entry of projects) {
@@ -164,9 +166,13 @@ export function ProjectGroups({
     for (const list of children.values()) list.sort((a, b) => a.name.localeCompare(b.name))
     return { topLevel: tops, childrenOf: children }
   }, [projects])
-  // Standing in a nested repository keeps its parent's group open.
+  // Standing in a nested repository keeps its parent's group open — only when it is actually
+  // nested, i.e. drawn inside a parent group rather than as a group of its own.
   const groupScopeId =
-    projects.find((entry) => entry.id === scopedProjectId)?.parent ?? scopedProjectId
+    topLevel.some((entry) => entry.id === scopedProjectId) ||
+    !projects.some((entry) => entry.id === scopedProjectId)
+      ? scopedProjectId
+      : (projects.find((entry) => entry.id === scopedProjectId)?.parent ?? scopedProjectId)
   // Collapse defaults are a different question ("which group opens when you have never touched
   // one?") and still want a project, so they keep the boot fallback: landing on a global page
   // must not fold the whole sidebar shut.
